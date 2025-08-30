@@ -226,7 +226,7 @@ Configuraciones propias de la aplicación web.
 -   [ ] Implementar el control automático de luces desde la webapp.
 -   [ ] Añadir un esquema del circuito electrónico.
 -   [ ] Función para exportar e importar la configuración completa del coche.
--   [ ] ¡Añadir fotos y vídeos del coche en acción!
+-   [ ] ¡Añadir fotos y vídeos del auto en acción!
 
 ## 🙏 Agradecimientos
 
