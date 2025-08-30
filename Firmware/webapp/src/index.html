@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="appTitle">ESPRC Command Center</title>
+    <link rel="icon" href="data:,">
+
+    <!-- Los estilos se insertarán aquí directamente por Gulp -->
+    <link rel="stylesheet" href="style.css" inline>
+</head>
+
+<body>
+    <!-- ====== Menú Lateral Ocultable ====== -->
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <h2 data-i18n="menu">Menu</h2>
+        </div>
+        <ul class="menu-links">
+            <li>
+                <button class="menu-link active" data-tab="joystick-a">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="24" viewBox="0 0 16 16">
+                        <g fill="currentColor">
+                            <path
+                                d="M10 2a2 2 0 0 1-1.5 1.937v5.087c.863.083 1.5.377 1.5.726c0 .414-.895.75-2 .75s-2-.336-2-.75c0-.35.637-.643 1.5-.726V3.937A2 2 0 1 1 10 2z" />
+                            <path
+                                d="M0 9.665v1.717a1 1 0 0 0 .553.894l6.553 3.277a2 2 0 0 0 1.788 0l6.553-3.277a1 1 0 0 0 .553-.894V9.665c0-.1-.06-.19-.152-.23L9.5 6.715v.993l5.227 2.178a.125.125 0 0 1 .001.23l-5.94 2.546a2 2 0 0 1-1.576 0l-5.94-2.546a.125.125 0 0 1 .001-.23L6.5 7.708l-.013-.988L.152 9.435a.25.25 0 0 0-.152.23z" />
+                        </g>
+                    </svg>
+                    <span data-i18n="joystickA">JoyStick A</span>
+                </button>
+            </li>
+            <li>
+                <button class="menu-link" data-tab="joystick-b">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                        <path fill="currentColor"
+                            d="M22 8.65A5 5 0 0 0 17 4H7a5 5 0 0 0-5 4.74A2 2 0 0 0 2 9v7.5A3.48 3.48 0 0 0 5.5 20c1.43 0 2.32-1.06 3.19-2.09c.32-.37.65-.76 1-1.1a4.81 4.81 0 0 1 1.54-.75a6.61 6.61 0 0 1 1.54 0a4.81 4.81 0 0 1 1.54.75c.35.34.68.73 1 1.1c.87 1 1.76 2.09 3.19 2.09a3.48 3.48 0 0 0 3.5-3.5V9a2.09 2.09 0 0 0 0-.26zm-2 7.85a1.5 1.5 0 0 1-1.5 1.5c-.5 0-1-.64-1.66-1.38c-.34-.39-.72-.85-1.15-1.26a6.68 6.68 0 0 0-2.46-1.25a6.93 6.93 0 0 0-2.46 0a6.68 6.68 0 0 0-2.46 1.25c-.43.41-.81.87-1.15 1.26C6.54 17.36 6 18 5.5 18A1.5 1.5 0 0 1 4 16.5V9a.77.77 0 0 0 0-.15A3 3 0 0 1 7 6h10a3 3 0 0 1 3 2.72v.12A.86.86 0 0 0 20 9z" />
+                        <circle cx="16" cy="12" r="1" fill="currentColor" />
+                        <circle cx="18" cy="10" r="1" fill="currentColor" />
+                        <circle cx="16" cy="8" r="1" fill="currentColor" />
+                        <circle cx="14" cy="10" r="1" fill="currentColor" />
+                        <circle cx="8" cy="10" r="2" fill="currentColor" />
+                    </svg>
+                    <span data-i18n="joystickB">JoyStick B</span>
+                </button>
+            </li>
+            <li>
+                <button class="menu-link" data-tab="conexion">
+                    <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M0 7L1.17157 5.82843C2.98259 4.01741 5.43884 3 8 3C10.5612 3 13.0174 4.01742 14.8284 5.82843L16 7L14.5858 8.41421L13.4142 7.24264C11.9783 5.8067 10.0307 5 8 5C5.96928 5 4.02173 5.8067 2.58579 7.24264L1.41421 8.41421L0 7Z"
+                            fill="currentColor" />
+                        <path
+                            d="M4.24264 11.2426L2.82843 9.82843L4 8.65685C5.06086 7.59599 6.49971 7 8 7C9.50029 7 10.9391 7.59599 12 8.65686L13.1716 9.82843L11.7574 11.2426L10.5858 10.0711C9.89999 9.38527 8.96986 9 8 9C7.03014 9 6.1 9.38527 5.41421 10.0711L4.24264 11.2426Z"
+                            fill="currentColor" />
+                        <path
+                            d="M8 15L5.65685 12.6569L6.82842 11.4853C7.13914 11.1746 7.56057 11 8 11C8.43942 11 8.86085 11.1746 9.17157 11.4853L10.3431 12.6569L8 15Z"
+                            fill="currentColor" />
+                    </svg>
+                    <span data-i18n="connection">Connection</span>
+                </button>
+            </li>
+            <li>
+                <button class="menu-link" data-tab="config">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                        <path fill="currentColor"
+                            d="M20.96 16.45c.01-.15.04-.3.04-.45v.5l-.04-.05M11 16c0 .71.15 1.39.42 2H6v1c0 .55-.45 1-1 1H4c-.55 0-1-.45-1-1v-8l2.08-6c.2-.58.76-1 1.42-1h11c.66 0 1.22.42 1.42 1L21 11v5c0-2.76-2.24-5-5-5s-5 2.24-5 5m-3-2.5c0-.83-.67-1.5-1.5-1.5S5 12.67 5 13.5S5.67 15 6.5 15S8 14.33 8 13.5M19 10l-1.5-4.5h-11L5 10h14m3.87 11.19l-4.11-4.11c.41-1.04.18-2.26-.68-3.11c-.9-.91-2.25-1.09-3.34-.59l1.94 1.94l-1.35 1.36l-1.99-1.95c-.54 1.09-.29 2.44.59 3.35a2.91 2.91 0 0 0 3.12.68l4.11 4.1c.18.19.45.19.63 0l1.04-1.03c.22-.18.22-.5.04-.64Z" />
+                    </svg>
+                    <span data-i18n="carConfig">Car Config</span>
+                </button>
+            </li>
+            <li>
+                <button class="menu-link" data-tab="led-config">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                        <path fill="currentColor"
+                            d="M12 3.75c2.928 0 5.25 2.275 5.25 5.02c0 1.71-.44 2.581-.998 3.373q-.19.266-.417.56c-.524.685-1.154 1.51-1.601 2.699a3.5 3.5 0 0 1-.353.698l-.056.08a3 3 0 0 1-.42.482c-.406.372-.894.588-1.405.588c-.51 0-.999-.216-1.406-.588a3 3 0 0 1-.42-.483l-.055-.08a3.5 3.5 0 0 1-.353-.697c-.447-1.19-1.077-2.014-1.601-2.7a18 18 0 0 1-.417-.56c-.557-.79-.998-1.662-.998-3.373C6.75 6.025 9.073 3.75 12 3.75m3.167 13.119c.192-.3.35-.617.471-.94c.362-.963.818-1.562 1.318-2.217c.17-.223.345-.453.523-.706c.71-1.008 1.271-2.175 1.271-4.237c0-3.628-3.05-6.519-6.75-6.519S5.25 5.141 5.25 8.77c0 2.06.561 3.228 1.271 4.236c.178.253.353.483.523.706c.5.655.956 1.254 1.318 2.217c.121.323.28.64.471.94l.222 2.216a2.96 2.96 0 0 0 5.89 0zm-1.66 1.53l-.054.536a1.46 1.46 0 0 1-2.906 0l-.053-.536c.45.222.955.351 1.506.351c.55 0 1.056-.13 1.506-.351M2.423 3.019a.75.75 0 0 1 1.056-.095l1.5 1.25a.75.75 0 0 1-.96 1.152l-1.5-1.25a.75.75 0 0 1-.096-1.056m19.152 0a.75.75 0 0 1-.096 1.057l-1.5 1.25a.75.75 0 1 1-.96-1.152l1.5-1.25a.75.75 0 0 1 1.056.096M1.25 8.25A.75.75 0 0 1 2 7.5h2A.75.75 0 0 1 4 9H2a.75.75 0 0 1-.75-.75m18 0A.75.75 0 0 1 20 7.5h2A.75.75 0 0 1 22 9h-2a.75.75 0 0 1-.75-.75M5.17 11.915a.75.75 0 0 1-.335 1.006l-1.5.75a.75.75 0 1 1-.67-1.342l1.5-.75a.75.75 0 0 1 1.006.336m13.66 0a.75.75 0 0 1 1.005-.336l1.5.75a.75.75 0 1 1-.67 1.342l-1.5-.75a.75.75 0 0 1-.336-1.006" />
+                    </svg>
+                    <span data-i18n="ledConfig">LED Config</span>
+                </button>
+            </li>
+            <li>
+                <button class="menu-link" data-tab="manage">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"
+                        fill="currentColor">
+                        <path d="M0 0h24v24H0V0z" fill="none" />
+                        <path
+                            d="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z" />
+                    </svg>
+                    <span data-i18n="espManage">ESP32 Manage</span>
+                </button>
+            </li>
+            <li style="display: none;">
+                <button class="menu-link" data-tab="cam">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"
+                        fill="currentColor">
+                        <path d="M0 0h24v24H0V0z" fill="none" />
+                        <path
+                            d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+                    </svg>
+                    <span data-i18n="camera">Camera</span>
+                </button>
+            </li>
+            <li>
+                <button class="menu-link" data-tab="settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 26 26">
+                        <path
+                            d="m11.469.969l-.563 3.562A8.704 8.704 0 0 0 8.5 5.5L5.562 3.406L3.438 5.531L5.5 8.47a8.767 8.767 0 0 0-1 2.406l-3.531.594v3l3.531.625a8.683 8.683 0 0 0 1 2.406l-2.094 2.938l2.125 2.125L8.47 20.5a8.717 8.717 0 0 0 2.406.969l.594 3.562h3l.656-3.562a8.627 8.627 0 0 0 2.375-1l2.969 2.093l2.125-2.125L20.47 17.5c.438-.73.79-1.526 1-2.375l3.562-.656v-3l-3.562-.594a8.746 8.746 0 0 0-1-2.375l2.093-2.969l-2.125-2.125L17.5 5.531a8.767 8.767 0 0 0-2.406-1L14.469.97h-3zM13 6.469A6.535 6.535 0 0 1 19.531 13A6.535 6.535 0 0 1 13 19.531A6.536 6.536 0 0 1 6.469 13A6.536 6.536 0 0 1 13 6.469zm0 1.593A4.949 4.949 0 0 0 8.062 13A4.949 4.949 0 0 0 13 17.938A4.949 4.949 0 0 0 17.938 13A4.949 4.949 0 0 0 13 8.062zm-.031 2.876c1.146 0 2.094.915 2.094 2.062c0 1.146-.948 2.063-2.094 2.063A2.054 2.054 0 0 1 10.906 13c0-1.147.917-2.063 2.063-2.063z" />
+                    </svg>
+                    <span data-i18n="settings">Settings</span>
+                </button>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="main-wrapper">
+        <!-- ====== Cabecera de la Aplicación ====== -->
+        <header>
+            <button id="menu-toggle">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="currentColor">
+                    <path d="M0 0h24v24H0V0z" fill="none" />
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+                </svg>
+            </button>
+            <h1 data-i18n="appTitle">ESPRC Command Center</h1>
+            <div class="header-controls">
+                <!-- Controles movidos a la pestaña de Ajustes -->
+            </div>
+        </header>
+
+        <!-- ====== Contenido Principal ====== -->
+        <main>
+            <!-- Pestaña 1: Joystick Unificado -->
+            <div id="joystick-a" class="tab-content active">
+                <div class="joystick-layout-single">
+                    <div class="joystick-container">
+                        <div id="joy1Div"></div>
+                    </div>
+                    <div class="joystick-info-card">
+                        <h2 data-i18n="controls">CONTROLS</h2>
+                        <div class="circular-controls">
+                            <button class="icon-toggle control-btn-up" id="headlights-btn-a" data-tooltip-key="headlights"></button>
+                            <button class="icon-toggle control-btn-left" id="turn-left-btn-a" data-tooltip-key="turnLeft"></button>
+                            <button class="icon-toggle control-btn-center" id="hazard-btn-a" data-tooltip-key="hazardLights"></button>
+                            <button class="icon-toggle control-btn-right" id="turn-right-btn-a" data-tooltip-key="turnRight"></button>
+                            <button class="icon-toggle" id="swap-layout-btn-a" data-tooltip-key="swapLayout"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pestaña 2: Joysticks Separados (Estilo Tanque) -->
+            <div id="joystick-b" class="tab-content">
+                <div class="joystick-layout-split">
+                    <div class="joystick-container">
+                        <div id="joy2ADiv"></div>
+                    </div>
+                    <div class="joystick-info-card">
+                        <h2 data-i18n="controls">CONTROLS</h2>
+                        <div class="control-group">
+                            <button class="icon-toggle" id="acelIzq" data-tooltip-key="throttleOnLeft"></button>
+                        </div>
+                        <div class="circular-controls">
+                            <button class="icon-toggle control-btn-up" id="headlights-btn-b" data-tooltip-key="headlights"></button>
+                            <button class="icon-toggle control-btn-left" id="turn-left-btn-b" data-tooltip-key="turnLeft"></button>
+                            <button class="icon-toggle control-btn-center" id="hazard-btn-b" data-tooltip-key="hazardLights"></button>
+                            <button class="icon-toggle control-btn-right" id="turn-right-btn-b" data-tooltip-key="turnRight"></button>
+                        </div>
+                    </div>
+                    <div class="joystick-container">
+                        <div id="joy2BDiv"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pestaña 3: Configuración de Conexión Wi-Fi -->
+            <div id="conexion" class="tab-content">
+                <h2 data-i18n="connectionSettings">Connection Settings</h2>
+                <div class="settings-section">
+                    <h3 data-i18n="networkAddresses">Network Addresses</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="ip" data-i18n="ipAddress">IP Address</label>
+                            <input type="text" id="ip" readonly>
+                        </div>
+                       <!--  <div class="form-group">
+                            <label for="camIP" data-i18n="cameraIP">Camera IP</label>
+                            <input type="text" id="camIP" readonly>
+                        </div> -->
+                        <div class="form-group">
+                            <label for="urlWS" data-i18n="websocketURL">WebSocket URL</label>
+                            <input type="text" id="urlWS">
+                        </div>
+                        <div class="form-group">
+                            <label for="urlAPI" data-i18n="apiURL">API URL</label>
+                            <input type="text" id="urlAPI">
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3 data-i18n="wifiConfig">WiFi Configuration</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label data-i18n="wifiMode">WiFi Mode</label>
+                            <div class="radio-group">
+                                <input type="radio" id="cliMode" name="wifiMode" value="CLI">
+                                <label for="cliMode" data-i18n="client">Client</label>
+                                <input type="radio" id="apMode" name="wifiMode" value="AP">
+                                <label for="apMode" data-i18n="accessPoint">Access Point</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="wifiName" data-i18n="wifiSSID">WiFi SSID</label>
+                            <input type="text" id="wifiName">
+                        </div>
+                        <div class="form-group">
+                            <label for="wifiPass" data-i18n="wifiPassword">WiFi Password</label>
+                            <input type="password" id="wifiPass">
+                        </div>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button id="getWifiConfigBtn" data-i18n="refresh">Refresh</button>
+                    <button id="saveWifiConfigBtn" data-i18n="save">Save</button>
+                    <button id="wsReconnectBtn" data-i18n="reconnectWS">Reconnect WS</button>
+                </div>
+            </div>
+
+            <!-- Pestaña 4: Configuración de los Parámetros del Auto -->
+            <div id="config" class="tab-content">
+                <h2 data-i18n="carConfiguration">Car Configuration</h2>
+                <div class="settings-section">
+                    <h3 data-i18n="throttleSettings">Throttle Settings</h3>
+                    <div class="form-grid">
+                        <div class="form-group slider-group">
+                            <label for="motorMaxSpeed"><span data-i18n="maxSpeed">Max Speed</span>: <span
+                                    id="motorMaxSpeedValue">200</span></label>
+                            <input type="range" value="200" min="0" max="255" id="motorMaxSpeed">
+                        </div>
+                        <div class="form-group slider-group">
+                            <label for="motorMinSpeed"><span data-i18n="minSpeed">Min Speed</span>: <span
+                                    id="motorMinSpeedValue">55</span></label>
+                            <input type="range" value="55" min="0" max="255" id="motorMinSpeed">
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3 data-i18n="steeringSettings">Steering Settings</h3>
+                    <div class="form-grid">
+                        <div class="form-group slider-group">
+                            <label for="servoCenterDeg"><span data-i18n="alignment">Alignment</span>: <span
+                                    id="servoCenterDegValue">95</span></label>
+                            <input type="range" value="95" min="0" max="180" id="servoCenterDeg">
+                        </div>
+                        <div class="form-group slider-group">
+                            <label for="servoLimitLDeg"><span data-i18n="leftTurnLimit">Left Turn Limit</span>: <span
+                                    id="servoLimitLDegValue">35</span></label>
+                            <input type="range" value="35" min="0" max="90" id="servoLimitLDeg">
+                        </div>
+                        <div class="form-group slider-group">
+                            <label for="servoLimitRDeg"><span data-i18n="rightTurnLimit">Right Turn Limit</span>: <span
+                                    id="servoLimitRDegValue">35</span></label>
+                            <input type="range" value="35" min="0" max="90" id="servoLimitRDeg">
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3 data-i18n="otherSettings">Other Settings</h3>
+                    <div class="control-group">
+                        <span data-i18n="enableBluetooth">Enable Bluetooth</span>
+                        <input class="toggle" id="enableScan" type="checkbox" data-tooltip-key="enableBluetooth" />
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button id="getConfigBtn" data-i18n="refresh">Refresh</button>
+                    <button id="saveConfigBtn" data-i18n="save">Save</button>
+                </div>
+            </div>
+
+            <!-- Pestaña 5: Configuración de LEDs -->
+            <div id="led-config" class="tab-content">
+                <h2 data-i18n="ledConfiguration">LED Configuration</h2>
+                <div class="form-grid led-config-grid">
+                    <div class="form-group">
+                        <label for="total_leds" data-i18n="totalLeds">Total LEDs in Strip</label>
+                        <input type="number" id="total_leds" value="12" min="1">
+                    </div>
+                    <div class="button-group led-main-buttons">
+                        <button id="add-led-group" data-i18n="addGroup">Add Group</button>
+                        <button class="secondary" id="exportLedConfigBtn" data-i18n="export">Export</button>
+                        <button class="secondary" onclick="document.getElementById('import-led-input').click()"
+                            data-i18n="import">Import</button>
+                        <input type="file" id="import-led-input" style="display: none;" accept=".json">
+                        <button id="saveLedConfigBtn" data-i18n="saveLedConfig">Save LED Config</button>
+                    </div>
+                </div>
+
+                <div id="led-groups-container">
+                    <!-- Los grupos de LEDs se generarán dinámicamente aquí -->
+                </div>
+            </div>
+
+            <!-- Pestaña 6: Gestión del Dispositivo ESP32 -->
+            <div id="manage" class="tab-content">
+                <h2 data-i18n="espManagement">ESP32 Management</h2>
+                <div class="control-group">
+                    <label for="clearPreferences" data-i18n="clearNvs">Clear NVS Configuration</label>
+                    <input class="toggle" id="clearPreferences" type="checkbox" />
+                </div>
+                <div class="button-group">
+                    <button id="manageESPBtn" class="danger" data-i18n="restartEsp">Restart ESP32</button>
+                </div>
+            </div>
+
+            <!-- Pestaña 7: Visualización de la Cámara -->
+            <div id="cam" class="tab-content">
+                <div class="cam-container">
+                    <div class="cam-stream">
+                        <img src="" alt="Camera Stream" id="camImg">
+                        <div class="cam-overlay">
+                            <p>FPS: <span id="fps">0</span></p>
+                            <div class="button-group">
+                                <button id="startCamStreamBtn" data-i18n="startStream">Start Stream</button>
+                                <button id="stopCamStreamBtn" data-i18n="stopStream">Stop Stream</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cam-controls">
+                        <h2 data-i18n="cameraSettings">Camera Settings</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="camResolution" data-i18n="resolution">Resolution</label>
+                                <input type="number" id="camResolution">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="camQuality"><span data-i18n="quality">Quality</span>: <span
+                                        id="camQualityValue">20</span></label>
+                                <input type="range" value="20" min="4" max="63" id="camQuality">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="camBright"><span data-i18n="brightness">Brightness</span>: <span
+                                        id="camBrightValue">0</span></label>
+                                <input type="range" value="0" min="-2" max="2" id="camBright">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="camContrast"><span data-i18n="contrast">Contrast</span>: <span
+                                        id="camContrastValue">0</span></label>
+                                <input type="range" value="0" min="-2" max="2" id="camContrast">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="camSaturation"><span data-i18n="saturation">Saturation</span>: <span
+                                        id="camSaturationValue">0</span></label>
+                                <input type="range" value="0" min="-2" max="2" id="camSaturation">
+                            </div>
+                            <div class="form-group">
+                                <label for="camEffect" data-i18n="effect">Effect</label>
+                                <input type="number" id="camEffect">
+                            </div>
+                            <div class="form-group">
+                                <label for="camWBMode" data-i18n="wbMode">WB Mode</label>
+                                <input type="number" id="camWBMode">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="camAELevel"><span data-i18n="aeLevel">AE Level</span>: <span
+                                        id="camAELevelValue">0</span></label>
+                                <input type="range" value="0" min="-2" max="2" id="camAELevel">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="camExpo"><span data-i18n="exposure">Exposure</span>: <span
+                                        id="camExpoValue">0</span></label>
+                                <input type="range" value="0" min="0" max="1200" id="camExpo">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="camAGCGain"><span data-i18n="agcGain">AGC Gain</span>: <span
+                                        id="camAGCGainValue">5</span></label>
+                                <input type="range" value="5" min="1" max="31" id="camAGCGain">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="camGainCeiling"><span data-i18n="gainCeiling">Gain Ceiling</span>: <span
+                                        id="camGainCeilingValue">2</span></label>
+                                <input type="range" value="2" min="2" max="128" id="camGainCeiling">
+                            </div>
+                            <div class="control-group"> <span data-i18n="awb">AWB</span> <button class="icon-toggle"
+                                    id="camAwb" data-tooltip-key="awb"></button> </div>
+                            <div class="control-group"> <span data-i18n="awbGain">AWB Gain</span> <button
+                                    class="icon-toggle" id="camAwbGain" data-tooltip-key="awbGain"></button> </div>
+                            <div class="control-group"> <span data-i18n="aecSensor">AEC Sensor</span> <button
+                                    class="icon-toggle" id="camAECSensor" data-tooltip-key="aecSensor"></button> </div>
+                            <div class="control-group"> <span data-i18n="aecDsp">AEC DSP</span> <button
+                                    class="icon-toggle" id="camAECDSP" data-tooltip-key="aecDsp"></button> </div>
+                            <div class="control-group"> <span data-i18n="agc">AGC</span> <button class="icon-toggle"
+                                    id="camAGC" data-tooltip-key="agc"></button> </div>
+                            <div class="control-group"> <span data-i18n="bpc">BPC</span> <button class="icon-toggle"
+                                    id="camBPC" data-tooltip-key="bpc"></button> </div>
+                            <div class="control-group"> <span data-i18n="wpc">WPC</span> <button class="icon-toggle"
+                                    id="camWPC" data-tooltip-key="wpc"></button> </div>
+                            <div class="control-group"> <span data-i18n="rawGma">RAW GMA</span> <button
+                                    class="icon-toggle" id="camRAWGCMA" data-tooltip-key="rawGma"></button> </div>
+                            <div class="control-group"> <span data-i18n="lensCorrection">Lens Correction</span> <button
+                                    class="icon-toggle" id="camLensCorr" data-tooltip-key="lensCorrection"></button>
+                            </div>
+                            <div class="control-group"> <span data-i18n="hMirror">H-Mirror</span> <button
+                                    class="icon-toggle" id="camHmirror" data-tooltip-key="hMirror"></button> </div>
+                            <div class="control-group"> <span data-i18n="vFlip">V-Flip</span> <button
+                                    class="icon-toggle" id="camVFlip" data-tooltip-key="vFlip"></button> </div>
+                            <div class="control-group"> <span data-i18n="dcw">DCW</span> <button class="icon-toggle"
+                                    id="camDCW" data-tooltip-key="dcw"></button> </div>
+                            <div class="control-group"> <span data-i18n="colorBar">Color Bar</span> <button
+                                    class="icon-toggle" id="camColorBar" data-tooltip-key="colorBar"></button> </div>
+                        </div>
+                        <div class="button-group">
+                            <button id="getCamConfigBtn" data-i18n="getConfig">Get Config</button>
+                            <button id="setCamConfigBtn" data-i18n="setConfig">Set Config</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pestaña 8: Ajustes de la Aplicación -->
+            <div id="settings" class="tab-content">
+                <h2 data-i18n="settingsTitle">Settings</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label data-i18n="language">Language</label>
+                        <div class="language-selector">
+                            <select id="languageSelector">
+                                <option value="en">English</option>
+                                <option value="es">Español</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="theme">Theme</label>
+                        <div class="theme-switch-wrapper">
+                            <em data-i18n="lightMode">Light Mode</em>
+                            <label class="theme-switch" for="lightModeToggle">
+                                <input type="checkbox" id="lightModeToggle" />
+                                <div class="slider round"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <!-- ====== Scripts de la Aplicación ====== -->
+    <!-- La librería del joystick y nuestro script principal se insertarán aquí por Gulp -->
+    <script src="joystick.js" inline></script>
+    <script src="script.js" inline></script>
+</body>
+
+</html>

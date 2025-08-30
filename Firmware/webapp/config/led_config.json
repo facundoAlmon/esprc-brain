@@ -1,0 +1,55 @@
+{
+  "total_leds": 12,
+  "grupos": [
+    {
+      "funcion": 1,
+      "leds": "0,3",
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255
+      },
+      "brillo": 100
+    },
+    {
+      "funcion": 2,
+      "leds": "1,4",
+      "color": {
+        "r": 255,
+        "g": 0,
+        "b": 0
+      },
+      "brillo": 100
+    },
+    {
+      "funcion": 4,
+      "leds": "2,8",
+      "color": {
+        "r": 247,
+        "g": 124,
+        "b": 0
+      },
+      "brillo": 100
+    },
+    {
+      "funcion": 5,
+      "leds": "5,11",
+      "color": {
+        "r": 247,
+        "g": 124,
+        "b": 0
+      },
+      "brillo": 100
+    },
+    {
+      "funcion": 0,
+      "leds": "6-7,9-10",
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 255
+      },
+      "brillo": 100
+    }
+  ]
+}
