@@ -20,24 +20,24 @@ Este no es solo un coche a RC, es una plataforma abierta para que puedas experim
 ### Imágenes
 
 <p align="center">
-  <img src="Imagenes/IMG_3522.jpg" width="48%">
-  <img src="Imagenes/IMG_3511.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_3522.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_3511.jpg" width="48%">
 </p>
 <p align="center">
-  <img src="Imagenes/IMG_3530.jpg" width="48%">
-  <img src="Imagenes/IMG_3536.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_3530.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_3536.jpg" width="48%">
 </p>
 <p align="center">
-  <img src="Imagenes/IMG_3509.jpg" width="48%">
-  <img src="Imagenes/IMG_3506.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_3509.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_3506.jpg" width="48%">
 </p>
 <p align="center">
-  <img src="Imagenes/IMG_3500.jpg" width="48%">
-  <img src="Imagenes/IMG_3550.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_3500.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_3550.jpg" width="48%">
 </p>
 <p align="center">
-  <img src="Imagenes/IMG_20250831_184553978.jpg" width="48%">
-  <img src="Imagenes/IMG_20250831_184553978.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_184553978.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_184553978.jpg" width="48%">
 </p>
 
 ## ✨ Características Principales
@@ -110,7 +110,7 @@ Todos los modelos 3D utilizados para imprimir el chasis y la carrocería del coc
     -   [Node.js y npm](https://nodejs.org/): Para gestionar y compilar la aplicación web. (Solo necesario si se quiere modificar la webapp)
     -   [Git](https://git-scm.com/): Para clonar el repositorio.
 
-### 1. Preparar el Firmware (ESP32)
+### Preparar el Firmware (ESP32)
 
 1.  **Clona el repositorio:**
     Es muy importante usar la opción `--recursive` para descargar también los submódulos necesarios (como Bluepad32).
@@ -138,7 +138,7 @@ Todos los modelos 3D utilizados para imprimir el chasis y la carrocería del coc
     ```
     Este comando flashea el firmware y abre una consola serie para que veas los mensajes de diagnóstico en tiempo real.
 
-### 2. Desarrollo de la WebApp (Opcional)
+### Desarrollo de la WebApp (Opcional)
 
 Si quieres modificar la interfaz web, sigue estos pasos. La webapp usa **Gulp.js** para empaquetar todo el código (HTML, CSS, JS) en un único archivo que se integra en el firmware.
 
@@ -169,83 +169,198 @@ Por defecto, el ESP32 se inicia en **Modo Access Point (AP)**.
 2.  **Abre la interfaz web:** Abre tu navegador y ve a la dirección [http://ecar.local](http://ecar.local) o [http://192.168.4.1](http://192.168.4.1).
 3.  **¡A conducir!** Ya estás en la interfaz de control. Desde la pestaña **"Conexión"**, puedes cambiar al modo Cliente para que el coche se conecte a tu red Wi-Fi local.
 
-### Guía Detallada de la Interfaz Web
+## Guía Detallada de la Interfaz Web
 
 La aplicación web te da un control granular sobre todas las funciones del coche. Se divide en las siguientes pestañas:
 
-#### 🕹️ Joystick A
+  <img src="Imagenes/Webapp/01.png" width="15%">
+
+### 🕹️ Joystick A
+<table>
+<tr>
+<td width="25%" valign="top">
+<img src="Imagenes/Webapp/02.png" width="100%">
+</td>
+<td valign="top">
 Este modo presenta un solo joystick virtual para un control unificado del vehículo.
-- **Controles disponibles:**
-  - **Ubicación del Joystick:** Puedes cambiar la posición del control en la pantalla para mayor comodidad.
-  - **Luces:** Cicla entre los modos de faros (apagado, posición, bajas y altas).
-  - **Intermitentes:** Activa las luces de giro izquierda y derecha.
-  - **Balizas:** Activa las luces de emergencia.
+<ul>
+  <li><strong>Controles disponibles:</strong>
+    <ul>
+      <li><strong>Ubicación del Joystick:</strong> Puedes cambiar la posición del control en la pantalla para mayor comodidad.</li>
+      <li><strong>Luces:</strong> Cicla entre los modos de faros (apagado, posición, bajas y altas).</li>
+      <li><strong>Intermitentes:</strong> Activa las luces de giro izquierda y derecha.</li>
+      <li><strong>Balizas:</strong> Activa las luces de emergencia.</li>
+    </ul>
+  </li>
+</ul>
+</td>
+</tr>
+</table>
 
-#### 🕹️🕹️ Joystick B
+### 🕹️🕹️ Joystick B
+<table width="100%">
+<tr>
+<td width="40%" valign="top">
+<img src="Imagenes/Webapp/03.png" width="100%">
+</td>
+<td valign="top">
 Este modo ofrece dos joysticks virtuales para un manejo independiente de la aceleración y la dirección, similar a un tanque.
-- **Controles disponibles:**
-  - **Joystick de Dirección:** Controla el servo de giro.
-  - **Joystick de Aceleración:** Controla la velocidad y el sentido de los motores.
-  - **Invertir Joysticks:** Intercambia la posición de los joysticks en pantalla.
-  - **Controles de Luces:** Idénticos a los del Joystick A (faros, intermitentes, balizas).
+<ul>
+  <li><strong>Controles disponibles:</strong>
+    <ul>
+      <li><strong>Joystick de Dirección:</strong> Controla el servo de giro.</li>
+      <li><strong>Joystick de Aceleración:</strong> Controla la velocidad y el sentido de los motores.</li>
+      <li><strong>Invertir Joysticks:</strong> Intercambia la posición de los joysticks en pantalla.</li>
+      <li><strong>Controles de Luces:</strong> Idénticos a los del Joystick A (faros, intermitentes, balizas).</li>
+    </ul>
+  </li>
+</ul>
+</td>
+</tr>
+</table>
 
-#### 📡 Conexión
+### 📡 Conexión
+<table width="100%">
+<tr>
+<td width="40%" valign="top">
+<img src="Imagenes/Webapp/04.png" width="100%">
+</td>
+<td valign="top">
 Aquí puedes configurar todo lo relacionado con la conectividad del ESP32.
-- **Direcciones de Red:**
-  - **Dirección IP:** Muestra la IP actual del ESP32.
-  - **URL de WebSocket:** Dirección para la comunicación en tiempo real (control de movimiento). Puedes cambiarla para desarrollo local sin necesidad de guardar. Requiere pulsar `Reconectar Websocket`.
-  - **URL de API:** Dirección para comandos y configuraciones. También se puede cambiar para desarrollo local.
-- **Configuración Wi-Fi:**
-  - **Modo Wi-Fi:** Elige cómo se conecta el ESP32.
-    - **Punto de Acceso (AP):** El ESP32 crea su propia red Wi-Fi. Ideal para uso en exteriores.
-    - **Cliente:** El ESP32 se conecta a una red Wi-Fi existente.
-- **Acciones:**
-  - **Actualizar:** Obtiene la configuración actual desde el ESP32.
-  - **Guardar:** Almacena los cambios de configuración en el ESP32.
-  - **Reconectar Websocket:** Reinicia la conexión de control en tiempo real.
+<ul>
+  <li><strong>Direcciones de Red:</strong>
+    <ul>
+      <li><strong>Dirección IP:</strong> Muestra la IP actual del ESP32.</li>
+      <li><strong>URL de WebSocket:</strong> Dirección para la comunicación en tiempo real (control de movimiento). Puedes cambiarla para desarrollo local sin necesidad de guardar. Requiere pulsar `Reconectar Websocket`.</li>
+      <li><strong>URL de API:</strong> Dirección para comandos y configuraciones. También se puede cambiar para desarrollo local.</li>
+    </ul>
+  </li>
+  <li><strong>Configuración Wi-Fi:</strong>
+    <ul>
+      <li><strong>Modo Wi-Fi:</strong> Elige cómo se conecta el ESP32.
+        <ul>
+          <li><strong>Punto de Acceso (AP):</strong> El ESP32 crea su propia red Wi-Fi. Ideal para uso en exteriores.</li>
+          <li><strong>Cliente:</strong> El ESP32 se conecta a una red Wi-Fi existente.</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><strong>Acciones:</strong>
+    <ul>
+      <li><strong>Actualizar:</strong> Obtiene la configuración actual desde el ESP32.</li>
+      <li><strong>Guardar:</strong> Almacena los cambios de configuración en el ESP32.</li>
+      <li><strong>Reconectar Websocket:</strong> Reinicia la conexión de control en tiempo real.</li>
+    </ul>
+  </li>
+</ul>
+</td>
+</tr>
+</table>
 
-#### 🚗 Configuración del Auto
+### 🚗 Configuración del Auto
+<table width="100%">
+<tr>
+<td width="40%" valign="top">
+<img src="Imagenes/Webapp/05.png" width="100%">
+</td>
+<td valign="top">
 En esta sección se ajustan los parámetros físicos del coche.
-- **Ajustes de Aceleración:**
-  - **Velocidad Máxima:** Limita la potencia máxima de los motores DC.
-  - **Velocidad Mínima:** Define la potencia mínima para que los motores empiecen a moverse.
-- **Ajustes de Dirección:**
-  - **Alineación:** Calibra el punto central del servo de dirección.
-  - **Límite Giro Izquierdo:** Establece el ángulo máximo de giro a la izquierda.
-  - **Límite Giro Derecho:** Establece el ángulo máximo de giro a la derecha.
-- **Bluetooth:**
-  - **Habilitar Bluetooth:** Activa el modo de emparejamiento para conectar un nuevo joystick.
-  - **¡Atención!** El Bluetooth se deshabilita por defecto al iniciar en modo AP para evitar conflictos.
+<ul>
+  <li><strong>Ajustes de Aceleración:</strong>
+    <ul>
+      <li><strong>Velocidad Máxima:</strong> Limita la potencia máxima de los motores DC.</li>
+      <li><strong>Velocidad Mínima:</strong> Define la potencia mínima para que los motores empiecen a moverse.</li>
+    </ul>
+  </li>
+  <li><strong>Ajustes de Dirección:</strong>
+    <ul>
+      <li><strong>Alineación:</strong> Calibra el punto central del servo de dirección.</li>
+      <li><strong>Límite Giro Izquierdo:</strong> Establece el ángulo máximo de giro a la izquierda.</li>
+      <li><strong>Límite Giro Derecho:</strong> Establece el ángulo máximo de giro a la derecha.</li>
+    </ul>
+  </li>
+  <li><strong>Bluetooth:</strong>
+    <ul>
+      <li><strong>Habilitar Bluetooth:</strong> Activa el modo de emparejamiento para conectar un nuevo joystick.</li>
+      <li><strong>¡Atención!</strong> El Bluetooth se deshabilita por defecto al iniciar en modo AP para evitar conflictos.</li>
+    </ul>
+  </li>
+</ul>
+</td>
+</tr>
+</table>
 
-#### 💡 Configuración LED
+### 💡 Configuración LED
+<table width="100%">
+<tr>
+<td width="40%" valign="top">
+<img src="Imagenes/Webapp/06.png" width="100%">
+</td>
+<td valign="top">
 Personaliza el sistema de iluminación de tu coche. Se requieren LEDs direccionables (tipo WS2812B).
-- **Definición de LEDs:**
-  - Primero, especifica la **cantidad total de LEDs** conectados en serie.
-  - Luego, crea **grupos de LEDs** asignándoles una función. Puedes definir los LEDs de un grupo con números separados por comas (ej: `0,1,5`) o rangos (ej: `6-9`), o una combinación (ej: `0,6-7,9-10,12`).
-- **Funciones de los Grupos:**
+<ul>
+  <li><strong>Definición de LEDs:</strong>
+    <ul>
+      <li>Primero, especifica la <strong>cantidad total de LEDs</strong> conectados en serie.</li>
+      <li>Luego, crea <strong>grupos de LEDs</strong> asignándoles una función. Puedes definir los LEDs de un grupo con números separados por comas (ej: `0,1,5`) o rangos (ej: `6-9`), o una combinación (ej: `0,6-7,9-10,12`).</li>
+    </ul>
+  </li>
+  <li><strong>Funciones de los Grupos:</strong>
   Para cada grupo, puedes definir la función, el color y el brillo.
-  - `LUZ POSICION FRONTAL`: Faros delanteros.
-  - `LUZ POSICION TRASERA`: Faros traseros.
-  - `LUZ DE FRENO`
-  - `LUZ DE MARCHA ATRAS`
-  - `INTERMITENTE IZQUIERDO`
-  - `INTERMITENTE DERECHO`
-  - `LUZ INTERIOR`
-  - `LUZ BAJOS` (Efecto neón)
-- **Comportamiento Actual:**
-  - Las luces de posición, interior y bajos se activan con el botón de faros y tienen 3 niveles de intensidad.
-  - Los intermitentes se activan tanto al girar como con las balizas.
-  - La luz de marcha atrás aún no está implementada.
+    <ul>
+      <li>`LUZ POSICION FRONTAL`: Faros delanteros.</li>
+      <li>`LUZ POSICION TRASERA`: Faros traseros.</li>
+      <li>`LUZ DE FRENO`</li>
+      <li>`LUZ DE MARCHA ATRAS`</li>
+      <li>`INTERMITENTE IZQUIERDO`</li>
+      <li>`INTERMITENTE DERECHO`</li>
+      <li>`LUZ INTERIOR`</li>
+      <li>`LUZ BAJOS` (Efecto neón)</li>
+    </ul>
+  </li>
+  <li><strong>Comportamiento Actual:</strong>
+    <ul>
+      <li>Las luces de posición, interior y bajos se activan con el botón de faros y tienen 3 niveles de intensidad.</li>
+      <li>Los intermitentes se activan tanto al girar como con las balizas.</li>
+      <li>La luz de marcha atrás aún no está implementada.</li>
+    </ul>
+  </li>
+</ul>
+</td>
+</tr>
+</table>
 
-#### ⚙️ Administración ESP32
+### ⚙️ Administración ESP32
+<table width="100%">
+<tr>
+<td width="25%" valign="top">
+<img src="Imagenes/Webapp/07.png" width="100%">
+</td>
+<td valign="top">
 Tareas de mantenimiento del microcontrolador.
-- **Reiniciar ESP32:** Realiza un reinicio por software.
-- **Limpiar Configuración (Hard Reset):** Borra toda la configuración guardada y la restaura a los valores por defecto.
+<ul>
+  <li><strong>Reiniciar ESP32:</strong> Realiza un reinicio por software.</li>
+  <li><strong>Limpiar Configuración (Hard Reset):</strong> Borra toda la configuración guardada y la restaura a los valores por defecto.</li>
+</ul>
+</td>
+</tr>
+</table>
 
-#### 🔧 Ajustes
+### 🔧 Ajustes
+<table width="100%">
+<tr>
+<td width="25%" valign="top">
+<img src="Imagenes/Webapp/08.png" width="100%">
+</td>
+<td valign="top">
 Configuraciones propias de la aplicación web.
-- **Idioma:** Cambia el idioma de la interfaz.
-- **Apariencia:** Elige entre el modo claro y el modo oscuro.
+<ul>
+  <li><strong>Idioma:</strong> Cambia el idioma de la interfaz.</li>
+  <li><strong>Apariencia:</strong> Elige entre el modo claro y el modo oscuro.</li>
+</ul>
+</td>
+</tr>
+</table>
 
 ## 🤝 ¿Quieres Contribuir?
 
