@@ -4,6 +4,42 @@
 
 Este no es solo un coche a RC, es una plataforma abierta para que puedas experimentar, aprender y, sobre todo, ¡divertirte a lo grande!
 
+## 🎬 Galería del Proyecto
+
+### Videos
+
+<p align="center">
+<a href="https://www.youtube.com/watch?v=_Qa1ab6sNVU">
+<img src="https://img.youtube.com/vi/_Qa1ab6sNVU/0.jpg" alt="Demostracion de funcionamiento y control" width="48%">
+</a>
+<a href="https://www.youtube.com/watch?v=7CDSC2cwirc">
+<img src="https://img.youtube.com/vi/7CDSC2cwirc/0.jpg" alt="Control del auto con joystick de PS4" width="48%">
+</a>
+</p>
+
+### Imágenes
+
+<p align="center">
+  <img src="Imagenes/IMG_3522.jpg" width="48%">
+  <img src="Imagenes/IMG_3511.jpg" width="48%">
+</p>
+<p align="center">
+  <img src="Imagenes/IMG_3530.jpg" width="48%">
+  <img src="Imagenes/IMG_3536.jpg" width="48%">
+</p>
+<p align="center">
+  <img src="Imagenes/IMG_3509.jpg" width="48%">
+  <img src="Imagenes/IMG_3506.jpg" width="48%">
+</p>
+<p align="center">
+  <img src="Imagenes/IMG_3500.jpg" width="48%">
+  <img src="Imagenes/IMG_3550.jpg" width="48%">
+</p>
+<p align="center">
+  <img src="Imagenes/IMG_20250831_184553978.jpg" width="48%">
+  <img src="Imagenes/IMG_20250831_184553978.jpg" width="48%">
+</p>
+
 ## ✨ Características Principales
 
 -   **Control Total:**
@@ -226,7 +262,8 @@ Configuraciones propias de la aplicación web.
 -   [ ] Implementar el control automático de luces desde la webapp.
 -   [ ] Agregar un esquema del circuito electrónico.
 -   [ ] Función para exportar e importar la configuración completa del coche.
--   [ ] Agregar fotos y vídeos del auto en acción!
+
+
 
 ## 🙏 Agradecimientos
 
