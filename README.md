@@ -169,6 +169,15 @@ Por defecto, el ESP32 se inicia en **Modo Access Point (AP)**.
 2.  **Abre la interfaz web:** Abre tu navegador y ve a la dirección [http://ecar.local](http://ecar.local) o [http://192.168.4.1](http://192.168.4.1).
 3.  **¡A conducir!** Ya estás en la interfaz de control. Desde la pestaña **"Conexión"**, puedes cambiar al modo Cliente para que el coche se conecte a tu red Wi-Fi local.
 
+### Conexion de Joystick Bluetooth
+
+1. Poner el joystick en modo pairing
+2. Asegurarse de tener el bluetooth activado en la seccion de **Configuración del Auto**
+3. El ESP32 se conectara automaticamente al joystick
+
+#### Layout
+  <img src="Imagenes/Joystick.png" width="90%">
+
 ## Guía Detallada de la Interfaz Web
 
 La aplicación web te da un control granular sobre todas las funciones del coche. Se divide en las siguientes pestañas:
