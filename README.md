@@ -20,7 +20,7 @@ Este no es solo un coche a RC, es una plataforma abierta para que puedas experim
 ### Imágenes
 
 <p align="center">
-  <img src="Imagenes/Auto/IMG_3522.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_3500.jpg" width="48%">
   <img src="Imagenes/Auto/IMG_3511.jpg" width="48%">
 </p>
 <p align="center">
@@ -32,7 +32,7 @@ Este no es solo un coche a RC, es una plataforma abierta para que puedas experim
   <img src="Imagenes/Auto/IMG_3506.jpg" width="48%">
 </p>
 <p align="center">
-  <img src="Imagenes/Auto/IMG_3500.jpg" width="48%">
+  <img src="Imagenes/Auto/IMG_3522.jpg" width="48%">
   <img src="Imagenes/Auto/IMG_3550.jpg" width="48%">
 </p>
 <p align="center">
