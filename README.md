@@ -1,6 +1,10 @@
+<div align="right">
+<span>Español | <a href="README.en.md">English</a></span>
+</div>
+
 # 🚗 ESP-RC Brain: El Cerebro de Código Abierto para tu Coche RC
 
-¡Te damos la bienvenida al repositorio de ESP-RC Brain! Este proyecto es el corazón de un coche a radiocontrol inteligente, construido sobre un potente microcontrolador ESP32. Aquí encontrarás todo lo necesario para dar vida a tu propio vehículo: el firmware, los modelos 3D y una increíble aplicación web para que tomes el control desde cualquier navegador.
+¡Te damos la bienvenida al repositorio de ESP-RC Brain! Este proyecto es el cerebro de un coche a radiocontrol inteligente, construido sobre un potente microcontrolador ESP32. Aquí encontrarás todo lo necesario para dar vida a tu propio vehículo: el firmware, los modelos 3D y una increíble aplicación web para que tomes el control desde cualquier navegador.
 
 Este no es solo un coche a RC, es una plataforma abierta para que puedas experimentar, aprender y, sobre todo, ¡divertirte a lo grande!
 
