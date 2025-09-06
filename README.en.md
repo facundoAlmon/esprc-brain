@@ -180,19 +180,19 @@ By default, the ESP32 starts in **Access Point (AP) Mode**.
 3. The ESP32 will automatically connect to the joystick
 
 #### Layout
-  <img src="Imagenes/Joystick.png" width="90%">
+  <img src="Imagenes/Joystick-en.png" width="90%">
 
 ## Detailed Guide to the Web Interface
 
 The web application gives you granular control over all the car's functions. It is divided into the following tabs:
 
-  <img src="Imagenes/Webapp/01.png" width="15%">
+  <img src="Imagenes/Webapp/en/01.png" width="15%">
 
 ### 🕹️ Joystick A
 <table>
 <tr>
 <td width="25%" valign="top">
-<img src="Imagenes/Webapp/02.png" width="100%">
+<img src="Imagenes/Webapp/en/02.png" width="100%">
 </td>
 <td valign="top">
 This mode presents a single virtual joystick for unified control of the vehicle.
@@ -214,7 +214,7 @@ This mode presents a single virtual joystick for unified control of the vehicle.
 <table width="100%">
 <tr>
 <td width="40%" valign="top">
-<img src="Imagenes/Webapp/03.png" width="100%">
+<img src="Imagenes/Webapp/en/03.png" width="100%">
 </td>
 <td valign="top">
 This mode offers two virtual joysticks for independent handling of acceleration and steering, similar to a tank.
@@ -236,7 +236,7 @@ This mode offers two virtual joysticks for independent handling of acceleration 
 <table width="100%">
 <tr>
 <td width="40%" valign="top">
-<img src="Imagenes/Webapp/04.png" width="100%">
+<img src="Imagenes/Webapp/en/04.png" width="100%">
 </td>
 <td valign="top">
 Here you can configure everything related to the connectivity of the ESP32.
@@ -274,7 +274,7 @@ Here you can configure everything related to the connectivity of the ESP32.
 <table width="100%">
 <tr>
 <td width="40%" valign="top">
-<img src="Imagenes/Webapp/05.png" width="100%">
+<img src="Imagenes/Webapp/en/05.png" width="100%">
 </td>
 <td valign="top">
 In this section, the physical parameters of the car are adjusted.
@@ -307,7 +307,7 @@ In this section, the physical parameters of the car are adjusted.
 <table width="100%">
 <tr>
 <td width="40%" valign="top">
-<img src="Imagenes/Webapp/06.png" width="100%">
+<img src="Imagenes/Webapp/en/06.png" width="100%">
 </td>
 <td valign="top">
 Customize your car's lighting system. Addressable LEDs (WS2812B type) are required.
@@ -347,7 +347,7 @@ Customize your car's lighting system. Addressable LEDs (WS2812B type) are requir
 <table width="100%">
 <tr>
 <td width="25%" valign="top">
-<img src="Imagenes/Webapp/07.png" width="100%">
+<img src="Imagenes/Webapp/en/07.png" width="100%">
 </td>
 <td valign="top">
 Microcontroller maintenance tasks.
@@ -363,7 +363,7 @@ Microcontroller maintenance tasks.
 <table width="100%">
 <tr>
 <td width="25%" valign="top">
-<img src="Imagenes/Webapp/08.png" width="100%">
+<img src="Imagenes/Webapp/en/08.png" width="100%">
 </td>
 <td valign="top">
 Settings specific to the web application.

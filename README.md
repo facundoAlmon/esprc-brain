@@ -180,19 +180,19 @@ Por defecto, el ESP32 se inicia en **Modo Access Point (AP)**.
 3. El ESP32 se conectara automaticamente al joystick
 
 #### Layout
-  <img src="Imagenes/Joystick.png" width="90%">
+  <img src="Imagenes/Joystick-es.png" width="90%">
 
 ## Guía Detallada de la Interfaz Web
 
 La aplicación web te da un control granular sobre todas las funciones del coche. Se divide en las siguientes pestañas:
 
-  <img src="Imagenes/Webapp/01.png" width="15%">
+  <img src="Imagenes/Webapp/es/01.png" width="15%">
 
 ### 🕹️ Joystick A
 <table>
 <tr>
 <td width="25%" valign="top">
-<img src="Imagenes/Webapp/02.png" width="100%">
+<img src="Imagenes/Webapp/es/02.png" width="100%">
 </td>
 <td valign="top">
 Este modo presenta un solo joystick virtual para un control unificado del vehículo.
@@ -214,7 +214,7 @@ Este modo presenta un solo joystick virtual para un control unificado del vehíc
 <table width="100%">
 <tr>
 <td width="40%" valign="top">
-<img src="Imagenes/Webapp/03.png" width="100%">
+<img src="Imagenes/Webapp/es/03.png" width="100%">
 </td>
 <td valign="top">
 Este modo ofrece dos joysticks virtuales para un manejo independiente de la aceleración y la dirección, similar a un tanque.
@@ -236,7 +236,7 @@ Este modo ofrece dos joysticks virtuales para un manejo independiente de la acel
 <table width="100%">
 <tr>
 <td width="40%" valign="top">
-<img src="Imagenes/Webapp/04.png" width="100%">
+<img src="Imagenes/Webapp/es/04.png" width="100%">
 </td>
 <td valign="top">
 Aquí puedes configurar todo lo relacionado con la conectividad del ESP32.
@@ -274,7 +274,7 @@ Aquí puedes configurar todo lo relacionado con la conectividad del ESP32.
 <table width="100%">
 <tr>
 <td width="40%" valign="top">
-<img src="Imagenes/Webapp/05.png" width="100%">
+<img src="Imagenes/Webapp/es/05.png" width="100%">
 </td>
 <td valign="top">
 En esta sección se ajustan los parámetros físicos del coche.
@@ -307,7 +307,7 @@ En esta sección se ajustan los parámetros físicos del coche.
 <table width="100%">
 <tr>
 <td width="40%" valign="top">
-<img src="Imagenes/Webapp/06.png" width="100%">
+<img src="Imagenes/Webapp/es/06.png" width="100%">
 </td>
 <td valign="top">
 Personaliza el sistema de iluminación de tu coche. Se requieren LEDs direccionables (tipo WS2812B).
@@ -347,7 +347,7 @@ Personaliza el sistema de iluminación de tu coche. Se requieren LEDs direcciona
 <table width="100%">
 <tr>
 <td width="25%" valign="top">
-<img src="Imagenes/Webapp/07.png" width="100%">
+<img src="Imagenes/Webapp/es/07.png" width="100%">
 </td>
 <td valign="top">
 Tareas de mantenimiento del microcontrolador.
@@ -363,7 +363,7 @@ Tareas de mantenimiento del microcontrolador.
 <table width="100%">
 <tr>
 <td width="25%" valign="top">
-<img src="Imagenes/Webapp/08.png" width="100%">
+<img src="Imagenes/Webapp/es/08.png" width="100%">
 </td>
 <td valign="top">
 Configuraciones propias de la aplicación web.
