@@ -59,6 +59,8 @@ struct VehicleState {
     int luces;                  //< Nivel de luces: 0=off, 1=posición, 2=bajas, 3=altas.
     bool brakesLedOn;           //< Luces de freno activadas.
     bool reverseLedOn;          //< Luces de reversa activadas.
+    bool autoTurnSignals;       //< Habilita el encendido/apagado automático de intermitentes.
+    unsigned int autoTurnTol; //< Umbral de activación de intermitentes automáticos (%).
     uint32_t ledCount;          //< Número total de LEDs en la tira.
     std::vector<LedGroup> ledGroups; //< Vector dinámico con la configuración de los grupos de LEDs.
 
@@ -68,6 +70,9 @@ struct VehicleState {
     unsigned int servoLimitRDeg;    //< Límite de giro a la derecha (grados desde el centro).
     unsigned int motorMinSpeed;     //< Velocidad mínima del motor (valor PWM).
     unsigned int motorMaxSpeed;     //< Velocidad máxima del motor (valor PWM).
+    int lastSteerDirection;     //< Última dirección de giro: -1 izq, 0 centro, 1 der.
+    int lastMotorSpeed;         //< Última velocidad del motor.
+    bool lastMotorForward;      //< Última dirección del motor.
 
     // --- Estado de la API ---
     bool apiActEnabled;             //< Indica si una acción de la API está en curso.

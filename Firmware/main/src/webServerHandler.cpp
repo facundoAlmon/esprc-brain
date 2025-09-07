@@ -3,6 +3,7 @@
  * @brief Implementación del servidor web, API REST y WebSocket.
  */
 #include "webServerHandler.h"
+#include <esp_log.h>
 #include <ESPmDNS.h>
 #include <DNSServer.h>
 #include <Preferences.h>
@@ -53,9 +54,12 @@ static char* get_config_json() {
     doc["motorMaxSpeed"] = g_state->motorMaxSpeed;
     doc["motorMinSpeed"] = g_state->motorMinSpeed;
     doc["enableScan"] = g_state->enableScan;
+    doc["autoTurnSignals"] = g_state->autoTurnSignals;
+    doc["autoTurnTol"] = g_state->autoTurnTol;
 
     char *json_string = (char*)malloc(512);
     serializeJson(doc, json_string, 512);
+    ESP_LOGI("WebServer", "Sending config: %s", json_string);
     return json_string;
 }
 
@@ -161,6 +165,9 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     state->motorMaxSpeed = doc["motorMaxSpeed"];
     state->motorMinSpeed = doc["motorMinSpeed"];
     state->enableScan = doc["enableScan"];
+    if (doc["autoTurnSignals"] == 1) state->autoTurnSignals = true;
+    else if (doc["autoTurnSignals"] == 0) state->autoTurnSignals = false;
+    state->autoTurnTol = doc["autoTurnTol"];
 
     BP32.enableNewBluetoothConnections(state->enableScan == 1);
 
@@ -170,6 +177,8 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     preferences.putUInt("motorMaxSpeed", state->motorMaxSpeed);
     preferences.putUInt("motorMinSpeed", state->motorMinSpeed);
     preferences.putUInt("enableScan", state->enableScan);
+    preferences.putBool("autoTurnSignals", state->autoTurnSignals);
+    preferences.putUInt("autoTurnTol", state->autoTurnTol);
 
     httpd_resp_set_type(req, "text/plain");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");

@@ -292,6 +292,12 @@ En esta sección se ajustan los parámetros físicos del coche.
       <li><strong>Límite Giro Derecho:</strong> Establece el ángulo máximo de giro a la derecha.</li>
     </ul>
   </li>
+  <li><strong>Ajustes de Luces Automáticas:</strong>
+    <ul>
+      <li><strong>Activar Intermitentes Automáticos:</strong> Activa luces de giro automaticas.</li>
+      <li><strong>Umbral Intermitentes Automáticos:</strong> Umbral para activacion de luces de giro.</li>
+    </ul>
+  </li>
   <li><strong>Bluetooth:</strong>
     <ul>
       <li><strong>Habilitar Bluetooth:</strong> Activa el modo de emparejamiento para conectar un nuevo joystick.</li>
@@ -387,7 +393,6 @@ Configuraciones propias de la aplicación web.
 
 ## 📝 Tareas Pendientes (ToDo)
 
--   [ ] Implementar el control automático de luces desde la webapp.
 -   [ ] Agregar un esquema del circuito electrónico.
 -   [ ] Función para exportar e importar la configuración completa del coche.
 

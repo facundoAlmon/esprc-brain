@@ -266,6 +266,17 @@
                     </div>
                 </div>
                 <div class="settings-section">
+                    <h3 data-i18n="autoLights">Automatic Lights</h3>
+                    <div class="control-group">
+                        <span data-i18n="autoTurnSignals">Auto Turn Signals</span>
+                        <input class="toggle" id="autoTurnSignals" type="checkbox" data-tooltip-key="autoTurnSignals" />
+                    </div>
+                    <div class="form-group slider-group">
+                        <label for="autoTurnTol"><span data-i18n="autoTurnTol">Auto Turn Signals Threshold</span>: <span id="autoTurnTolValue">10</span>%</label>
+                        <input type="range" value="10" min="0" max="100" id="autoTurnTol">
+                    </div>
+                </div>
+                <div class="settings-section">
                     <h3 data-i18n="otherSettings">Other Settings</h3>
                     <div class="control-group">
                         <span data-i18n="enableBluetooth">Enable Bluetooth</span>

@@ -228,6 +228,11 @@ void initPreferences() {
     vehicleState.servoLimitRDeg = preferences.getUInt("servoLimitRDeg", 45);
     vehicleState.motorMinSpeed = preferences.getUInt("motorMinSpeed", 150);
     vehicleState.motorMaxSpeed = preferences.getUInt("motorMaxSpeed", 255);
+    vehicleState.autoTurnSignals = preferences.getBool("autoTurnSignals", true);
+    vehicleState.autoTurnTol = preferences.getUInt("autoTurnTol", 10);
+    vehicleState.lastSteerDirection = 0;
+    vehicleState.lastMotorSpeed = 0;
+    vehicleState.lastMotorForward = true;
     vehicleState.enableScan = preferences.getUInt("enableScan", 0);
     
     // Carga configuración de WiFi. Si no existe una clave, se crea con valores por defecto

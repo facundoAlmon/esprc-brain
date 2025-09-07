@@ -1,6 +1,9 @@
 #include "gamepadHandler.h"
 #include "actuators.h"
 #include "state.h"
+#include <Preferences.h>
+
+extern Preferences preferences;
 
 // Global state pointer, initialized in setup
 static VehicleState* g_state = nullptr;
@@ -15,6 +18,8 @@ struct ButtonState {
     bool yPressed = false;
     bool xLastState = false;
     bool xPressed = false;
+    bool aLastState = false;
+    bool aPressed = false;
 };
 
 static ButtonState btnState;
@@ -87,13 +92,10 @@ void servoController(GamepadPtr myGamepad, VehicleState* state) {
  */
 void motorController(GamepadPtr myGamepad, VehicleState* state) {
     if (myGamepad->brake() > 20) {
-        state->brakesLedOn = true;
         setMotor(myGamepad->brake(), false, state);
     } else if (myGamepad->throttle() > 20) {
-        state->brakesLedOn = false;
         setMotor(myGamepad->throttle(), true, state);
     } else {
-        state->brakesLedOn = false;
         setMotor(0, true, state);
     }
 }
@@ -145,6 +147,18 @@ void ledController(GamepadPtr myGamepad, VehicleState* state) {
     if (btnState.xPressed && btnState.xLastState) {
         state->luces++;
         if (state->luces > 3) state->luces = 0;
+    }
+
+    // Detección de flanco para el Botón A (toggle autoTurnSignals).
+    if (myGamepad->a() != btnState.aLastState) {
+        btnState.aPressed = true;
+    } else {
+        btnState.aPressed = false;
+    }
+    btnState.aLastState = myGamepad->a();
+    if (btnState.aPressed && btnState.aLastState) {
+        state->autoTurnSignals = !state->autoTurnSignals;
+        preferences.putBool("autoTurnSignals", state->autoTurnSignals);
     }
 }
 

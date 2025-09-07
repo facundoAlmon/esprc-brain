@@ -292,6 +292,12 @@ In this section, the physical parameters of the car are adjusted.
       <li><strong>Right Turn Limit:</strong> Sets the maximum turning angle to the right.</li>
     </ul>
   </li>
+  <li><strong>Automatic Turn Signal Settings:</strong>
+    <ul>
+      <li><strong>Enable Automatic Turn Signals:</strong> Activates automatic turn signals.</li>
+      <li><strong>Automatic Turn Signal Threshold:</strong> Threshold for turn signal activation.</li>
+    </ul>
+  </li>
   <li><strong>Bluetooth:</strong>
     <ul>
       <li><strong>Enable Bluetooth:</strong> Activates pairing mode to connect a new joystick.</li>
@@ -387,7 +393,6 @@ Contributions are the engine of open source and are more than welcome! If you ha
 
 ## 📝 To-Do List
 
--   [ ] Implement automatic light control from the webapp.
 -   [ ] Add a schematic of the electronic circuit.
 -   [ ] Function to export and import the complete car configuration.
 

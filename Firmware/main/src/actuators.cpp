@@ -53,6 +53,23 @@ void setupActuators() {
  * @brief Establece la velocidad y dirección del motor.
  */
 void setMotor(int speed, bool forward, VehicleState* state) {
+    // Lógica de luces de freno y reversa
+    if (!forward && speed > 0) {
+        // Si el motor va en reversa, encender la luz de reversa.
+        state->reverseLedOn = true;
+        state->brakesLedOn = false;
+    } else if (state->lastMotorForward && !forward && speed > 0) {
+        // Si el motor estaba yendo hacia adelante y ahora se le da marcha atrás (frenando).
+        state->reverseLedOn = false;
+        state->brakesLedOn = true;
+    } else {
+        // En cualquier otro caso, ambas luces apagadas.
+        state->reverseLedOn = false;
+        state->brakesLedOn = false;
+    }
+    state->lastMotorSpeed = speed;
+    state->lastMotorForward = forward;
+
     float dutyCycle = 0;
     // Calcula el rango dinámico de velocidad.
     unsigned int motorMult = state->motorMaxSpeed - state->motorMinSpeed;
@@ -83,6 +100,37 @@ void setMotor(int speed, bool forward, VehicleState* state) {
 void setSteer(int angle, VehicleState* state) {
     float porc = (float)angle / 512.0; // Normaliza el ángulo a un rango de -1.0 a 1.0.
     int posDegrees = 0;
+
+    int threshold = (state->autoTurnTol / 100.0) * 512.0;
+
+    int currentSteerDirection = 0;
+    if (angle > threshold) {
+        currentSteerDirection = 1; // Derecha
+    } else if (angle < -threshold) {
+        currentSteerDirection = -1; // Izquierda
+    }
+
+    // Lógica de intermitentes automáticos para ENCENDIDO
+    if (state->autoTurnSignals && currentSteerDirection != 0 && currentSteerDirection != state->lastSteerDirection) {
+        if (currentSteerDirection == 1) {
+            state->giroDerecho = true;
+            state->giroIzquierdo = false;
+        } else if (currentSteerDirection == -1) {
+            state->giroIzquierdo = true;
+            state->giroDerecho = false;
+        }
+    }
+
+    // Lógica para apagar intermitentes al volver al centro
+    if (currentSteerDirection == 0 && state->lastSteerDirection != 0) {
+        if (state->lastSteerDirection == 1) {
+            state->giroDerecho = false;
+        } else if (state->lastSteerDirection == -1) {
+            state->giroIzquierdo = false;
+        }
+    }
+
+    state->lastSteerDirection = currentSteerDirection;
 
     if (angle == 0) {
         posDegrees = state->servoCenterDeg;

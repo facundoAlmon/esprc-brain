@@ -72,14 +72,14 @@ void handleLedStrip(VehicleState* state) {
 
     if (state->brakesLedOn) {
         for (const auto& group : state->ledGroups) {
-            if (group.funcion == LUZ_FRENO) {
+            if ((group.funcion == LUZ_FRENO) || (group.funcion == LUZ_REVERSA)){
                 parse_and_set_leds_to_buffer(group.leds, group.colorR, group.colorG, group.colorB, group.brillo);
             }
         }
     }
     if (state->reverseLedOn) {
         for (const auto& group : state->ledGroups) {
-            if (group.funcion == LUZ_REVERSA) {
+            if ((group.funcion == LUZ_FRENO) || (group.funcion == LUZ_REVERSA)){
                 parse_and_set_leds_to_buffer(group.leds, group.colorR, group.colorG, group.colorB, group.brillo);
             }
         }
