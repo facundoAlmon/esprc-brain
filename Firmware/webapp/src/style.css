@@ -540,6 +540,16 @@ input:checked + .slider:before { transform: translateX(26px); background-color: 
 
 /* Estilos generales para pantallas pequeñas */
 @media (max-width: 768px) {
+    .action-card .form-grid,
+    .action-card .duration-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .action-card .duration-controls input[type="number"] {
+        width: 100%;
+    }
+
     .header-controls {
         flex-basis: 100%; /* Ocupa todo el ancho */
         justify-content: space-between; /* Distribuye los elementos */
@@ -640,4 +650,176 @@ button.icon-toggle.active svg {
 .tooltip.visible {
     opacity: 1;
     transform: scale(1);
+}
+
+/* ====== Estilos para la Pestaña de Programación ====== */
+#program-controls .button-group {
+    justify-content: flex-start;
+}
+
+#program-sequence-container {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 200px; /* Para que el área no colapse si está vacía */
+    border: 2px dashed var(--border-color);
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.action-card {
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+
+#program-add-action-area {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+/* ====== Estilos para la Pestaña de Programación ====== */
+#program-controls .button-group {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+#program-sequence-container {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 200px;
+    border: 2px dashed var(--border-color);
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.action-card {
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    cursor: auto; /* Cambiado de 'move' a 'auto' */
+}
+
+.action-card.dragging {
+    opacity: 0.5;
+    background: var(--glow-color);
+}
+
+.action-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.action-card-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--secondary-color);
+}
+
+.action-card-header div {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.drag-handle {
+    cursor: grab;
+    color: var(--text-muted-color);
+    margin-right: 1rem;
+}
+
+.delete-action-btn {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.9rem;
+    clip-path: none;
+    border-radius: 4px; /* Cambiado de 50% a 4px */
+}
+
+.duplicate-action-btn {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.9rem;
+    clip-path: none;
+    border-radius: 4px;
+}
+
+#program-add-action-area {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+/* Estilos para el Modal */
+.action-card-footer {
+    margin-top: 1rem;
+}
+
+.action-card-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.duration-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.duration-controls input[type="range"] {
+    flex-grow: 1;
+}
+
+.duration-controls input[type="number"] {
+    width: 100px;
+}
+
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s;
+}
+
+.modal-content {
+    background-color: var(--surface-color);
+    padding: 2rem;
+    border: 1px solid var(--primary-color);
+    box-shadow: 0 0 20px var(--glow-color);
+    text-align: center;
+    clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.modal-action-btn {
+    min-width: 120px;
+}
+
+
+/* ====== Joystick Layout Swap ====== */
+.joystick-layout-single.swapped {
+    grid-template-columns: 300px 1fr;
+}
+.joystick-layout-single.swapped .joystick-container {
+    grid-column: 2;
+}
+.joystick-layout-single.swapped .joystick-info-card {
+    grid-column: 1;
 }

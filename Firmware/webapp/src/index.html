@@ -35,7 +35,7 @@
                 <button class="menu-link" data-tab="joystick-b">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                         <path fill="currentColor"
-                            d="M22 8.65A5 5 0 0 0 17 4H7a5 5 0 0 0-5 4.74A2 2 0 0 0 2 9v7.5A3.48 3.48 0 0 0 5.5 20c1.43 0 2.32-1.06 3.19-2.09c.32-.37.65-.76 1-1.1a4.81 4.81 0 0 1 1.54-.75a6.61 6.61 0 0 1 1.54 0a4.81 4.81 0 0 1 1.54.75c.35.34.68.73 1 1.1c.87 1 1.76 2.09 3.19 2.09a3.48 3.48 0 0 0 3.5-3.5V9a2.09 2.09 0 0 0 0-.26zm-2 7.85a1.5 1.5 0 0 1-1.5 1.5c-.5 0-1-.64-1.66-1.38c-.34-.39-.72-.85-1.15-1.26a6.68 6.68 0 0 0-2.46-1.25a6.93 6.93 0 0 0-2.46 0a6.68 6.68 0 0 0-2.46 1.25c-.43.41-.81.87-1.15 1.26C6.54 17.36 6 18 5.5 18A1.5 1.5 0 0 1 4 16.5V9a.77.77 0 0 0 0-.15A3 3 0 0 1 7 6h10a3 3 0 0 1 3 2.72v.12A.86.86 0 0 0 20 9z" />
+                            d="M22 8.65A5 5 0 0 0 17 4H7a5 5 0 0 0-5 4.74A2 2 0 0 0 2 9v7.5A3.48 3.48 0 0 0 5.5 20c1.43 0 2.32-1.06 3.19-2.09c.32-.37.65-.76 1-1.1a4.81 4.81 0 0 1 1.54-.75a6.61 6.61 0 0 1 1.54 0a4.81 4.81 0 0 1 1.54 .75c.35.34.68.73 1 1.1c.87 1 1.76 2.09 3.19 2.09a3.48 3.48 0 0 0 3.5-3.5V9a2.09 2.09 0 0 0 0-.26zm-2 7.85a1.5 1.5 0 0 1-1.5 1.5c-.5 0-1-.64-1.66-1.38c-.34-.39-.72-.85-1.15-1.26a6.68 6.68 0 0 0-2.46-1.25a6.93 6.93 0 0 0-2.46 0a6.68 6.68 0 0 0-2.46 1.25c-.43.41-.81.87-1.15 1.26C6.54 17.36 6 18 5.5 18A1.5 1.5 0 0 1 4 16.5V9a.77.77 0 0 0 0-.15A3 3 0 0 1 7 6h10a3 3 0 0 1 3 2.72v.12A.86.86 0 0 0 20 9z" />
                         <circle cx="16" cy="12" r="1" fill="currentColor" />
                         <circle cx="18" cy="10" r="1" fill="currentColor" />
                         <circle cx="16" cy="8" r="1" fill="currentColor" />
@@ -43,6 +43,19 @@
                         <circle cx="8" cy="10" r="2" fill="currentColor" />
                     </svg>
                     <span data-i18n="joystickB">JoyStick B</span>
+                </button>
+            </li>
+            <li>
+                <button class="menu-link" data-tab="program">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12h2"/>
+                        <path d="M6 12h2"/>
+                        <path d="M10 12h2"/>
+                        <path d="M14 12h2"/>
+                        <path d="M18 12h2"/>
+                        <rect x="3" y="8" width="18" height="8" rx="1"/>
+                    </svg>
+                    <span data-i18n="program">Program</span>
                 </button>
             </li>
             <li>
@@ -171,6 +184,26 @@
                     <div class="joystick-container">
                         <div id="joy2BDiv"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Pestaña de Programación -->
+            <div id="program" class="tab-content">
+                <h2 data-i18n="programTitle">Program Sequence</h2>
+                <div class="settings-section" id="program-controls">
+                    <div class="button-group">
+                        <button id="loadProgramBtn" class="secondary" data-i18n="loadProgram">Load from ESP</button>
+                        <button id="uploadProgramBtn" data-i18n="uploadProgram">Upload to ESP</button>
+                        <button id="runProgramBtn" data-i18n="runProgram">▶️ Run</button>
+                        <button id="stopProgramBtn" data-i18n="stopProgram">⏹️ Stop</button>
+                        <button id="clearProgramBtn" class="danger" data-i18n="clearProgram">🗑️ Clear All</button>
+                    </div>
+                </div>
+                <div class="settings-section" id="program-sequence-container">
+                    <!-- Las tarjetas de acción se añadirán aquí dinámicamente -->
+                </div>
+                <div class="settings-section" id="program-add-action-area">
+                    <button id="addActionBtn" class="secondary">+ <span data-i18n="addAction">Add Action</span></button>
                 </div>
             </div>
 
