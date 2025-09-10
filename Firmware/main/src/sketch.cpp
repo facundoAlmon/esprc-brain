@@ -27,11 +27,13 @@
 #include "gamepadHandler.h"
 #include "ledStripHandler.h"
 #include "webServerHandler.h"
+#include "ProgramManager.h"
 
 #include "pins.h"
 
 // Instancia global de la estructura de estado del vehículo.
 VehicleState vehicleState;
+ProgramManager programManager(&vehicleState);
 
 // Objeto para manejar el almacenamiento no volátil (NVS).
 Preferences preferences;
@@ -322,7 +324,7 @@ void setup() {
     led_strip_set_pixel(led_strip, 0, 0, 255, 0); // LED verde: todo listo
     led_strip_refresh(led_strip);
 
-    startServer(&vehicleState);
+    startServer(&vehicleState, &programManager);
     
     led_strip_set_pixel(led_strip, 0, 0, 0, 0); // Apaga el LED de estado
     led_strip_refresh(led_strip);
@@ -338,7 +340,10 @@ void loop() {
     if (currentTime - lastLoopTime >= loopInterval) {
         lastLoopTime = currentTime;
 
-        handleGamepads(&vehicleState);
+        // Solo procesa el gamepad si no hay un programa en ejecución
+        if (!programManager.isRunning()) {
+            handleGamepads(&vehicleState);
+        }
 
         // Timeout para las acciones recibidas por la API.
         if (vehicleState.apiActEnabled) {
@@ -350,6 +355,7 @@ void loop() {
             }
         }
         
+        programManager.loop(); // Ejecuta el bucle del gestor de programas
         handleLedStrip(&vehicleState);
     }
 }

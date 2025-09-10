@@ -9,14 +9,17 @@
 
 #include "state.h"
 
+#include "ProgramManager.h"
+
 /**
  * @brief Inicia el servidor web y registra todos los endpoints.
  * 
  * Configura y arranca el servidor HTTP, incluyendo los endpoints para la web,
  * la API REST y el WebSocket.
  * @param state Puntero al estado global del vehículo.
+ * @param programManager Puntero al gestor de programas.
  */
-void startServer(VehicleState* state);
+void startServer(VehicleState* state, ProgramManager* programManager);
 
 /**
  * @brief Detiene el servidor web.

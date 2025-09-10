@@ -1,7 +1,3 @@
-/**
- * @file webServerHandler.cpp
- * @brief Implementación del servidor web, API REST y WebSocket.
- */
 #include "webServerHandler.h"
 #include <esp_log.h>
 #include <ESPmDNS.h>
@@ -11,10 +7,11 @@
 #include "esp_http_server.h"
 #include "actuators.h"
 #include "state.h"
+#include "ProgramManager.h"
 #include <string.h>
 
 #ifndef MIN
-#define MIN(a,b)	((a) < (b) ? (a) : (b))
+#define MIN(a,b)		((a) < (b) ? (a) : (b))
 #endif
 
 // Servidor DNS para el modo Access Point.
@@ -24,8 +21,9 @@ const byte DNS_PORT = 53;
 // Handle del servidor web.
 static httpd_handle_t server_httpd = NULL;
 
-// Puntero al estado global del vehículo.
+// Punteros a los objetos globales.
 static VehicleState* g_state = nullptr;
+static ProgramManager* g_programManager = nullptr;
 extern Preferences preferences;
 
 // Declaraciones anticipadas de los manejadores de endpoints.
@@ -41,6 +39,14 @@ static esp_err_t post_act_handler(httpd_req_t *req);
 static esp_err_t handle_ws_req(httpd_req_t *req);
 static esp_err_t cors_handler(httpd_req_t* req);
 static void act_from_json(JsonDocument& doc, VehicleState* state);
+
+// Nuevos manejadores para la API de programas
+static esp_err_t post_program_handler(httpd_req_t *req);
+static esp_err_t get_program_run_handler(httpd_req_t *req);
+static esp_err_t get_program_stop_handler(httpd_req_t *req);
+static esp_err_t get_program_clear_handler(httpd_req_t *req);
+static esp_err_t get_program_handler(httpd_req_t *req);
+
 
 /**
  * @brief Genera una cadena JSON con la configuración actual del vehículo (sin LEDs).
@@ -66,15 +72,16 @@ static char* get_config_json() {
 /**
  * @brief Inicia el servidor web y registra todos los endpoints.
  */
-void startServer(VehicleState* state) {
+void startServer(VehicleState* state, ProgramManager* programManager) {
     g_state = state;
+    g_programManager = programManager;
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 15;
+    config.max_uri_handlers = 20; // Aumentado para nuevos endpoints
     config.lru_purge_enable = true;
     config.uri_match_fn = httpd_uri_match_wildcard;
-    config.global_user_ctx = g_state;
+    config.global_user_ctx = g_state; // El contexto de usuario principal sigue siendo el estado
 
     MDNS.begin("ecar");
     MDNS.addService("http", "tcp", 80);
@@ -119,6 +126,22 @@ void startServer(VehicleState* state) {
 
         httpd_uri_t ws_uri = {.uri = "/ws", .method = HTTP_GET, .handler = handle_ws_req, .is_websocket = true};
         httpd_register_uri_handler(server_httpd, &ws_uri);
+
+        // Registro de nuevos endpoints para programas
+        httpd_uri_t post_program_uri = {.uri = "/api/program", .method = HTTP_POST, .handler = post_program_handler};
+        httpd_register_uri_handler(server_httpd, &post_program_uri);
+
+        httpd_uri_t get_program_run_uri = {.uri = "/api/program/run", .method = HTTP_GET, .handler = get_program_run_handler};
+        httpd_register_uri_handler(server_httpd, &get_program_run_uri);
+
+        httpd_uri_t get_program_stop_uri = {.uri = "/api/program/stop", .method = HTTP_GET, .handler = get_program_stop_handler};
+        httpd_register_uri_handler(server_httpd, &get_program_stop_uri);
+
+        httpd_uri_t get_program_clear_uri = {.uri = "/api/program/clear", .method = HTTP_GET, .handler = get_program_clear_handler};
+        httpd_register_uri_handler(server_httpd, &get_program_clear_uri);
+
+        httpd_uri_t get_program_uri = {.uri = "/api/program", .method = HTTP_GET, .handler = get_program_handler};
+        httpd_register_uri_handler(server_httpd, &get_program_uri);
     }
 }
 
@@ -397,5 +420,64 @@ static esp_err_t cors_handler(httpd_req_t *req) {
     httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type");
     httpd_resp_send(req, "OK", 2);
+    return ESP_OK;
+}
+
+// --- Implementación de nuevos manejadores ---
+
+static esp_err_t post_program_handler(httpd_req_t *req) {
+    char content[MAX_POST_SIZE];
+    size_t recv_size = MIN(req->content_len, MAX_POST_SIZE);
+    int ret = httpd_req_recv(req, content, recv_size);
+    if (ret <= 0) { return ESP_FAIL; }
+    content[ret] = '\0';
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, content);
+    if (error) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON format");
+        return ESP_FAIL;
+    }
+
+    g_programManager->loadProgram(doc.as<JsonArray>());
+
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
+    return ESP_OK;
+}
+
+static esp_err_t get_program_run_handler(httpd_req_t *req) {
+    g_programManager->startProgram();
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
+    return ESP_OK;
+}
+
+static esp_err_t get_program_stop_handler(httpd_req_t *req) {
+    g_programManager->stopProgram();
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
+    return ESP_OK;
+}
+
+static esp_err_t get_program_clear_handler(httpd_req_t *req) {
+    g_programManager->clearProgram();
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
+    return ESP_OK;
+}
+
+static esp_err_t get_program_handler(httpd_req_t *req) {
+    JsonDocument doc = g_programManager->getProgramAsJson();
+    String output;
+    serializeJson(doc, output);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, output.c_str(), output.length());
     return ESP_OK;
 }
