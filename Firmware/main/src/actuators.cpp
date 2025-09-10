@@ -77,11 +77,11 @@ void setMotor(int speed, bool forward, VehicleState* state) {
     if (speed != 0) {
         // Establece la dirección del motor.
         if (forward) {
-            digitalWrite(motor1Pin1, HIGH);
-            digitalWrite(motor1Pin2, LOW);
-        } else {
             digitalWrite(motor1Pin1, LOW);
             digitalWrite(motor1Pin2, HIGH);
+        } else {
+            digitalWrite(motor1Pin1, HIGH);
+            digitalWrite(motor1Pin2, LOW);
         }
         // Mapea la velocidad (0-1023) al rango de PWM configurado.
         dutyCycle = ((speed * motorMult) / 1024.0) + state->motorMinSpeed;
