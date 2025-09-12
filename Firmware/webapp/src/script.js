@@ -117,7 +117,12 @@ const translations = {
         duplicateAction: "Duplicate Action",
         deleteAction: "Delete Action",
         iterations: "Iterations",
-        infinite: "Infinite"
+        infinite: "Infinite",
+        exportConfig: "Export Config",
+        importConfig: "Import Config",
+        programImportSuccess: "Program imported successfully!",
+        programImportError: "An error occurred during program import. Invalid JSON or file format.",
+        programExportError: "Failed to export program."
     },
     es: {
         menu: "Menú",
@@ -230,7 +235,12 @@ const translations = {
         duplicateAction: "Duplicar Acción",
         deleteAction: "Eliminar Acción",
         iterations: "Iteraciones",
-        infinite: "Infinito"
+        infinite: "Infinito",
+        exportConfig: "Exportar Config.",
+        importConfig: "Importar Config.",
+        programImportSuccess: "¡Programa importado con éxito!",
+        programImportError: "Ocurrió un error durante la importación del programa. Formato JSON o de archivo no válido.",
+        programExportError: "Fallo al exportar el programa."
     }
 };
 
@@ -296,6 +306,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 acelIzq: document.getElementById('acelIzq'),
                 programIterations: document.getElementById('programIterations'),
                 programInfinite: document.getElementById('programInfinite'),
+                exportConfigBtn: document.getElementById('exportConfigBtn'),
+                importConfigInput: document.getElementById('import-config-input'),
+                exportProgramBtn: document.getElementById('exportProgramBtn'),
+                importProgramBtn: document.getElementById('importProgramBtn'),
+                importProgramInput: document.getElementById('import-program-input'),
             };
 
             this.setupLanguage();
@@ -386,6 +401,12 @@ document.addEventListener('DOMContentLoaded', () => {
             this.attachClick('clearProgramBtn', this.clearProgram);
             this.attachClick('addActionBtn', this.showActionModal);
             this.attachClick('loadProgramBtn', this.loadProgramFromServer);
+            this.attachClick('exportConfigBtn', this.exportConfig);
+            this.elements.importConfigInput.addEventListener('change', (e) => this.importConfig(e));
+
+            this.attachClick('exportProgramBtn', this.exportProgram);
+            this.elements.importProgramBtn.addEventListener('click', () => this.elements.importProgramInput.click());
+            this.elements.importProgramInput.addEventListener('change', (e) => this.importProgram(e));
             const swapHandler = () => {
                 this.joystickLayoutSwapped = !this.joystickLayoutSwapped;
                 localStorage.setItem('joystickLayoutSwapped', this.joystickLayoutSwapped);
@@ -730,6 +751,56 @@ document.addEventListener('DOMContentLoaded', () => {
             this.getConfig();
         },
 
+        async exportConfig() {
+            try {
+                const configData = await this.fetchAPI('api/config/backup');
+                if (configData) {
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(configData, null, 2));
+                    const downloadAnchorNode = document.createElement('a');
+                    downloadAnchorNode.setAttribute("href", dataStr);
+                    downloadAnchorNode.setAttribute("download", "esprc_config_backup.json");
+                    document.body.appendChild(downloadAnchorNode);
+                    downloadAnchorNode.click();
+                    downloadAnchorNode.remove();
+                    alert('Configuration exported successfully!');
+                } else {
+                    alert('Failed to export configuration.');
+                }
+            } catch (error) {
+                console.error('Error exporting config:', error);
+                alert('An error occurred during configuration export.');
+            }
+        },
+
+        async importConfig(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const importedConfig = JSON.parse(e.target.result);
+                    const response = await this.fetchAPI('api/config/restore', {
+                        method: 'POST',
+                        body: JSON.stringify(importedConfig),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (response === null || response.ok) { // Assuming 200 OK or 204 No Content for success
+                        alert('Configuration imported successfully! ESP32 will restart if WiFi settings were changed.');
+                        // Optionally, refresh config after a short delay if no restart
+                        setTimeout(() => this.getConfig(), 3000);
+                    } else {
+                        alert('Failed to import configuration. Please check the file format.');
+                    }
+                } catch (error) {
+                    console.error('Error importing config:', error);
+                    alert('An error occurred during configuration import. Invalid JSON or file format.');
+                }
+                event.target.value = ''; // Clear the file input
+            };
+            reader.readAsText(file);
+        },
+
         async getLedConfig() {
             const json = await this.fetchAPI('api/leds');
             if (!json) return;
@@ -941,6 +1012,55 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             this.renderProgramSequence();
         },
+
+        async exportProgram() {
+            try {
+                const programData = await this.fetchAPI('api/program');
+                if (programData) {
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(programData, null, 2));
+                    const downloadAnchorNode = document.createElement('a');
+                    downloadAnchorNode.setAttribute("href", dataStr);
+                    downloadAnchorNode.setAttribute("download", "esprc_program.json");
+                    document.body.appendChild(downloadAnchorNode);
+                    downloadAnchorNode.click();
+                    downloadAnchorNode.remove();
+                } else {
+                    alert(translations[this.currentLanguage].programExportError);
+                }
+            } catch (error) {
+                console.error('Error exporting program:', error);
+                alert(translations[this.currentLanguage].programExportError);
+            }
+        },
+
+        async importProgram(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const program = JSON.parse(e.target.result);
+                    if (!Array.isArray(program)) {
+                        throw new Error("Invalid JSON format for program. Must be an array.");
+                    }
+
+                    await this.fetchAPI('api/program', {
+                        method: 'POST',
+                        body: JSON.stringify(program),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    await this.loadProgramFromServer();
+                    alert(translations[this.currentLanguage].programImportSuccess);
+                } catch (error) {
+                    console.error('Error importing program:', error);
+                    alert(translations[this.currentLanguage].programImportError);
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        },
         showActionModal() {
             const modalHTML = `
                 <div class="modal-overlay" id="action-modal-overlay">
@@ -973,7 +1093,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (type === 'move') {
                 newAction.motorSpeed = 0;
                 newAction.steerAngle = 0;
-            } else if (type === 'lights') {
+            }
+            if (type === 'lights') {
                 newAction.lightAction = 'lights_cycle';
             }
             this.programSequence.push(newAction);

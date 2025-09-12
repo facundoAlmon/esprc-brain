@@ -194,6 +194,9 @@
                     <div class="button-group">
                         <button id="loadProgramBtn" class="secondary" data-i18n="loadProgram">Load from ESP</button>
                         <button id="uploadProgramBtn" data-i18n="uploadProgram">Upload to ESP</button>
+                        <button id="exportProgramBtn" class="secondary" data-i18n="export">Export</button>
+                        <button id="importProgramBtn" class="secondary" data-i18n="import">Import</button>
+                        <input type="file" id="import-program-input" style="display: none;" accept=".json">
                         <button id="runProgramBtn" data-i18n="runProgram">▶️ Run</button>
                         <div class="iterations-control">
                             <label for="programIterations" data-i18n="iterations">Iterations:</label>
@@ -326,6 +329,11 @@
                     <button id="getConfigBtn" data-i18n="refresh">Refresh</button>
                     <button id="saveConfigBtn" data-i18n="save">Save</button>
                 </div>
+                <div class="button-group">
+                    <button id="exportConfigBtn" class="secondary" data-i18n="exportConfig">Export Config</button>
+                    <button class="secondary" onclick="document.getElementById('import-config-input').click()" data-i18n="importConfig">Import Config</button>
+                    <input type="file" id="import-config-input" style="display: none;" accept=".json">
+                </div>
             </div>
 
             <!-- Pestaña 5: Configuración de LEDs -->
@@ -457,7 +465,7 @@
                             <div class="control-group"> <span data-i18n="dcw">DCW</span> <button class="icon-toggle"
                                     id="camDCW" data-tooltip-key="dcw"></button> </div>
                             <div class="control-group"> <span data-i18n="colorBar">Color Bar</span> <button
-                                    class="icon-toggle" id="camColorBar" data-tooltip-key="colorBar"></button> </div>
+                                    id="camColorBar" data-tooltip-key="colorBar"></button> </div>
                         </div>
                         <div class="button-group">
                             <button id="getCamConfigBtn" data-i18n="getConfig">Get Config</button>

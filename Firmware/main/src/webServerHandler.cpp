@@ -47,9 +47,13 @@ static esp_err_t get_program_stop_handler(httpd_req_t *req);
 static esp_err_t get_program_clear_handler(httpd_req_t *req);
 static esp_err_t get_program_handler(httpd_req_t *req);
 
+// Nuevos manejadores para la API de configuracion de backup/restore
+static esp_err_t get_config_backup_handler(httpd_req_t *req);
+static esp_err_t post_config_restore_handler(httpd_req_t *req);
+
 
 /**
- * @brief Genera una cadena JSON con la configuración actual del vehículo (sin LEDs).
+ * @brief Genera una cadena JSON con la configuracion actual del vehiculo (sin LEDs).
  * @return char* Cadena JSON. El llamador debe liberar esta memoria con free().
  */
 static char* get_config_json() {
@@ -142,6 +146,13 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
 
         httpd_uri_t get_program_uri = {.uri = "/api/program", .method = HTTP_GET, .handler = get_program_handler};
         httpd_register_uri_handler(server_httpd, &get_program_uri);
+
+        // Registro de nuevos endpoints para backup/restore de configuracion
+        httpd_uri_t get_config_backup_uri = {.uri = "/api/config/backup", .method = HTTP_GET, .handler = get_config_backup_handler};
+        httpd_register_uri_handler(server_httpd, &get_config_backup_uri);
+
+        httpd_uri_t post_config_restore_uri = {.uri = "/api/config/restore", .method = HTTP_POST, .handler = post_config_restore_handler};
+        httpd_register_uri_handler(server_httpd, &post_config_restore_uri);
     }
 }
 
@@ -423,7 +434,7 @@ static esp_err_t cors_handler(httpd_req_t *req) {
     return ESP_OK;
 }
 
-// --- Implementación de nuevos manejadores ---
+// --- Implementacion de nuevos manejadores ---
 
 static esp_err_t post_program_handler(httpd_req_t *req) {
     char content[MAX_POST_SIZE];
@@ -497,5 +508,102 @@ static esp_err_t get_program_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_send(req, output.c_str(), output.length());
+    return ESP_OK;
+}
+
+static esp_err_t get_config_backup_handler(httpd_req_t *req) {
+    JsonDocument doc;
+
+    // General vehicle configuration
+    doc["servoCenterDeg"] = preferences.getUInt("servoCenterDeg", 0);
+    doc["servoLimitLDeg"] = preferences.getUInt("servoLimitLDeg", 0);
+    doc["servoLimitRDeg"] = preferences.getUInt("servoLimitRDeg", 0);
+    doc["motorMaxSpeed"] = preferences.getUInt("motorMaxSpeed", 0);
+    doc["motorMinSpeed"] = preferences.getUInt("motorMinSpeed", 0);
+    doc["enableScan"] = preferences.getUInt("enableScan", 0);
+    doc["autoTurnSignals"] = preferences.getBool("autoTurnSignals", false);
+    doc["autoTurnTol"] = preferences.getUInt("autoTurnTol", 0);
+
+    // LED configuration (stored as a string)
+    doc["ledConfig"] = preferences.getString("ledConfig", "{}");
+
+    // WiFi configuration
+    doc["wifiName"] = preferences.getString("wifiName", "");
+    doc["wifiPass"] = preferences.getString("wifiPass", "");
+    doc["wifiMode"] = preferences.getString("wifiMode", "");
+    doc["camIP"] = preferences.getString("camIP", "");
+    // Program
+    doc["program"] = g_programManager->getProgramAsJson();
+
+    String output;
+    serializeJson(doc, output);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, output.c_str(), output.length());
+    return ESP_OK;
+}
+
+static esp_err_t post_config_restore_handler(httpd_req_t *req) {
+    char content[MAX_POST_SIZE];
+    size_t recv_size = MIN(req->content_len, MAX_POST_SIZE);
+    int ret = httpd_req_recv(req, content, recv_size);
+    if (ret <= 0) { return ESP_FAIL; }
+    content[ret] = '\0';
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, content);
+    if (error) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON format");
+        return ESP_FAIL;
+    }
+
+    bool wifi_settings_changed = false;
+
+    // General vehicle configuration
+    if (doc.containsKey("servoCenterDeg")) preferences.putUInt("servoCenterDeg", doc["servoCenterDeg"]);
+    if (doc.containsKey("servoLimitLDeg")) preferences.putUInt("servoLimitLDeg", doc["servoLimitLDeg"]);
+    if (doc.containsKey("servoLimitRDeg")) preferences.putUInt("servoLimitRDeg", doc["servoLimitRDeg"]);
+    if (doc.containsKey("motorMaxSpeed")) preferences.putUInt("motorMaxSpeed", doc["motorMaxSpeed"]);
+    if (doc.containsKey("motorMinSpeed")) preferences.putUInt("motorMinSpeed", doc["motorMinSpeed"]);
+    if (doc.containsKey("enableScan")) preferences.putUInt("enableScan", doc["enableScan"]);
+    if (doc.containsKey("autoTurnSignals")) preferences.putBool("autoTurnSignals", doc["autoTurnSignals"]);
+    if (doc.containsKey("autoTurnTol")) preferences.putUInt("autoTurnTol", doc["autoTurnTol"]);
+
+    // LED configuration
+    if (doc.containsKey("ledConfig")) preferences.putString("ledConfig", doc["ledConfig"].as<String>());
+
+    // Program
+    if (doc.containsKey("program")) {
+        g_programManager->loadProgram(doc["program"].as<JsonArray>());
+    }
+
+    // WiFi configuration - check if changed to trigger restart
+    if (doc.containsKey("wifiName") && preferences.getString("wifiName", "") != doc["wifiName"].as<String>()) {
+        preferences.putString("wifiName", doc["wifiName"].as<String>());
+        wifi_settings_changed = true;
+    }
+    if (doc.containsKey("wifiPass") && preferences.getString("wifiPass", "") != doc["wifiPass"].as<String>()) {
+        preferences.putString("wifiPass", doc["wifiPass"].as<String>());
+        wifi_settings_changed = true;
+    }
+    if (doc.containsKey("wifiMode") && preferences.getString("wifiMode", "") != doc["wifiMode"].as<String>()) {
+        preferences.putString("wifiMode", doc["wifiMode"].as<String>());
+        wifi_settings_changed = true;
+    }
+    if (doc.containsKey("camIP")) {
+        preferences.putString("camIP", doc["camIP"].as<String>());
+    }
+
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
+
+    if (wifi_settings_changed) {
+        ESP_LOGI("WebServer", "WiFi settings changed, restarting ESP32...");
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        esp_restart();
+    }
+    
     return ESP_OK;
 }
