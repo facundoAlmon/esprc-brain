@@ -195,6 +195,12 @@
                         <button id="loadProgramBtn" class="secondary" data-i18n="loadProgram">Load from ESP</button>
                         <button id="uploadProgramBtn" data-i18n="uploadProgram">Upload to ESP</button>
                         <button id="runProgramBtn" data-i18n="runProgram">▶️ Run</button>
+                        <div class="iterations-control">
+                            <label for="programIterations" data-i18n="iterations">Iterations:</label>
+                            <input type="number" id="programIterations" value="1" min="1">
+                            <input type="checkbox" id="programInfinite" class="toggle">
+                            <label for="programInfinite" data-i18n="infinite">Infinite</label>
+                        </div>
                         <button id="stopProgramBtn" data-i18n="stopProgram">⏹️ Stop</button>
                         <button id="clearProgramBtn" class="danger" data-i18n="clearProgram">🗑️ Clear All</button>
                     </div>

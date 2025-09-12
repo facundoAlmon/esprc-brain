@@ -448,7 +448,25 @@ static esp_err_t post_program_handler(httpd_req_t *req) {
 }
 
 static esp_err_t get_program_run_handler(httpd_req_t *req) {
-    g_programManager->startProgram();
+    char*  buf;
+    size_t buf_len;
+    int iterations = 1; // Default to 1 iteration
+
+    buf_len = httpd_req_get_url_query_len(req) + 1;
+    if (buf_len > 1) {
+        buf = (char*)malloc(buf_len);
+        if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
+            char param[32];
+            // Get value of 'iterations' query parameter
+            if (httpd_query_key_value(buf, "iterations", param, sizeof(param)) == ESP_OK) {
+                iterations = atoi(param);
+            }
+        }
+        free(buf);
+    }
+
+    g_programManager->startProgram(iterations);
+    
     httpd_resp_set_type(req, "text/plain");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_send(req, "OK", 2);

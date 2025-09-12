@@ -115,7 +115,9 @@ const translations = {
         addAction: "Add Action",
         loadProgram: "Load from ESP",
         duplicateAction: "Duplicate Action",
-        deleteAction: "Delete Action"
+        deleteAction: "Delete Action",
+        iterations: "Iterations",
+        infinite: "Infinite"
     },
     es: {
         menu: "Menú",
@@ -226,7 +228,9 @@ const translations = {
         addAction: "Añadir Acción",
         loadProgram: "Cargar desde ESP",
         duplicateAction: "Duplicar Acción",
-        deleteAction: "Eliminar Acción"
+        deleteAction: "Eliminar Acción",
+        iterations: "Iteraciones",
+        infinite: "Infinito"
     }
 };
 
@@ -290,6 +294,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 hazardBtnB: document.getElementById('hazard-btn-b'),
                 headlightsBtnB: document.getElementById('headlights-btn-b'),
                 acelIzq: document.getElementById('acelIzq'),
+                programIterations: document.getElementById('programIterations'),
+                programInfinite: document.getElementById('programInfinite'),
             };
 
             this.setupLanguage();
@@ -388,6 +394,15 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.swapLayoutBtnA.addEventListener('click', swapHandler);
             document.querySelectorAll('.icon-toggle, .toggle').forEach(button => {
                 this.setupTooltipEvents(button);
+            });
+
+            this.elements.programInfinite.addEventListener('change', () => {
+                this.elements.programIterations.disabled = this.elements.programInfinite.checked;
+                if (this.elements.programInfinite.checked) {
+                    this.elements.programIterations.value = -1; // Set to -1 for infinite
+                } else {
+                    this.elements.programIterations.value = 1; // Reset to 1 when unchecked
+                }
             });
         },
 
@@ -889,7 +904,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         },
 
-        async runProgram() { await this.fetchAPI('api/program/run'); },
+        async runProgram() {
+            let iterations = parseInt(this.elements.programIterations.value, 10);
+            if (isNaN(iterations) || iterations < -1) {
+                iterations = 1; // Default to 1 if invalid
+            }
+
+            let url = 'api/program/run';
+            if (iterations !== 1) { // Only add parameter if not default
+                url += `?iterations=${iterations}`;
+            }
+            await this.fetchAPI(url);
+        },
         async stopProgram() { await this.fetchAPI('api/program/stop'); },
         async clearProgram() {
             await this.fetchAPI('api/program/clear');

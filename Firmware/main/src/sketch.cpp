@@ -307,6 +307,7 @@ void setup() {
     Console.printf("Firmware: %s\n", BP32.firmwareVersion());
     
     initPreferences();
+    programManager.loadProgramFromNVS(); // Carga el programa guardado en NVS al arrancar
     setupLedStrip(&vehicleState); // This calls configure_led() 
 
     led_strip_set_pixel(led_strip, 0, 255, 0, 0); // LED rojo: iniciando

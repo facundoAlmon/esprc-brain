@@ -4,6 +4,7 @@
 #include <vector>
 #include <ArduinoJson.h>
 #include "state.h" // To get access to VehicleState
+#include <Preferences.h>
 
 // Enum for identifying the type of action
 enum class ProgramActionType {
@@ -30,7 +31,8 @@ public:
     ProgramManager(VehicleState* state);
 
     void loadProgram(const JsonArray& programJson);
-    void startProgram();
+    void loadProgramFromNVS();
+    void startProgram(int iterations = 1);
     void stopProgram();
     void clearProgram();
 
@@ -45,9 +47,13 @@ private:
     bool _isRunning = false;
     size_t _currentActionIndex = 0;
     uint32_t _actionStartTime = 0;
+    int _totalIterations = 0;
+    int _currentIteration = 0;
 
     void executeAction(const ProgrammedAction& action);
     void stopAllActions();
+    void saveProgramToNVS();
+    void parseProgramFromJson(const JsonArray& programJson);
 };
 
 #endif // PROGRAM_MANAGER_H

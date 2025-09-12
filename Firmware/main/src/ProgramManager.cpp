@@ -1,13 +1,49 @@
 #include "ProgramManager.h"
 #include "actuators.h" // For setMotor, setSteer
 #include <esp_log.h>
+#include "nvs_flash.h"
+#include "nvs.h"
+
+// The single global instance of Preferences
+extern Preferences preferences;
 
 static const char* TAG = "ProgramManager";
+static const char* NVS_PROGRAM_KEY = "program";
 
 ProgramManager::ProgramManager(VehicleState* state) : _state(state) {}
 
 void ProgramManager::loadProgram(const JsonArray& programJson) {
-    clearProgram();
+    clearProgram(); // Clear current program in memory and NVS
+    parseProgramFromJson(programJson);
+    ESP_LOGI(TAG, "Loaded %d actions into program from payload.", _program.size());
+    saveProgramToNVS(); // Save the new program to NVS
+}
+
+void ProgramManager::loadProgramFromNVS() {
+    if (!preferences.isKey(NVS_PROGRAM_KEY)) {
+        ESP_LOGI(TAG, "No program found in NVS.");
+        return;
+    }
+
+    String programString = preferences.getString(NVS_PROGRAM_KEY, "");
+    if (programString.length() == 0) {
+        ESP_LOGW(TAG, "Program key exists in NVS but is empty.");
+        return;
+    }
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, programString);
+    if (error) {
+        ESP_LOGE(TAG, "Failed to parse program from NVS: %s", error.c_str());
+        return;
+    }
+
+    parseProgramFromJson(doc.as<JsonArray>());
+    ESP_LOGI(TAG, "Loaded %d actions from NVS.", _program.size());
+}
+
+void ProgramManager::parseProgramFromJson(const JsonArray& programJson) {
+    _program.clear(); // Clear only the vector
     for (JsonObject actionJson : programJson) {
         ProgrammedAction action;
         const char* typeStr = actionJson["action"];
@@ -34,10 +70,40 @@ void ProgramManager::loadProgram(const JsonArray& programJson) {
         action.duration_ms = actionJson["duration"] | 100;
         _program.push_back(action);
     }
-    ESP_LOGI(TAG, "Loaded %d actions into program.", _program.size());
 }
 
-void ProgramManager::startProgram() {
+void ProgramManager::saveProgramToNVS() {
+    if (_program.empty()) {
+        // If the program is empty, ensure it's cleared from NVS
+        clearProgram();
+        return;
+    }
+
+    JsonDocument doc = getProgramAsJson();
+    String programString;
+    serializeJson(doc, programString);
+
+    // Check NVS space before writing
+    nvs_stats_t nvs_stats;
+    esp_err_t err = nvs_get_stats(NULL, &nvs_stats);
+    if (err == ESP_OK) {
+        size_t required_space = programString.length() + 32; // Approximation: length + entry overhead
+        size_t free_space = nvs_stats.free_entries * 32; // Very rough approximation
+        ESP_LOGI(TAG, "Required space: ~%d bytes, Available space: ~%d bytes", required_space, free_space);
+        if (required_space > free_space) {
+            ESP_LOGE(TAG, "Not enough NVS space to save program!");
+            // Optionally, prevent saving, but for now we just log
+        }
+    }
+
+    if (preferences.putString(NVS_PROGRAM_KEY, programString)) {
+        ESP_LOGI(TAG, "Program saved to NVS. Size: %d bytes", programString.length());
+    } else {
+        ESP_LOGE(TAG, "Failed to save program to NVS. String too large? Size: %d", programString.length());
+    }
+}
+
+void ProgramManager::startProgram(int iterations) {
     if (_program.empty() || _isRunning) {
         ESP_LOGW(TAG, "Cannot start program. Empty or already running.");
         return;
@@ -45,13 +111,22 @@ void ProgramManager::startProgram() {
     _isRunning = true;
     _currentActionIndex = 0;
     _actionStartTime = millis();
-    ESP_LOGI(TAG, "Starting program.");
+    _totalIterations = iterations;
+    _currentIteration = 0;
+
+    if (_totalIterations == -1) {
+        ESP_LOGI(TAG, "Starting program with infinite iterations.");
+    } else {
+        ESP_LOGI(TAG, "Starting program with %d iterations.", _totalIterations);
+    }
     executeAction(_program[_currentActionIndex]);
 }
 
 void ProgramManager::stopProgram() {
     if (!_isRunning) return;
     _isRunning = false;
+    _totalIterations = 0;
+    _currentIteration = 0;
     stopAllActions();
     ESP_LOGI(TAG, "Program stopped.");
 }
@@ -59,7 +134,12 @@ void ProgramManager::stopProgram() {
 void ProgramManager::clearProgram() {
     stopProgram();
     _program.clear();
-    ESP_LOGI(TAG, "Program cleared.");
+    if (preferences.isKey(NVS_PROGRAM_KEY)) {
+        preferences.remove(NVS_PROGRAM_KEY);
+        ESP_LOGI(TAG, "Program cleared from memory and NVS.");
+    } else {
+        ESP_LOGI(TAG, "Program cleared from memory.");
+    }
 }
 
 void ProgramManager::loop() {
@@ -71,8 +151,27 @@ void ProgramManager::loop() {
     if (now - _actionStartTime >= _program[_currentActionIndex].duration_ms) {
         _currentActionIndex++;
         if (_currentActionIndex >= _program.size()) {
-            // End of program
-            stopProgram();
+            // End of one iteration
+            _currentIteration++;
+            
+            bool should_continue = false;
+            if (_totalIterations == -1) { // Infinite loop
+                ESP_LOGI(TAG, "Completed iteration, starting next infinite loop.");
+                should_continue = true;
+            } else if (_currentIteration < _totalIterations) { // Finite loop
+                ESP_LOGI(TAG, "Completed iteration %d of %d.", _currentIteration, _totalIterations);
+                should_continue = true;
+            }
+
+            if (should_continue) {
+                _currentActionIndex = 0;
+                _actionStartTime = now;
+                executeAction(_program[_currentActionIndex]);
+            } else {
+                // End of program
+                ESP_LOGI(TAG, "Finished all %d iterations.", _totalIterations);
+                stopProgram();
+            }
         } else {
             // Next action
             _actionStartTime = now;
@@ -116,7 +215,6 @@ JsonDocument ProgramManager::getProgramAsJson() {
     }
     return doc;
 }
-
 
 void ProgramManager::executeAction(const ProgrammedAction& action) {
     ESP_LOGI(TAG, "Executing action index %d", _currentActionIndex);

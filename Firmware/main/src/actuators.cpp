@@ -84,7 +84,7 @@ void setMotor(int speed, bool forward, VehicleState* state) {
             digitalWrite(motor1Pin2, LOW);
         }
         // Mapea la velocidad (0-1023) al rango de PWM configurado.
-        dutyCycle = ((speed * motorMult) / 1024.0) + state->motorMinSpeed;
+        dutyCycle = ((abs(speed) * motorMult) / 1024.0) + state->motorMinSpeed;
         mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, dutyCycle * 100.0 / 255.0);
         mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
     } else {
