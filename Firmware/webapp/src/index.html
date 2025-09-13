@@ -47,15 +47,28 @@
             </li>
             <li>
                 <button class="menu-link" data-tab="program">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M2 12h2"/>
-                        <path d="M6 12h2"/>
-                        <path d="M10 12h2"/>
-                        <path d="M14 12h2"/>
-                        <path d="M18 12h2"/>
-                        <rect x="3" y="8" width="18" height="8" rx="1"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12h2" />
+                        <path d="M6 12h2" />
+                        <path d="M10 12h2" />
+                        <path d="M14 12h2" />
+                        <path d="M18 12h2" />
+                        <rect x="3" y="8" width="18" height="8" rx="1" />
                     </svg>
                     <span data-i18n="program">Program</span>
+                </button>
+            </li>
+            <li>
+                <button class="menu-link" data-tab="kid-mode">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="currentColor">
+                        <path
+                            d="M12 12a8.992 8.992 0 0 1-7.465-4.52.5.5 0 0 0-.87.5C4.732 10.143 7.962 12 12 12a8.992 8.992 0 0 1 7.465-4.52.5.5 0 0 0-.87-.5C18.533 9.643 15.302 11.5 12 11.5z" />
+                        <path
+                            d="M12 14a8.992 8.992 0 0 0-7.465 4.52.5.5 0 0 0 .87.5C6.467 16.857 9.698 15 12 15a8.992 8.992 0 0 0 7.465 4.52.5.5 0 0 0 .87-.5C20.268 16.357 17.038 14.5 12 14.5z" />
+                    </svg>
+                    <span data-i18n="kidMode">Kid Mode</span>
                 </button>
             </li>
             <li>
@@ -153,10 +166,14 @@
                     <div class="joystick-info-card">
                         <h2 data-i18n="controls">CONTROLS</h2>
                         <div class="circular-controls">
-                            <button class="icon-toggle control-btn-up" id="headlights-btn-a" data-tooltip-key="headlights"></button>
-                            <button class="icon-toggle control-btn-left" id="turn-left-btn-a" data-tooltip-key="turnLeft"></button>
-                            <button class="icon-toggle control-btn-center" id="hazard-btn-a" data-tooltip-key="hazardLights"></button>
-                            <button class="icon-toggle control-btn-right" id="turn-right-btn-a" data-tooltip-key="turnRight"></button>
+                            <button class="icon-toggle control-btn-up" id="headlights-btn-a"
+                                data-tooltip-key="headlights"></button>
+                            <button class="icon-toggle control-btn-left" id="turn-left-btn-a"
+                                data-tooltip-key="turnLeft"></button>
+                            <button class="icon-toggle control-btn-center" id="hazard-btn-a"
+                                data-tooltip-key="hazardLights"></button>
+                            <button class="icon-toggle control-btn-right" id="turn-right-btn-a"
+                                data-tooltip-key="turnRight"></button>
                             <button class="icon-toggle" id="swap-layout-btn-a" data-tooltip-key="swapLayout"></button>
                         </div>
                     </div>
@@ -175,10 +192,14 @@
                             <button class="icon-toggle" id="acelIzq" data-tooltip-key="throttleOnLeft"></button>
                         </div>
                         <div class="circular-controls">
-                            <button class="icon-toggle control-btn-up" id="headlights-btn-b" data-tooltip-key="headlights"></button>
-                            <button class="icon-toggle control-btn-left" id="turn-left-btn-b" data-tooltip-key="turnLeft"></button>
-                            <button class="icon-toggle control-btn-center" id="hazard-btn-b" data-tooltip-key="hazardLights"></button>
-                            <button class="icon-toggle control-btn-right" id="turn-right-btn-b" data-tooltip-key="turnRight"></button>
+                            <button class="icon-toggle control-btn-up" id="headlights-btn-b"
+                                data-tooltip-key="headlights"></button>
+                            <button class="icon-toggle control-btn-left" id="turn-left-btn-b"
+                                data-tooltip-key="turnLeft"></button>
+                            <button class="icon-toggle control-btn-center" id="hazard-btn-b"
+                                data-tooltip-key="hazardLights"></button>
+                            <button class="icon-toggle control-btn-right" id="turn-right-btn-b"
+                                data-tooltip-key="turnRight"></button>
                         </div>
                     </div>
                     <div class="joystick-container">
@@ -216,6 +237,105 @@
                 </div>
             </div>
 
+            <!-- Pestaña Modo Niños -->
+            <div id="kid-mode" class="tab-content">
+                <h2 data-i18n="kidModeTitle">Kid Mode</h2>
+                <div class="settings-section">
+                    <h3 data-i18n="commandButtons">Command Buttons</h3>
+                    <div id="kid-mode-commands">
+                        <div class="d-pad-container">
+                            <button class="d-pad-btn" data-command="forward-left" data-tooltip-key="forwardLeft">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(-45deg);">
+                                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                                    <polyline points="5 12 12 5 19 12"></polyline>
+                                </svg>
+                            </button>
+                            <button class="d-pad-btn" data-command="forward" data-tooltip-key="forward">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                                    <polyline points="5 12 12 5 19 12"></polyline>
+                                </svg>
+                            </button>
+                            <button class="d-pad-btn" data-command="forward-right" data-tooltip-key="forwardRight">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(45deg);">
+                                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                                    <polyline points="5 12 12 5 19 12"></polyline>
+                                </svg>
+                            </button>
+<!--                            <button class="d-pad-btn" data-command="left" data-tooltip-key="left">-->
+<!--                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"-->
+<!--                                    stroke-linecap="round" stroke-linejoin="round">-->
+<!--                                    <line x1="19" y1="12" x2="5" y2="12"></line>-->
+<!--                                    <polyline points="12 19 5 12 12 5"></polyline>-->
+<!--                                </svg>-->
+<!--                            </button>-->
+<!--                            <div class="d-pad-center"></div>-->
+<!--                            <button class="d-pad-btn" data-command="right" data-tooltip-key="right">-->
+<!--                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"-->
+<!--                                    stroke-linecap="round" stroke-linejoin="round">-->
+<!--                                    <line x1="5" y1="12" x2="19" y2="12"></line>-->
+<!--                                    <polyline points="12 5 19 12 12 19"></polyline>-->
+<!--                                </svg>-->
+<!--                            </button>-->
+                            <button class="d-pad-btn" data-command="backward-left" data-tooltip-key="backwardLeft">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(45deg);">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <polyline points="19 12 12 19 5 12"></polyline>
+                                </svg>
+
+                            </button>
+                            <button class="d-pad-btn" data-command="backward" data-tooltip-key="backward">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <polyline points="19 12 12 19 5 12"></polyline>
+                                </svg>
+                            </button>
+                            <button class="d-pad-btn" data-command="backward-right" data-tooltip-key="backwardRight">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(-45deg);">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <polyline points="19 12 12 19 5 12"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="button-group kid-mode-extra-btns">
+                            <button class="kid-mode-btn" data-command="horn"><svg xmlns="http://www.w3.org/2000/svg"
+                                    width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 8a4 4 0 0 1 4 4" />
+                                    <path d="M12 3a9 9 0 0 1 9 9" />
+                                    <path d="M14 19.5a2.5 2.5 0 0 1-4 0" />
+                                    <path d="M6 12a6 6 0 0 0 6 6" />
+                                </svg> <span data-i18n="horn">Horn</span></button>
+                            <button class="kid-mode-btn" data-command="wait"><svg xmlns="http://www.w3.org/2000/svg"
+                                    width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 6v6l4 2" />
+                                </svg> <span data-i18n="wait">Wait</span></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3 data-i18n="sequence">Sequence</h3>
+                    <div id="kid-mode-sequence-container">
+                        <!-- La secuencia de comandos aparecerá aquí -->
+                    </div>
+                </div>
+                <div class="settings-section" id="kid-mode-controls">
+                    <div class="button-group">
+                        <button id="runSequenceBtn" data-i18n="runSequence">▶️ Run Sequence</button>
+                        <button id="clearSequenceBtn" class="danger" data-i18n="clearSequence">🗑️ Clear
+                            Sequence</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Pestaña 3: Configuración de Conexión Wi-Fi -->
             <div id="conexion" class="tab-content">
                 <h2 data-i18n="connectionSettings">Connection Settings</h2>
@@ -226,7 +346,7 @@
                             <label for="ip" data-i18n="ipAddress">IP Address</label>
                             <input type="text" id="ip" readonly>
                         </div>
-                       <!--  <div class="form-group">
+                        <!--  <div class="form-group">
                             <label for="camIP" data-i18n="cameraIP">Camera IP</label>
                             <input type="text" id="camIP" readonly>
                         </div> -->
@@ -314,7 +434,8 @@
                         <input class="toggle" id="autoTurnSignals" type="checkbox" data-tooltip-key="autoTurnSignals" />
                     </div>
                     <div class="form-group slider-group">
-                        <label for="autoTurnTol"><span data-i18n="autoTurnTol">Auto Turn Signals Threshold</span>: <span id="autoTurnTolValue">10</span>%</label>
+                        <label for="autoTurnTol"><span data-i18n="autoTurnTol">Auto Turn Signals Threshold</span>: <span
+                                id="autoTurnTolValue">10</span>%</label>
                         <input type="range" value="10" min="0" max="100" id="autoTurnTol">
                     </div>
                 </div>
@@ -331,7 +452,8 @@
                 </div>
                 <div class="button-group">
                     <button id="exportConfigBtn" class="secondary" data-i18n="exportConfig">Export Config</button>
-                    <button class="secondary" onclick="document.getElementById('import-config-input').click()" data-i18n="importConfig">Import Config</button>
+                    <button class="secondary" onclick="document.getElementById('import-config-input').click()"
+                        data-i18n="importConfig">Import Config</button>
                     <input type="file" id="import-config-input" style="display: none;" accept=".json">
                 </div>
             </div>

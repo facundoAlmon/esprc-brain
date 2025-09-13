@@ -51,6 +51,9 @@ static esp_err_t get_program_handler(httpd_req_t *req);
 static esp_err_t get_config_backup_handler(httpd_req_t *req);
 static esp_err_t post_config_restore_handler(httpd_req_t *req);
 
+// Manejador para la secuencia del modo niños
+static esp_err_t post_sequence_handler(httpd_req_t *req);
+
 
 /**
  * @brief Genera una cadena JSON con la configuracion actual del vehiculo (sin LEDs).
@@ -153,6 +156,10 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
 
         httpd_uri_t post_config_restore_uri = {.uri = "/api/config/restore", .method = HTTP_POST, .handler = post_config_restore_handler};
         httpd_register_uri_handler(server_httpd, &post_config_restore_uri);
+
+        // Endpoint para el modo niños
+        httpd_uri_t post_sequence_uri = {.uri = "/api/sequence", .method = HTTP_POST, .handler = post_sequence_handler};
+        httpd_register_uri_handler(server_httpd, &post_sequence_uri);
     }
 }
 
@@ -605,5 +612,94 @@ static esp_err_t post_config_restore_handler(httpd_req_t *req) {
         esp_restart();
     }
     
+    return ESP_OK;
+}
+
+// --- Implementacion del manejador para el modo niños ---
+
+static esp_err_t post_sequence_handler(httpd_req_t *req) {
+    char content[MAX_POST_SIZE];
+    size_t recv_size = MIN(req->content_len, MAX_POST_SIZE);
+    int ret = httpd_req_recv(req, content, recv_size);
+    if (ret <= 0) {
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            httpd_resp_send_408(req);
+        }
+        return ESP_FAIL;
+    }
+    content[ret] = '\0';
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, content);
+    if (error) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON format");
+        return ESP_FAIL;
+    }
+
+    JsonArray commands = doc["commands"].as<JsonArray>();
+
+    for (JsonVariant command : commands) {
+        const char* cmd_str = command.as<const char*>();
+        ESP_LOGI("Sequence", "Executing command: %s", cmd_str);
+
+        if (strcmp(cmd_str, "forward") == 0) {
+            setSteer(0, g_state); // -512 es giro completo a la izquierda (rango -512 a 512)
+            setMotor(1024, true, g_state); // 512 es ~50% de velocidad (rango 0-1023)
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            //setMotor(0, true, g_state);
+        } else if (strcmp(cmd_str, "backward") == 0) {
+            setSteer(0, g_state); // -512 es giro completo a la izquierda (rango -512 a 512)
+            setMotor(1024, false, g_state); // 512 es ~50% de velocidad (rango 0-1023)
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            //setMotor(0, false, g_state);
+        } else if (strcmp(cmd_str, "left") == 0) {
+            setSteer(-512, g_state); // -512 es giro completo a la izquierda (rango -512 a 512)
+            setMotor(1024, true, g_state); // 512 es ~50% de velocidad (rango 0-1023)
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            //setSteer(0, g_state);
+        } else if (strcmp(cmd_str, "right") == 0) {
+            setSteer(512, g_state); // 512 es giro completo a la derecha (rango -512 a 512)
+            setMotor(1024, true, g_state); // 512 es ~50% de velocidad (rango 0-1023)
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            //setSteer(0, g_state);
+        } else if (strcmp(cmd_str, "forward-left") == 0) {
+            setMotor(1024, true, g_state);
+            setSteer(-512, g_state);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            //setMotor(0, true, g_state);
+            //setSteer(0, g_state);
+        } else if (strcmp(cmd_str, "forward-right") == 0) {
+            setMotor(1024, true, g_state);
+            setSteer(512, g_state);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            //setMotor(0, true, g_state);
+            //setSteer(0, g_state);
+        } else if (strcmp(cmd_str, "backward-left") == 0) {
+            setMotor(1024, false, g_state);
+            setSteer(-512, g_state);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            //setMotor(0, false, g_state);
+            //setSteer(0, g_state);
+        } else if (strcmp(cmd_str, "backward-right") == 0) {
+            setMotor(1024, false, g_state);
+            setSteer(512, g_state);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            //setMotor(0, false, g_state);
+            //setSteer(0, g_state);
+        } else if (strcmp(cmd_str, "wait") == 0) {
+            setMotor(0, false, g_state);
+            setSteer(0, g_state);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        } else if (strcmp(cmd_str, "horn") == 0) {
+            // TODO: Implement horn functionality
+            ESP_LOGI("Sequence", "Horn command received, but not implemented.");
+        }
+        vTaskDelay(200 / portTICK_PERIOD_MS); // Short delay between commands
+    }
+    setMotor(0, false, g_state);
+    setSteer(0, g_state);
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
     return ESP_OK;
 }

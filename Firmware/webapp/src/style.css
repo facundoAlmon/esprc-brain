@@ -823,3 +823,152 @@ button.icon-toggle.active svg {
 .joystick-layout-single.swapped .joystick-info-card {
     grid-column: 1;
 }
+
+
+.iterations-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.iterations-control label {
+    color: var(--text-muted-color);
+}
+
+.iterations-control input[type="number"] {
+    width: 80px;
+}
+
+.iterations-control input[type="checkbox"] {
+    margin-left: 1rem;
+}
+
+/* ====== Estilos para Kid Mode ====== */
+#kid-mode-commands .button-group {
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.kid-mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    width: 120px;
+    height: 100px;
+    font-size: 1rem;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.kid-mode-btn svg {
+    width: 36px;
+    height: 36px;
+    stroke: var(--primary-color);
+}
+
+.kid-mode-btn:hover svg {
+    stroke: #fff;
+}
+
+#kid-mode-sequence-container {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-height: 80px;
+    border: 2px dashed var(--border-color);
+    padding: 1rem;
+    border-radius: 4px;
+    align-content: flex-start;
+}
+
+.sequence-icon {
+    width: 48px;
+    height: 48px;
+    padding: 8px;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.sequence-icon svg {
+    width: 100%;
+    height: 100%;
+    stroke: var(--text-muted-color);
+}
+
+#kid-mode-controls .button-group {
+    justify-content: center;
+}
+
+/* D-Pad Layout */
+#kid-mode-commands {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+.d-pad-container {
+    display: grid;
+    grid-template-columns: repeat(3, 80px);
+    grid-template-rows: repeat(3, 80px);
+    gap: 5px;
+    justify-content: center;
+}
+
+.d-pad-btn {
+    border: 2px solid var(--border-color);
+    background-color: var(--surface-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
+}
+
+.d-pad-btn:hover {
+    background-color: var(--glow-color);
+    border-color: var(--primary-color);
+}
+
+.d-pad-btn:active {
+    background-color: var(--primary-color);
+    transform: scale(0.95);
+}
+
+.d-pad-btn svg {
+    width: 40px;
+    height: 40px;
+    stroke: var(--primary-color);
+    transition: stroke 0.2s;
+}
+
+.d-pad-btn:hover svg {
+    stroke: var(--secondary-color);
+}
+
+.d-pad-btn:active svg {
+    stroke: #fff;
+}
+
+/* Asignación de áreas del grid para el D-Pad */
+.d-pad-btn[data-command="forward-left"] { grid-area: 1 / 1; }
+.d-pad-btn[data-command="forward"] { grid-area: 1 / 2; }
+.d-pad-btn[data-command="forward-right"] { grid-area: 1 / 3; }
+.d-pad-btn[data-command="left"] { grid-area: 2 / 1; }
+.d-pad-btn[data-command="right"] { grid-area: 2 / 3; }
+.d-pad-btn[data-command="backward-left"] { grid-area: 3 / 1; }
+.d-pad-btn[data-command="backward"] { grid-area: 3 / 2; }
+.d-pad-btn[data-command="backward-right"] { grid-area: 3 / 3; }
+.d-pad-center { grid-area: 2 / 2; }
+
+.kid-mode-extra-btns {
+    justify-content: center;
+    margin-top: 1.5rem;
+}

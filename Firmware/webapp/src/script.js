@@ -122,7 +122,23 @@ const translations = {
         importConfig: "Import Config",
         programImportSuccess: "Program imported successfully!",
         programImportError: "An error occurred during program import. Invalid JSON or file format.",
-        programExportError: "Failed to export program."
+        programExportError: "Failed to export program.",
+        kidMode: "Kid Mode",
+        kidModeTitle: "Kid Mode",
+        commandButtons: "Command Buttons",
+        sequence: "Sequence",
+        forward: "Forward",
+        forwardLeft: "Forward Left",
+        forwardRight: "Forward Right",
+        backward: "Backward",
+        backwardLeft: "Backward Left",
+        backwardRight: "Backward Right",
+        left: "Left",
+        right: "Right",
+        horn: "Horn",
+        wait: "Wait",
+        runSequence: "▶️ Run Sequence",
+        clearSequence: "🗑️ Clear Sequence"
     },
     es: {
         menu: "Menú",
@@ -240,7 +256,23 @@ const translations = {
         importConfig: "Importar Config.",
         programImportSuccess: "¡Programa importado con éxito!",
         programImportError: "Ocurrió un error durante la importación del programa. Formato JSON o de archivo no válido.",
-        programExportError: "Fallo al exportar el programa."
+        programExportError: "Fallo al exportar el programa.",
+        kidMode: "Modo Niños",
+        kidModeTitle: "Modo Niños",
+        commandButtons: "Botones de Comando",
+        sequence: "Secuencia",
+        forward: "Adelante",
+        forwardLeft: "Adelante Izquierda",
+        forwardRight: "Adelante Derecha",
+        backward: "Atrás",
+        backwardLeft: "Atrás Izquierda",
+        backwardRight: "Atrás Derecha",
+        left: "Izquierda",
+        right: "Derecha",
+        horn: "Bocina",
+        wait: "Esperar",
+        runSequence: "▶️ Ejecutar Secuencia",
+        clearSequence: "🗑️ Limpiar Secuencia"
     }
 };
 
@@ -265,6 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
         currentLanguage: 'en',
         tooltipTimeout: null,
         joystickLayoutSwapped: false,
+        kidSequence: [],
+        kidModeActiveCommand: null,
+        kidModeInterval: null,
 
         icons: {
             turn_left: `<svg  xmlns=\"http://www.w3.org/2000/svg\"  width=\"24\"  height=\"24\"  viewBox=\"0 0 24 24\"  fill=\"none\"  stroke=\"currentColor\"  stroke-width=\"2\"  stroke-linecap=\"round\"  stroke-linejoin=\"round\"  class=\"icon icon-tabler icons-tabler-outline icon-tabler-arrow-big-left-lines\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none"/><path stroke=\"none\" fill=\"currentColor\" d=\"M12 15v3.586a1 1 0 0 1 -1.707 .707l-6.586 -6.586a1 1 0 0 1 0 -1.414l6.586 -6.586a1 1 0 0 1 1.707 .707v3.586h3v6h-3z" /><path d=\"M21 15v-6" /><path d=\"M18 15v-6" /></svg>`, 
@@ -311,6 +346,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 exportProgramBtn: document.getElementById('exportProgramBtn'),
                 importProgramBtn: document.getElementById('importProgramBtn'),
                 importProgramInput: document.getElementById('import-program-input'),
+                runSequenceBtn: document.getElementById('runSequenceBtn'),
+                clearSequenceBtn: document.getElementById('clearSequenceBtn'),
+                kidModeCommands: document.getElementById('kid-mode-commands'),
+                kidModeSequenceContainer: document.getElementById('kid-mode-sequence-container'),
             };
 
             this.setupLanguage();
@@ -425,6 +464,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     this.elements.programIterations.value = 1; // Reset to 1 when unchecked
                 }
             });
+
+            // Listener para los botones de secuencia del modo niños (D-Pad y extras)
+            this.elements.kidModeCommands.addEventListener('click', (e) => {
+                const commandButton = e.target.closest('.kid-mode-btn[data-command], .d-pad-btn[data-command]');
+                if (commandButton) {
+                    this.handleKidModeCommand(commandButton.dataset.command);
+                }
+            });
+
+            this.attachClick('runSequenceBtn', this.runKidSequence);
+            this.attachClick('clearSequenceBtn', this.clearKidSequence);
         },
 
         attachClick(id, handler) {
@@ -1281,6 +1331,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     return closest;
                 }
             }, { offset: Number.NEGATIVE_INFINITY }).element;
+        },
+
+        handleKidModeCommand(command) {
+            this.kidSequence.push(command);
+            this.renderKidSequence();
+        },
+
+        renderKidSequence() {
+            this.elements.kidModeSequenceContainer.innerHTML = '';
+            this.kidSequence.forEach(command => {
+                const iconContainer = document.createElement('div');
+                iconContainer.className = 'sequence-icon';
+                const commandButton = this.elements.kidModeCommands.querySelector(`[data-command=${command}]`);
+                if (commandButton) {
+                    iconContainer.innerHTML = commandButton.querySelector('svg').outerHTML;
+                }
+                this.elements.kidModeSequenceContainer.appendChild(iconContainer);
+            });
+        },
+
+        async runKidSequence() {
+            await this.fetchAPI('api/sequence', {
+                method: 'POST',
+                body: JSON.stringify({ commands: this.kidSequence }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+        },
+
+        clearKidSequence() {
+            this.kidSequence = [];
+            this.renderKidSequence();
         }
     };
 
