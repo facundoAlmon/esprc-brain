@@ -123,8 +123,8 @@ const translations = {
         programImportSuccess: "Program imported successfully!",
         programImportError: "An error occurred during program import. Invalid JSON or file format.",
         programExportError: "Failed to export program.",
-        kidMode: "Kid Mode",
-        kidModeTitle: "Kid Mode",
+        kidMode: "Kid Mode Program",
+        kidModeTitle: "Kid Mode Program",
         commandButtons: "Command Buttons",
         sequence: "Sequence",
         forward: "Forward",
@@ -240,7 +240,7 @@ const translations = {
         wpc: "WPC",
         rawGma: "RAW GMA",
         dcw: "DCW",
-        program: "Programa",
+        program: "Programar",
         programTitle: "Secuencia de Programa",
         uploadProgram: "Cargar a ESP",
         runProgram: "▶️ Ejecutar",
@@ -257,8 +257,8 @@ const translations = {
         programImportSuccess: "¡Programa importado con éxito!",
         programImportError: "Ocurrió un error durante la importación del programa. Formato JSON o de archivo no válido.",
         programExportError: "Fallo al exportar el programa.",
-        kidMode: "Modo Niños",
-        kidModeTitle: "Modo Niños",
+        kidMode: "Modo Niños (Programar)",
+        kidModeTitle: "Modo Niños (Programa)",
         commandButtons: "Botones de Comando",
         sequence: "Secuencia",
         forward: "Adelante",
@@ -1229,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="form-grid">
                         <div class="form-group slider-group">
                             <label>Speed: <span id="action-speed-value-${index}">${action.motorSpeed}</span></label>
-                            <input type="range" class="action-speed" min="-255" max="255" value="${action.motorSpeed}">
+                            <input type="range" class="action-speed" min="-1024" max="1024" value="${action.motorSpeed}">
                         </div>
                         <div class="form-group slider-group">
                             <label>Steer: <span id="action-steer-value-${index}">${action.steerAngle}</span></label>
