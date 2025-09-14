@@ -741,14 +741,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setupTooltipEvents(element) {
             element.addEventListener('mouseenter', e => this.showTooltip(e));
-            element.addEventListener('mouseleave', e => this.hideTooltip(e));
+            element.addEventListener('mouseleave', () => this.hideTooltip());
             element.addEventListener('touchstart', e => {
                 this.tooltipTimeout = setTimeout(() => this.showTooltip(e), 500);
             }, { passive: true });
-            element.addEventListener('touchend', e => {
+            element.addEventListener('touchend', () => {
                 clearTimeout(this.tooltipTimeout);
-                this.hideTooltip(e);
-            });
+                this.hideTooltip();
+            }, { passive: true });
+            element.addEventListener('touchcancel', () => {
+                clearTimeout(this.tooltipTimeout);
+                this.hideTooltip();
+            }, { passive: true });
         },
 
         showTooltip(e) {
