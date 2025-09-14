@@ -575,22 +575,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!this.socketOnline) return;
                 let actBody = {};
                 if (this.activeTab === 'joystick-a') {
+                    const yVal = parseFloat(this.joy1.GetY());
+                    const xVal = parseFloat(this.joy1.GetX());
                     actBody = {
-                        motorSpeed: Math.trunc(Math.abs(this.joy1.GetY()) * 1023 / 100),
-                        motorDirection: this.joy1.GetY() < 0 ? "F" : "B",
-                        steerDirection: this.joy1.GetX() < 0 ? "L" : "R",
-                        steerAng: Math.trunc(Math.abs(this.joy1.GetX()) * 512 / 100),
+                        motorSpeed: Math.trunc(Math.min(100, Math.abs(yVal)) * 1024 / 100),
+                        motorDirection: yVal < 0 ? "F" : "B",
+                        steerDirection: xVal < 0 ? "L" : "R",
+                        steerAng: Math.trunc(Math.min(100, Math.abs(xVal)) * 512 / 100),
                         ms: 500
                     };
                 } else if (this.activeTab === 'joystick-b') {
                     const acelIzq = document.getElementById("acelIzq").classList.contains('active');
-                    const joyX = acelIzq ? this.joy2B.GetX() : this.joy2A.GetX();
-                    const joyY = acelIzq ? this.joy2A.GetY() : this.joy2B.GetY();
+                    const joyX = parseFloat(acelIzq ? this.joy2B.GetX() : this.joy2A.GetX());
+                    const joyY = parseFloat(acelIzq ? this.joy2A.GetY() : this.joy2B.GetY());
                     actBody = {
-                        motorSpeed: Math.trunc(Math.abs(joyY) * 1023 / 100),
+                        motorSpeed: Math.trunc(Math.min(100, Math.abs(joyY)) * 1024 / 100),
                         motorDirection: joyY < 0 ? "F" : "B",
                         steerDirection: joyX < 0 ? "L" : "R",
-                        steerAng: Math.trunc(Math.abs(joyX) * 512 / 100),
+                        steerAng: Math.trunc(Math.min(100, Math.abs(joyX)) * 512 / 100),
                         ms: 500
                     };
                 } else { return; }
