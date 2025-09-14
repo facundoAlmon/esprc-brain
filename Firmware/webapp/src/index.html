@@ -330,6 +330,13 @@
                 <div class="settings-section" id="kid-mode-controls">
                     <div class="button-group">
                         <button id="runSequenceBtn" data-i18n="runSequence">▶️ Run Sequence</button>
+                        <div class="iterations-control">
+                            <label for="kidModeIterations" data-i18n="iterations">Iterations:</label>
+                            <input type="number" id="kidModeIterations" value="1" min="1">
+                            <input type="checkbox" id="kidModeInfinite" class="toggle">
+                            <label for="kidModeInfinite" data-i18n="infinite">Infinite</label>
+                        </div>
+                        <button id="stopSequenceBtn" data-i18n="stopProgram">⏹️ Stop</button>
                         <button id="clearSequenceBtn" class="danger" data-i18n="clearSequence">🗑️ Clear
                             Sequence</button>
                     </div>

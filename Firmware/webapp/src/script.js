@@ -347,9 +347,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 importProgramBtn: document.getElementById('importProgramBtn'),
                 importProgramInput: document.getElementById('import-program-input'),
                 runSequenceBtn: document.getElementById('runSequenceBtn'),
+                stopSequenceBtn: document.getElementById('stopSequenceBtn'),
                 clearSequenceBtn: document.getElementById('clearSequenceBtn'),
                 kidModeCommands: document.getElementById('kid-mode-commands'),
                 kidModeSequenceContainer: document.getElementById('kid-mode-sequence-container'),
+                kidModeIterations: document.getElementById('kidModeIterations'),
+                kidModeInfinite: document.getElementById('kidModeInfinite'),
             };
 
             this.setupLanguage();
@@ -474,7 +477,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             this.attachClick('runSequenceBtn', this.runKidSequence);
+            this.attachClick('stopSequenceBtn', this.stopKidSequence);
             this.attachClick('clearSequenceBtn', this.clearKidSequence);
+
+            this.elements.kidModeInfinite.addEventListener('change', () => {
+                this.elements.kidModeIterations.disabled = this.elements.kidModeInfinite.checked;
+                if (this.elements.kidModeInfinite.checked) {
+                    this.elements.kidModeIterations.value = -1; // -1 for infinite
+                } else {
+                    this.elements.kidModeIterations.value = 1; // Reset to 1
+                }
+            });
         },
 
         attachClick(id, handler) {
@@ -1358,11 +1371,25 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         async runKidSequence() {
+            let iterations = parseInt(this.elements.kidModeIterations.value, 10);
+            if (this.elements.kidModeInfinite.checked) {
+                iterations = -1; // Use -1 to signify infinite iterations to the backend
+            } else if (isNaN(iterations) || iterations < 1) {
+                iterations = 1; // Default to 1 if the value is invalid
+            }
+
             await this.fetchAPI('api/sequence', {
                 method: 'POST',
-                body: JSON.stringify({ commands: this.kidSequence }),
+                body: JSON.stringify({
+                    commands: this.kidSequence,
+                    iterations: iterations
+                }),
                 headers: { 'Content-Type': 'application/json' }
             });
+        },
+
+        async stopKidSequence() {
+            await this.fetchAPI('api/sequence/stop');
         },
 
         clearKidSequence() {
