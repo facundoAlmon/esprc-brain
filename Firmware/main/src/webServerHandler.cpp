@@ -47,6 +47,10 @@ static esp_err_t get_program_stop_handler(httpd_req_t *req);
 static esp_err_t get_program_clear_handler(httpd_req_t *req);
 static esp_err_t get_program_handler(httpd_req_t *req);
 
+// Nuevos manejadores para la API de grabación
+static esp_err_t get_recording_start_handler(httpd_req_t *req);
+static esp_err_t get_recording_stop_handler(httpd_req_t *req);
+
 // Nuevos manejadores para la API de configuracion de backup/restore
 static esp_err_t get_config_backup_handler(httpd_req_t *req);
 static esp_err_t post_config_restore_handler(httpd_req_t *req);
@@ -94,7 +98,7 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 20; // Aumentado para nuevos endpoints
+    config.max_uri_handlers = 22; // Aumentado para nuevos endpoints
     config.lru_purge_enable = true;
     config.uri_match_fn = httpd_uri_match_wildcard;
     config.global_user_ctx = g_state; // El contexto de usuario principal sigue siendo el estado
@@ -158,6 +162,13 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
 
         httpd_uri_t get_program_uri = {.uri = "/api/program", .method = HTTP_GET, .handler = get_program_handler};
         httpd_register_uri_handler(server_httpd, &get_program_uri);
+
+        // Registro de nuevos endpoints para grabación
+        httpd_uri_t get_recording_start_uri = {.uri = "/api/recording/start", .method = HTTP_GET, .handler = get_recording_start_handler};
+        httpd_register_uri_handler(server_httpd, &get_recording_start_uri);
+
+        httpd_uri_t get_recording_stop_uri = {.uri = "/api/recording/stop", .method = HTTP_GET, .handler = get_recording_stop_handler};
+        httpd_register_uri_handler(server_httpd, &get_recording_stop_uri);
 
         // Registro de nuevos endpoints para backup/restore de configuracion
         httpd_uri_t get_config_backup_uri = {.uri = "/api/config/backup", .method = HTTP_GET, .handler = get_config_backup_handler};
@@ -368,14 +379,20 @@ static void act_from_json(JsonDocument& doc, VehicleState* state) {
         state->apiActMSStart = millis();
         state->apiActMS = doc["ms"] | state->apiActMSTimeout;
 
-        int motorSpeed = doc["motorSpeed"] | 0;
+        int motorSpeedRaw = doc["motorSpeed"] | 0;
         const char* motorDirectionStr = doc["motorDirection"] | "F";
+        int motorSpeed = strcmp(motorDirectionStr, "F") == 0 ? motorSpeedRaw : -motorSpeedRaw;
         setMotor(motorSpeed, strcmp(motorDirectionStr, "F") == 0, state);
         
-        int steerAng = doc["steerAng"] | 0;
+        int steerAngRaw = doc["steerAng"] | 0;
         const char* steerDirectionStr = doc["steerDirection"] | "R";
-        int finalSteer = strcmp(steerDirectionStr, "L") == 0 ? -steerAng : steerAng;
-        setSteer(finalSteer, state);
+        int steerAngle = strcmp(steerDirectionStr, "L") == 0 ? -steerAngRaw : steerAngRaw;
+        setSteer(steerAngle, state);
+
+        // Hook for recording
+        if (g_programManager->isRecording()) {
+            g_programManager->recordStep(motorSpeed, steerAngle);
+        }
     }
 
     if (doc.containsKey("action")) {
@@ -527,6 +544,22 @@ static esp_err_t get_program_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_send(req, output.c_str(), output.length());
+    return ESP_OK;
+}
+
+static esp_err_t get_recording_start_handler(httpd_req_t *req) {
+    g_programManager->startRecording();
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
+    return ESP_OK;
+}
+
+static esp_err_t get_recording_stop_handler(httpd_req_t *req) {
+    g_programManager->stopRecording();
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
     return ESP_OK;
 }
 

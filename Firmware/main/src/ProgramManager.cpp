@@ -142,6 +142,66 @@ void ProgramManager::clearProgram() {
     }
 }
 
+bool ProgramManager::isRecording() const {
+    return _isRecording;
+}
+
+void ProgramManager::startRecording() {
+    if (_isRunning) {
+        ESP_LOGW(TAG, "Cannot start recording, a program is running.");
+        return;
+    }
+    clearProgram(); // Clear any previous program
+    _isRecording = true;
+    _lastActionRecordTime = millis();
+    
+    // Initialize the first action with the current state of the vehicle
+    _lastRecordedAction.type = ProgramActionType::MOVE_STEER;
+    _lastRecordedAction.motorSpeed = _state->motorSpeed;
+    _lastRecordedAction.steerAngle = _state->steerAngle;
+    _lastRecordedAction.duration_ms = 0; // Duration will be calculated on the next step
+
+    ESP_LOGI(TAG, "Recording started.");
+}
+
+void ProgramManager::stopRecording() {
+    if (!_isRecording) return;
+    _isRecording = false;
+
+    // Save the last recorded action
+    uint32_t now = millis();
+    uint32_t duration = now - _lastActionRecordTime;
+    if (duration > 50) { // Debounce: only record steps longer than 50ms
+        _lastRecordedAction.duration_ms = duration;
+        _program.push_back(_lastRecordedAction);
+    }
+
+    ESP_LOGI(TAG, "Recording stopped. Program has %d steps.", _program.size());
+    saveProgramToNVS();
+}
+
+void ProgramManager::recordStep(int motorSpeed, int steerAngle) {
+    if (!_isRecording) return;
+
+    // Check if the action has changed
+    if (motorSpeed != _lastRecordedAction.motorSpeed || steerAngle != _lastRecordedAction.steerAngle) {
+        uint32_t now = millis();
+        uint32_t duration = now - _lastActionRecordTime;
+
+        if (duration > 50) { // Debounce: only record steps longer than 50ms
+            // Save the previous action with its calculated duration
+            _lastRecordedAction.duration_ms = duration;
+            _program.push_back(_lastRecordedAction);
+            
+            // Start the new action
+            _lastRecordedAction.type = ProgramActionType::MOVE_STEER;
+            _lastRecordedAction.motorSpeed = motorSpeed;
+            _lastRecordedAction.steerAngle = steerAngle;
+            _lastActionRecordTime = now;
+        }
+    }
+}
+
 void ProgramManager::loop() {
     if (!_isRunning) {
         return;

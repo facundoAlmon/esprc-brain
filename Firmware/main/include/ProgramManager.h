@@ -36,6 +36,11 @@ public:
     void stopProgram();
     void clearProgram();
 
+    void startRecording();
+    void stopRecording();
+    void recordStep(int motorSpeed, int steerAngle);
+    bool isRecording() const;
+
     void loop(); // Main method to be called in the application's loop
 
     bool isRunning() const;
@@ -49,6 +54,11 @@ private:
     uint32_t _actionStartTime = 0;
     int _totalIterations = 0;
     int _currentIteration = 0;
+
+    // Recording state
+    bool _isRecording = false;
+    uint32_t _lastActionRecordTime = 0;
+    ProgrammedAction _lastRecordedAction;
 
     void executeAction(const ProgrammedAction& action);
     void stopAllActions();
