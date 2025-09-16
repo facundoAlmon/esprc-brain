@@ -29,6 +29,7 @@ class JoyStick {
         this.ctx = this.canvas.getContext('2d');
         this.pressed = 0;
         this.twoPi = 2 * Math.PI;
+        this.touchId = null;
 
         this.internalRadius = (this.canvas.width - (this.canvas.width / 2 + 10)) / 2;
         this.internalRadius_2 = this.internalRadius + 5;
@@ -92,42 +93,109 @@ class JoyStick {
     }
 
     setupEventListeners() {
-        const move = (e) => {
-            if (this.pressed) {
-                const rect = this.canvas.getBoundingClientRect();
-                let x, y;
-                if (e.type === 'touchmove') {
-                    x = e.targetTouches[0].clientX - rect.left;
-                    y = e.targetTouches[0].clientY - rect.top;
-                } else {
-                    x = e.clientX - rect.left;
-                    y = e.clientY - rect.top;
+        this.boundDown = this.down.bind(this);
+        this.boundMove = this.move.bind(this);
+        this.boundUp = this.up.bind(this);
+
+        this.canvas.addEventListener('mousedown', this.boundDown, false);
+        this.canvas.addEventListener('touchstart', this.boundDown, { passive: false });
+    }
+
+    down(e) {
+        e.preventDefault();
+        this.pressed = 1;
+
+        if (e.type === 'touchstart') {
+            if (this.touchId === null) {
+                this.touchId = e.changedTouches[0].identifier;
+            }
+        }
+
+        this.move(e);
+
+        document.addEventListener('mousemove', this.boundMove, false);
+        document.addEventListener('touchmove', this.boundMove, { passive: false });
+        document.addEventListener('mouseup', this.boundUp, false);
+        document.addEventListener('touchend', this.boundUp, false);
+        document.addEventListener('touchcancel', this.boundUp, false);
+    }
+
+    move(e) {
+        if (!this.pressed) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        let x, y;
+
+        if (e.type.startsWith('touch')) {
+            let touch = null;
+            for (let i = 0; i < e.touches.length; i++) {
+                if (e.touches[i].identifier === this.touchId) {
+                    touch = e.touches[i];
+                    break;
                 }
-                this.movedX = x;
-                this.movedY = y;
             }
-        };
 
-        const up = () => {
-            this.pressed = 0;
-            if (this.autoReturnToCenter) {
-                this.movedX = this.centerX;
-                this.movedY = this.centerY;
+            if (touch) {
+                x = touch.clientX - rect.left;
+                y = touch.clientY - rect.top;
+            } else {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === this.touchId) {
+                        touch = e.changedTouches[i];
+                        break;
+                    }
+                }
+                if (touch) {
+                    x = touch.clientX - rect.left;
+                    y = touch.clientY - rect.top;
+                } else {
+                    return;
+                }
             }
-        };
+        } else {
+            x = e.clientX - rect.left;
+            y = e.clientY - rect.top;
+        }
 
-        this.canvas.addEventListener('mousedown', () => this.pressed = 1, false);
-        this.canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.pressed = 1;
-            move(e);
-        }, { passive: false });
+        const dx = x - this.centerX;
+        const dy = y - this.centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-        document.addEventListener('mousemove', move, false);
-        document.addEventListener('touchmove', move, { passive: false });
+        if (distance > this.externalRadius) {
+            const angle = Math.atan2(dy, dx);
+            this.movedX = this.centerX + this.externalRadius * Math.cos(angle);
+            this.movedY = this.centerY + this.externalRadius * Math.sin(angle);
+        } else {
+            this.movedX = x;
+            this.movedY = y;
+        }
+    }
 
-        document.addEventListener('mouseup', up, false);
-        document.addEventListener('touchend', up, false);
+    up(e) {
+        if (e.type.startsWith('touch')) {
+            let ourTouchEnded = false;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === this.touchId) {
+                    ourTouchEnded = true;
+                    break;
+                }
+            }
+            if (!ourTouchEnded) return;
+        }
+
+        this.pressed = 0;
+        this.touchId = null;
+
+        if (this.autoReturnToCenter) {
+            this.movedX = this.centerX;
+            this.movedY = this.centerY;
+        }
+
+        document.removeEventListener('mousemove', this.boundMove);
+        document.removeEventListener('touchmove', this.boundMove);
+        document.removeEventListener('mouseup', this.boundUp);
+        document.removeEventListener('touchend', this.boundUp);
+        document.removeEventListener('touchcancel', this.boundUp);
     }
 
     startAnimation() {

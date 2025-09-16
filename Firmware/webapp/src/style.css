@@ -239,19 +239,19 @@ h1 {
 }
 
 .control-btn-left {
-    top: 50%;
+    top: 70%;
     left: 0;
     transform: translateY(-50%);
 }
 
 .control-btn-right {
-    top: 50%;
+    top: 70%;
     right: 0;
     transform: translateY(-50%);
 }
 
 .control-btn-center {
-    top: 50%;
+    top: 70%;
     left: 50%;
     transform: translate(-50%, -50%);
     width: 60px;
@@ -259,19 +259,19 @@ h1 {
 }
 
 .control-btn-up-right {
-    top: 0;
+    top: 20%;
     right: 0;
     transform: translateY(-50%);
 }
 
 .control-btn-up-left {
-    top: 0;
+    top: 20%;
     left: 0;
     transform: translateY(-50%);
 }
 
 .control-btn-up-center {
-    top: 0;
+    top: 20%;
     left: 50%;
     transform: translate(-50%, -50%);
     width: 60px;
