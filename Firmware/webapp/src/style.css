@@ -258,6 +258,26 @@ h1 {
     height: 60px;
 }
 
+.control-btn-up-right {
+    top: 0;
+    right: 0;
+    transform: translateY(-50%);
+}
+
+.control-btn-up-left {
+    top: 0;
+    left: 0;
+    transform: translateY(-50%);
+}
+
+.control-btn-up-center {
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+}
+
 /* ====== Formularios y Controles ====== */
 .form-grid {
     display: grid;

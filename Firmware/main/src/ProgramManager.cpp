@@ -157,8 +157,8 @@ void ProgramManager::startRecording() {
     
     // Initialize the first action with the current state of the vehicle
     _lastRecordedAction.type = ProgramActionType::MOVE_STEER;
-    _lastRecordedAction.motorSpeed = _state->motorSpeed;
-    _lastRecordedAction.steerAngle = _state->steerAngle;
+    _lastRecordedAction.motorSpeed = 0;
+    _lastRecordedAction.steerAngle = 0;
     _lastRecordedAction.duration_ms = 0; // Duration will be calculated on the next step
 
     ESP_LOGI(TAG, "Recording started.");

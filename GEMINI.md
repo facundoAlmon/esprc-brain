@@ -1,7 +1,5 @@
+# Project Overview
 
-# Prompt para Asistente de IA (Gemini)
-
-## Contexto del Proyecto
 
 Estoy trabajando en el proyecto **esprc-brain**, un sistema de control para un coche de radiocontrol basado en un ESP32. El proyecto consta de dos partes principales:
 
@@ -9,6 +7,28 @@ Estoy trabajando en el proyecto **esprc-brain**, un sistema de control para un c
 2.  **Aplicación Web (WebApp):** Una interfaz de usuario web para controlar el coche. Está escrita en HTML, CSS y JavaScript y se encuentra en el directorio `Firmware/webapp`.
 
 El `README.md` del proyecto proporciona una descripción detallada de las características, la estructura del proyecto y las instrucciones de configuración.
+
+## Key Technologies
+
+*   **Microcontroller:** ESP32
+*   **Firmware:** C++, ESP-IDF
+*   **Web App:** HTML, CSS, JavaScript
+*   **Communication:** Wi-Fi (AP and STA modes), WebSockets, REST API, Bluetooth (for gamepads)
+*   **Libraries:**
+    *   **Bluepad32:** For Bluetooth gamepad support.
+    *   **ArduinoJson:** For parsing and generating JSON data.
+    *   **ESPAsyncWebServer:** For the web server and WebSockets.
+
+
+## Development Conventions
+
+*   The firmware is written in C++ and follows the conventions of the ESP-IDF framework.
+*   The web application uses a modular structure, with separate files for HTML, CSS, and JavaScript.
+*   Communication between the web app and the firmware is done using JSON over WebSockets and a RESTful API.
+*   Configuration data is stored in the ESP32's non-volatile storage (NVS).
+
+
+
 
 ## Estructura de Archivos Relevante
 

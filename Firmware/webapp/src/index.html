@@ -152,7 +152,7 @@
                     <div class="joystick-info-card">
                         <h2 data-i18n="controls">CONTROLS</h2>
                         <div class="circular-controls">
-                            <button class="icon-toggle control-btn-up" id="headlights-btn-a"
+                            <button class="icon-toggle control-btn-up-center" id="headlights-btn-a"
                                 data-tooltip-key="headlights"></button>
                             <button class="icon-toggle control-btn-left" id="turn-left-btn-a"
                                 data-tooltip-key="turnLeft"></button>
@@ -160,7 +160,8 @@
                                 data-tooltip-key="hazardLights"></button>
                             <button class="icon-toggle control-btn-right" id="turn-right-btn-a"
                                 data-tooltip-key="turnRight"></button>
-                            <button class="icon-toggle" id="swap-layout-btn-a" data-tooltip-key="swapLayout"></button>
+                            <button class="icon-toggle control-btn-up-left" id="swap-layout-btn-a" data-tooltip-key="swapLayout"></button>
+                            <button class="icon-toggle control-btn-up-right" id="record-btn-a" data-tooltip-key="toggleRecording"></button>
                         </div>
                     </div>
                 </div>
@@ -174,11 +175,10 @@
                     </div>
                     <div class="joystick-info-card">
                         <h2 data-i18n="controls">CONTROLS</h2>
-                        <div class="control-group">
-                            <button class="icon-toggle" id="acelIzq" data-tooltip-key="throttleOnLeft"></button>
-                        </div>
+                        
                         <div class="circular-controls">
-                            <button class="icon-toggle control-btn-up" id="headlights-btn-b"
+                            <button class="icon-toggle control-btn-up-left" id="acelIzq" data-tooltip-key="throttleOnLeft"></button>
+                            <button class="icon-toggle control-btn-up-center" id="headlights-btn-b"
                                 data-tooltip-key="headlights"></button>
                             <button class="icon-toggle control-btn-left" id="turn-left-btn-b"
                                 data-tooltip-key="turnLeft"></button>
@@ -186,6 +186,7 @@
                                 data-tooltip-key="hazardLights"></button>
                             <button class="icon-toggle control-btn-right" id="turn-right-btn-b"
                                 data-tooltip-key="turnRight"></button>
+                            <button class="icon-toggle control-btn-up-right" id="record-btn-b" data-tooltip-key="toggleRecording"></button>
                         </div>
                     </div>
                     <div class="joystick-container">
@@ -621,9 +622,8 @@
     <div id="tooltip" class="tooltip"></div>
 
     <!-- ====== Scripts de la Aplicación ====== -->
-    <!-- La librería del joystick y nuestro script principal se insertarán aquí por Gulp -->
-    <script src="joystick.js" inline></script>
-    <script src="script.js" inline></script>
+    <!-- Nuestro script principal se insertará aquí por Gulp -->
+    <script src="script.js" type="module" inline></script>
 </body>
 
 </html>

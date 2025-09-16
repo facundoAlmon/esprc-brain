@@ -8,12 +8,14 @@
     "clean": "gulp clean"
   },
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
     "del": "^6.0.0",
     "gulp": "^4.0.2",
     "gulp-clean-css": "^4.3.0",
-    "gulp-concat": "^2.6.1",
     "gulp-htmlmin": "^5.0.1",
     "gulp-inline-source": "^4.0.0",
-    "gulp-terser": "^2.1.0"
+    "gulp-replace": "^1.1.4",
+    "rollup": "^4.9.6"
   }
 }
