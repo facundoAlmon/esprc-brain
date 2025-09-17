@@ -209,6 +209,10 @@ void ProgramManager::loop() {
 
     uint32_t now = millis();
     if (now - _actionStartTime >= _program[_currentActionIndex].duration_ms) {
+        // Important: We store the duration of the action that just finished
+        // before incrementing the index.
+        uint32_t last_action_duration = _program[_currentActionIndex].duration_ms;
+
         _currentActionIndex++;
         if (_currentActionIndex >= _program.size()) {
             // End of one iteration
@@ -225,7 +229,9 @@ void ProgramManager::loop() {
 
             if (should_continue) {
                 _currentActionIndex = 0;
-                _actionStartTime = now;
+                // Correction: Increment start time by the duration of the last action
+                // to maintain timing accuracy and avoid cumulative delays.
+                _actionStartTime += last_action_duration;
                 executeAction(_program[_currentActionIndex]);
             } else {
                 // End of program
@@ -234,7 +240,9 @@ void ProgramManager::loop() {
             }
         } else {
             // Next action
-            _actionStartTime = now;
+            // Correction: Increment start time by the duration of the last action
+            // to maintain timing accuracy and avoid cumulative delays.
+            _actionStartTime += last_action_duration;
             executeAction(_program[_currentActionIndex]);
         }
     }
