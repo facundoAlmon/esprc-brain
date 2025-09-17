@@ -27,6 +27,7 @@ enum LedFunction {
     LUZ_GIRO_DERECHA,
     ILUMINACION_INTERIOR,
     NEON_INFERIOR,
+    REC_INDICATOR,          //< Indicador de grabación
     // ---
     LED_FUNCTION_COUNT
 };

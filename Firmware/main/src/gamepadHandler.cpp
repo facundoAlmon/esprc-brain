@@ -1,12 +1,19 @@
 #include "gamepadHandler.h"
 #include "actuators.h"
 #include "state.h"
+#include "ProgramManager.h"
 #include <Preferences.h>
 
 extern Preferences preferences;
 
-// Global state pointer, initialized in setup
+// Global pointers, initialized in setup
 static VehicleState* g_state = nullptr;
+static ProgramManager* g_programManager = nullptr;
+
+// State for recording
+static bool isRecording = false;
+static int lastMotor = 0;
+static int lastSteer = 0;
 
 // Helper struct for button state
 struct ButtonState {
@@ -20,6 +27,8 @@ struct ButtonState {
     bool xPressed = false;
     bool aLastState = false;
     bool aPressed = false;
+    bool bLastState = false;
+    bool bPressed = false;
 };
 
 static ButtonState btnState;
@@ -27,8 +36,9 @@ static ButtonState btnState;
 /**
  * @brief Inicializa el gestor de gamepads Bluepad32.
  */
-void setupGamepad(VehicleState* state) {
+void setupGamepad(VehicleState* state, ProgramManager* programManager) {
     g_state = state;
+    g_programManager = programManager;
     BP32.setup(&onConnectedGamepad, &onDisconnectedGamepad);
     // Habilita o deshabilita el descubrimiento de nuevos mandos según la configuración.
     (g_state->enableScan == 1) ? BP32.enableNewBluetoothConnections(true) : BP32.enableNewBluetoothConnections(false);
@@ -85,25 +95,28 @@ void servoController(GamepadPtr myGamepad, VehicleState* state) {
     // Aplica una pequeña "zona muerta" para evitar movimientos por ruido.
     if (abs(mov) < 20) mov = 0;
     setSteer(mov, state);
+    lastSteer = mov;
 }
 
 /**
  * @brief Controla el motor basado en los gatillos de acelerador y freno.
  */
 void motorController(GamepadPtr myGamepad, VehicleState* state) {
+    int motorSpeed = 0;
     if (myGamepad->brake() > 20) {
-        setMotor(myGamepad->brake(), false, state);
+        motorSpeed = -myGamepad->brake();
     } else if (myGamepad->throttle() > 20) {
-        setMotor(myGamepad->throttle(), true, state);
-    } else {
-        setMotor(0, true, state);
+        motorSpeed = myGamepad->throttle();
     }
+
+    setMotor(abs(motorSpeed), motorSpeed >= 0, state);
+    lastMotor = motorSpeed;
 }
 
 /**
- * @brief Controla las luces (intermitentes, emergencia, faros) basado en los botones.
+ * @brief Controla las luces y otras acciones basado en los botones.
  */
-void ledController(GamepadPtr myGamepad, VehicleState* state) {
+void buttonController(GamepadPtr myGamepad, VehicleState* state, ProgramManager* programManager) {
     // Detección de flanco para el intermitente derecho (R1).
     if (myGamepad->r1() != btnState.r1LastState) {
         btnState.r1Pressed = true;
@@ -149,7 +162,7 @@ void ledController(GamepadPtr myGamepad, VehicleState* state) {
         if (state->luces > 3) state->luces = 0;
     }
 
-    // Detección de flanco para el Botón A (toggle autoTurnSignals).
+    // Detección de flanco para el Botón A (Reproducir/Parar programa).
     if (myGamepad->a() != btnState.aLastState) {
         btnState.aPressed = true;
     } else {
@@ -157,15 +170,34 @@ void ledController(GamepadPtr myGamepad, VehicleState* state) {
     }
     btnState.aLastState = myGamepad->a();
     if (btnState.aPressed && btnState.aLastState) {
-        state->autoTurnSignals = !state->autoTurnSignals;
-        preferences.putBool("autoTurnSignals", state->autoTurnSignals);
+        if (g_programManager->isRunning()) {
+            g_programManager->stopProgram();
+        } else if (!isRecording) {
+            g_programManager->startProgram();
+        }
+    }
+
+    // Detección de flanco para el Botón B (Iniciar/Parar grabación).
+    if (myGamepad->b() != btnState.bLastState) {
+        btnState.bPressed = true;
+    } else {
+        btnState.bPressed = false;
+    }
+    btnState.bLastState = myGamepad->b();
+    if (btnState.bPressed && btnState.bLastState) {
+        isRecording = !isRecording;
+        if (isRecording) {
+            g_programManager->startRecording();
+        } else {
+            g_programManager->stopRecording();
+        }
     }
 }
 
 /**
  * @brief Procesa las entradas de los gamepads conectados.
  */
-void handleGamepads(VehicleState* state) {
+void handleGamepads(VehicleState* state, ProgramManager* programManager) {
     BP32.update();
 
     // Actualmente, la lógica solo soporta un gamepad a la vez.
@@ -174,7 +206,11 @@ void handleGamepads(VehicleState* state) {
         if (myGamepad && myGamepad->isConnected()) {
             servoController(myGamepad, state);
             motorController(myGamepad, state);
-            ledController(myGamepad, state);
+            buttonController(myGamepad, state, programManager);
+
+            if (isRecording) {
+                g_programManager->recordStep(lastMotor, lastSteer);
+            }
         }
     }
 }

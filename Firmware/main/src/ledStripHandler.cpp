@@ -37,7 +37,7 @@ void setupLedStrip(VehicleState* state) {
     led_strip_clear(led_strip); // Limpiamos la tira una sola vez al inicio
 }
 
-void handleLedStrip(VehicleState* state) {
+void handleLedStrip(VehicleState* state, ProgramManager* programManager) {
     if (!state) return;
 
     // 1. Limpiar nuestro búfer de software, no la tira física
@@ -98,6 +98,14 @@ void handleLedStrip(VehicleState* state) {
         if (rightSignal) {
             for (const auto& group : state->ledGroups) {
                 if (group.funcion == LUZ_GIRO_DERECHA) {
+                    parse_and_set_leds_to_buffer(group.leds, group.colorR, group.colorG, group.colorB, group.brillo);
+                }
+            }
+        }
+        // --- Lógica para el indicador de grabación ---
+        if (programManager->isRecording()) {
+            for (const auto& group : state->ledGroups) {
+                if (group.funcion == REC_INDICATOR) {
                     parse_and_set_leds_to_buffer(group.leds, group.colorR, group.colorG, group.colorB, group.brillo);
                 }
             }

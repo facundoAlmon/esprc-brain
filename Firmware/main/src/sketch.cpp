@@ -320,7 +320,7 @@ void setup() {
     led_strip_set_pixel(led_strip, 0, 0, 0, 255); // LED azul: WiFi/actuadores listos
     led_strip_refresh(led_strip);
 
-    setupGamepad(&vehicleState); // This calls BP32.setup() 
+    setupGamepad(&vehicleState, &programManager); // This calls BP32.setup() 
 
     led_strip_set_pixel(led_strip, 0, 0, 255, 0); // LED verde: todo listo
     led_strip_refresh(led_strip);
@@ -343,7 +343,7 @@ void loop() {
 
         // Solo procesa el gamepad si no hay un programa en ejecución
         if (!programManager.isRunning()) {
-            handleGamepads(&vehicleState);
+            handleGamepads(&vehicleState, &programManager);
         }
 
         // Timeout para las acciones recibidas por la API.
@@ -357,6 +357,6 @@ void loop() {
         }
         
         programManager.loop(); // Ejecuta el bucle del gestor de programas
-        handleLedStrip(&vehicleState);
+        handleLedStrip(&vehicleState, &programManager);
     }
 }

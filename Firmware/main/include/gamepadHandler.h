@@ -2,6 +2,7 @@
 
 #include <Bluepad32.h>
 #include "state.h"
+#include "ProgramManager.h"
 
 /**
  * @file gamepadHandler.h
@@ -10,17 +11,14 @@
  * Define las funciones para inicializar el sistema de gamepad, manejar las conexiones/desconexiones
  * y procesar las entradas de los mandos en el bucle principal.
  */
-#pragma once
-
-#include <Bluepad32.h>
-#include "state.h"
 
 /**
  * @brief Inicializa el gestor de gamepads Bluepad32.
  * 
  * @param state Puntero al estado global del vehículo.
+ * @param programManager Puntero al gestor de programas.
  */
-void setupGamepad(VehicleState* state);
+void setupGamepad(VehicleState* state, ProgramManager* programManager);
 
 /**
  * @brief Callback que se ejecuta cuando un gamepad se conecta.
@@ -42,7 +40,8 @@ void onDisconnectedGamepad(GamepadPtr gp);
  * Esta función debe ser llamada en cada iteración del bucle principal para leer
  * los estados de los joysticks y botones y actualizar el estado del vehículo.
  * @param state Puntero al estado global del vehículo.
+ * @param programManager Puntero al gestor de programas.
  */
-void handleGamepads(VehicleState* state);
+void handleGamepads(VehicleState* state, ProgramManager* programManager);
 
 

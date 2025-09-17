@@ -8,6 +8,7 @@
 
 #include "state.h"
 #include "led_strip.h"
+#include "ProgramManager.h"
 
 /**
  * @brief Handle global para la tira de LEDs.
@@ -27,5 +28,6 @@ void setupLedStrip(VehicleState* state);
  * Esta función debe ser llamada en el bucle principal para reflejar el estado
  * actual del vehículo (intermitentes, luces, frenos) en los LEDs.
  * @param state Puntero al estado global del vehículo.
+ * @param programManager Puntero al gestor de programas.
  */
-void handleLedStrip(VehicleState* state);
+void handleLedStrip(VehicleState* state, ProgramManager* programManager);
