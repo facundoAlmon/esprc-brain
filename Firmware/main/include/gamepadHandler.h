@@ -35,13 +35,23 @@ void onConnectedGamepad(GamepadPtr gp);
 void onDisconnectedGamepad(GamepadPtr gp);
 
 /**
- * @brief Procesa las entradas de los gamepads conectados.
+ * @brief Procesa las entradas de movimiento de los gamepads (joysticks/gatillos).
  * 
  * Esta función debe ser llamada en cada iteración del bucle principal para leer
- * los estados de los joysticks y botones y actualizar el estado del vehículo.
+ * los estados de los joysticks y gatillos y actualizar el estado del vehículo.
+ * Se debe llamar solo cuando no se esté ejecutando un programa.
+ * @param state Puntero al estado global del vehículo.
+ */
+void handleGamepadMotion(VehicleState* state);
+
+/**
+ * @brief Procesa las entradas de los botones de los gamepads.
+ * 
+ * Esta función debe ser llamada en cada iteración del bucle principal para leer
+ * el estado de los botones para acciones como luces, grabación, etc.
  * @param state Puntero al estado global del vehículo.
  * @param programManager Puntero al gestor de programas.
  */
-void handleGamepads(VehicleState* state, ProgramManager* programManager);
+void handleGamepadButtons(VehicleState* state, ProgramManager* programManager);
 
 

@@ -341,9 +341,12 @@ void loop() {
     if (currentTime - lastLoopTime >= loopInterval) {
         lastLoopTime = currentTime;
 
-        // Solo procesa el gamepad si no hay un programa en ejecución
+        // Procesa siempre los botones del gamepad para acciones (luces, programa, etc.).
+        handleGamepadButtons(&vehicleState, &programManager);
+
+        // Solo procesa el movimiento del gamepad si no hay un programa en ejecución.
         if (!programManager.isRunning()) {
-            handleGamepads(&vehicleState, &programManager);
+            handleGamepadMotion(&vehicleState);
         }
 
         // Timeout para las acciones recibidas por la API.

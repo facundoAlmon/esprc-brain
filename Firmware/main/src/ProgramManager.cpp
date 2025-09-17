@@ -188,7 +188,7 @@ void ProgramManager::recordStep(int motorSpeed, int steerAngle) {
         uint32_t now = millis();
         uint32_t duration = now - _lastActionRecordTime;
 
-        if (duration > 50) { // Debounce: only record steps longer than 50ms
+        if (duration > 20) { // Debounce: only record steps longer than 5ms
             // Save the previous action with its calculated duration
             _lastRecordedAction.duration_ms = duration;
             _program.push_back(_lastRecordedAction);

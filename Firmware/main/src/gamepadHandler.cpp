@@ -2,6 +2,7 @@
 #include "actuators.h"
 #include "state.h"
 #include "ProgramManager.h"
+#include "ledStripHandler.h" // Añadido para controlar los LEDs
 #include <Preferences.h>
 
 extern Preferences preferences;
@@ -195,18 +196,30 @@ void buttonController(GamepadPtr myGamepad, VehicleState* state, ProgramManager*
 }
 
 /**
- * @brief Procesa las entradas de los gamepads conectados.
+ * @brief Procesa las entradas de los botones de los gamepads.
  */
-void handleGamepads(VehicleState* state, ProgramManager* programManager) {
+void handleGamepadButtons(VehicleState* state, ProgramManager* programManager) {
     BP32.update();
 
     // Actualmente, la lógica solo soporta un gamepad a la vez.
     for (int i = 0; i < 1; i++) {
         GamepadPtr myGamepad = state->myGamepads[i];
         if (myGamepad && myGamepad->isConnected()) {
+            buttonController(myGamepad, state, programManager);
+        }
+    }
+}
+
+/**
+ * @brief Procesa las entradas de movimiento de los gamepads (joysticks/gatillos).
+ */
+void handleGamepadMotion(VehicleState* state) {
+    // Actualmente, la lógica solo soporta un gamepad a la vez.
+    for (int i = 0; i < 1; i++) {
+        GamepadPtr myGamepad = state->myGamepads[i];
+        if (myGamepad && myGamepad->isConnected()) {
             servoController(myGamepad, state);
             motorController(myGamepad, state);
-            buttonController(myGamepad, state, programManager);
 
             if (isRecording) {
                 g_programManager->recordStep(lastMotor, lastSteer);
