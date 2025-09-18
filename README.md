@@ -186,7 +186,7 @@ Por defecto, el ESP32 se inicia en **Modo Access Point (AP)**.
 3. El ESP32 se conectara automaticamente al joystick
 
 #### Layout
-  <img src="Imagenes/Joystick-es.png" width="90%">
+  <img src="Imagenes/Joystick-esB.png" width="90%">
 
 ## Guía Detallada de la Interfaz Web
 
