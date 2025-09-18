@@ -209,6 +209,7 @@ Este modo presenta un solo joystick virtual para un control unificado del vehíc
       <li><strong>Luces:</strong> Cicla entre los modos de faros (apagado, posición, bajas y altas).</li>
       <li><strong>Intermitentes:</strong> Activa las luces de giro izquierda y derecha.</li>
       <li><strong>Balizas:</strong> Activa las luces de emergencia.</li>
+      <li><strong>Grabar:</strong> Comienza la grabacion (Los leds del grupo "LUZ GRABACION" parpadean cuando la grabacion esta activa).</li>
     </ul>
   </li>
 </ul>
@@ -231,6 +232,7 @@ Este modo ofrece dos joysticks virtuales para un manejo independiente de la acel
       <li><strong>Joystick de Aceleración:</strong> Controla la velocidad y el sentido de los motores.</li>
       <li><strong>Invertir Joysticks:</strong> Intercambia la posición de los joysticks en pantalla.</li>
       <li><strong>Controles de Luces:</strong> Idénticos a los del Joystick A (faros, intermitentes, balizas).</li>
+      <li><strong>Grabar:</strong> Comienza la grabacion (Los leds del grupo "LUZ GRABACION" parpadean cuando la grabacion esta activa).</li>
     </ul>
   </li>
 </ul>
@@ -242,8 +244,7 @@ Este modo ofrece dos joysticks virtuales para un manejo independiente de la acel
 <table width="100%">
 <tr>
 <td width="40%" valign="top">
-<!-- IMAGEN DE LA PESTAÑA PROGRAMA -->
-<img src="Imagenes/Webapp/es/09.png" width="100%">
+<img src="Imagenes/Webapp/es/10.png" width="100%">
 </td>
 <td valign="top">
 Esta pestaña convierte el coche en un robot programable. Aquí puedes crear, guardar y ejecutar secuencias de movimientos.
@@ -273,7 +274,7 @@ Esta pestaña convierte el coche en un robot programable. Aquí puedes crear, gu
 <tr>
 <td width="40%" valign="top">
 <!-- IMAGEN DE LA PESTAÑA MODO NIÑOS -->
-<img src="Imagenes/Webapp/es/10.png" width="100%">
+<img src="Imagenes/Webapp/es/09.png" width="100%">
 </td>
 <td valign="top">
 Una interfaz simplificada y visual diseñada para que los niños aprendan los fundamentos de la programación por bloques.
@@ -398,6 +399,7 @@ Personaliza el sistema de iluminación de tu coche. Se requieren LEDs direcciona
       <li>`INTERMITENTE DERECHO`</li>
       <li>`LUZ INTERIOR`</li>
       <li>`LUZ BAJOS` (Efecto neón)</li>
+      <li>`LUZ GRABACION`</li>
     </ul>
   </li>
   <li><strong>Comportamiento Actual:</strong>

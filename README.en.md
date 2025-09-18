@@ -209,6 +209,7 @@ This mode presents a single virtual joystick for unified control of the vehicle.
       <li><strong>Lights:</strong> Cycles through the headlight modes (off, position, low and high).</li>
       <li><strong>Turn signals:</strong> Activates the left and right turn signals.</li>
       <li><strong>Hazard lights:</strong> Activates the emergency lights.</li>
+      <li><strong>Record:</strong> Starts recording (The LEDs of the "RECORDING LIGHT" group will flash when recording is active).</li>
     </ul>
   </li>
 </ul>
@@ -231,6 +232,30 @@ This mode offers two virtual joysticks for independent handling of acceleration 
       <li><strong>Acceleration Joystick:</strong> Controls the speed and direction of the motors.</li>
       <li><strong>Invert Joysticks:</strong> Swaps the position of the joysticks on the screen.</li>
       <li><strong>Light Controls:</strong> Identical to those of Joystick A (headlights, turn signals, hazard lights).</li>
+      <li><strong>Record:</strong> Starts recording (The LEDs of the "RECORDING LIGHT" group will flash when recording is active).</li>
+    </ul>
+  </li>
+</ul>
+</td>
+</tr>
+</table>
+
+### 🕹️🕹️ Joystick B
+<table width="100%">
+<tr>
+<td width="40%" valign="top">
+<img src="Imagenes/Webapp/en/03.png" width="100%">
+</td>
+<td valign="top">
+This mode offers two virtual joysticks for independent handling of acceleration and steering, similar to a tank.
+<ul>
+  <li><strong>Available controls:</strong>
+    <ul>
+      <li><strong>Steering Joystick:</strong> Controls the steering servo.</li>
+      <li><strong>Acceleration Joystick:</strong> Controls the speed and direction of the motors.</li>
+      <li><strong>Invert Joysticks:</strong> Swaps the position of the joysticks on the screen.</li>
+      <li><strong>Light Controls:</strong> Identical to those of Joystick A (headlights, turn signals, hazard lights).</li>
+      <li><strong>Record:</strong> Starts recording (The LEDs of the "RECORDING LIGHT" group will flash when recording is active).</li>
     </ul>
   </li>
 </ul>
@@ -398,6 +423,7 @@ Customize your car's lighting system. Addressable LEDs (WS2812B type) are requir
       <li>`RIGHT TURN SIGNAL`</li>
       <li>`INTERIOR LIGHT`</li>
       <li>`UNDERGLOW` (Neon effect)</li>
+      <li>`RECORDING LIGHT`</li>
     </ul>
   </li>
   <li><strong>Current Behavior:</strong>
