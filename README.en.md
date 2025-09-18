@@ -44,25 +44,31 @@ This is not just an RC car, it is an open platform for you to experiment, learn 
   <img src="Imagenes/Auto/IMG_184553978.jpg" width="48%">
 </p>
 
-## ✨ Main Features
+## ✨ Key Features
 
--   **Full Control:**
-    -   **Bluetooth:** Connect your favorite Bluetooth joystick or gamepad and drive with precision. (Thanks to the incredible [Bluepad32](https://github.com/ricardoquesada/bluepad32) library).
-    -   **Wi-Fi:** Use our web application to control every aspect of the car from your phone, tablet or PC.
+-   **Total and Flexible Control:**
+    -   **Bluetooth:** Connect your favorite Bluetooth joystick or gamepad (PS3, PS4, PS5, Xbox, etc.) and drive with precision thanks to the [Bluepad32](https://github.com/ricardoquesada/bluepad32) library.
+    -   **Wi-Fi:** Use the integrated web application to control every aspect of the car from your phone, tablet, or PC.
 
--   **Flexible Connectivity:**
-    -   **Access Point (AP) Mode:** The car creates its own Wi-Fi network for you to connect directly.
-    -   **Client Mode:** Connect the car to your existing Wi-Fi network for greater convenience.
+-   **Connectivity Modes:**
+    -   **Access Point (AP):** The car creates its own Wi-Fi network for you to connect directly, ideal for use anywhere.
+    -   **Client Mode:** Connect the car to your existing Wi-Fi network for greater convenience at home.
 
--   **Intuitive Web Application:**
-    -   **Two Joystick Styles:** Choose between a unified joystick or two separate levers (tank style!).
-    -   **Real-Time Configuration:** Adjust the maximum speed, servo alignment, turning limits and more, all from the browser and instantly!
-    -   **LED Light Control:** Customize your car's lights, define functions (brake, turn signals, position) and create a unique style.
-    -   **System Management:** Restart the ESP32 or restore the factory settings with a single click.
+-   **Movement Programming:** Turn your car into a programmable robot!
+    -   **Sequence Editor:** From the "Program" tab, you can create custom movement sequences. Add steps like "Forward," "Turn Right," or "Wait" and adjust the duration of each in milliseconds.
+    -   **Kid's Programming Mode:** A visual and super-simplified interface where children can drag and drop command blocks (forward, backward, turn, honk) to create their own programs easily and intuitively.
+    -   **Real-Time Recording and Playback:**
+        -   **Record Maneuvers:** Press the record button in the interface and just drive. The system will log your every move, whether you use the virtual joysticks or a Bluetooth gamepad.
+        -   **Indicator Light:** An LED on the car will flash red to indicate that recording is active.
+        -   **Save and Execute:** Recorded programs and those created in the editor can be saved to the ESP32's memory, exported/imported as JSON files, and run whenever you want, specifying the number of repetitions or in an infinite loop.
 
--   **Robust Firmware:** Written in C++ on the official Espressif framework (ESP-IDF), ensuring professional-level performance and stability.
+-   **Comprehensive and Intuitive Web Application:**
+    -   **Two Joystick Styles:** Choose between a unified joystick or two separate levers (tank style).
+    -   **Real-Time Configuration:** Adjust the maximum speed, minimum starting speed, servo alignment, turning limits, and more—all from the browser and instantly!
+    -   **Advanced LED Light Control:** Customize your car's lights (WS2812B). Create LED groups and assign them functions like position light, brake, reverse, turn signals, interior light, or underglow. The configuration can be imported and exported.
+    -   **System Management:** Restart the ESP32 or restore factory settings with a single click.
 
--   **Easy to Modify:** The web application is compiled into a single HTML file, which is integrated directly into the ESP32 firmware for easy deployment.
+-   **Robust and Open Firmware:** Written in C++ on the official Espressif framework (ESP-IDF), ensuring professional-level performance and stability.
 
 ## 📂 Project Structure
 
@@ -225,6 +231,63 @@ This mode offers two virtual joysticks for independent handling of acceleration 
       <li><strong>Acceleration Joystick:</strong> Controls the speed and direction of the motors.</li>
       <li><strong>Invert Joysticks:</strong> Swaps the position of the joysticks on the screen.</li>
       <li><strong>Light Controls:</strong> Identical to those of Joystick A (headlights, turn signals, hazard lights).</li>
+    </ul>
+  </li>
+</ul>
+</td>
+</tr>
+</table>
+
+### 👨‍💻 Program
+<table width="100%">
+<tr>
+<td width="40%" valign="top">
+<!-- IMAGE FOR PROGRAM TAB -->
+<img src="Imagenes/Webapp/en/10.png" width="100%">
+</td>
+<td valign="top">
+This tab turns the car into a programmable robot. Here you can create, save, and execute movement sequences.
+<ul>
+  <li><strong>Program Controls:</strong>
+    <ul>
+      <li><strong>Load/Upload:</strong> Load a program from the ESP32's memory or upload the one you've created to save it.</li>
+      <li><strong>Export/Import:</strong> Save your program to a JSON file on your device or import one you already have.</li>
+      <li><strong>Run/Stop:</strong> Start or stop the execution of the sequence.</li>
+      <li><strong>Iterations:</strong> Define how many times the program will repeat, or check for an infinite loop.</li>
+    </ul>
+  </li>
+  <li><strong>Action Sequence:</strong>
+    <ul>
+      <li><strong>Add Action:</strong> Adds a new step to the sequence.</li>
+      <li><strong>Configure Action:</strong> For each step, you can choose a direction (forward, backward, etc.) and set a duration in milliseconds.</li>
+      <li><strong>Order and Delete:</strong> Drag actions to change their order or delete them individually.</li>
+    </ul>
+  </li>
+</ul>
+</td>
+</tr>
+</table>
+
+### 🧒 Kid Mode
+<table width="100%">
+<tr>
+<td width="40%" valign="top">
+<!-- IMAGE FOR KID MODE TAB -->
+<img src="Imagenes/Webapp/en/09.png" width="100%">
+</td>
+<td valign="top">
+A simplified and visual interface designed for children to learn the basics of block programming.
+<ul>
+  <li><strong>Command Palette:</strong>
+    <ul>
+      <li><strong>Large Buttons:</strong> Instead of a complex editor, there are large buttons for each action (forward, turn, backward, honk, wait).</li>
+      <li><strong>Sequence Building:</strong> Each time a command button is pressed, it is added to the visual sequence at the bottom.</li>
+    </ul>
+  </li>
+  <li><strong>Sequence Execution:</strong>
+    <ul>
+      <li>The controls are simple: Run, Stop, and Clear All.</li>
+      <li>It also allows setting the number of repetitions or an infinite loop, just like in the advanced mode.</li>
     </ul>
   </li>
 </ul>

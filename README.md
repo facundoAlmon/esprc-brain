@@ -46,23 +46,29 @@ Este no es solo un coche a RC, es una plataforma abierta para que puedas experim
 
 ## ✨ Características Principales
 
--   **Control Total:**
-    -   **Bluetooth:** Conecta tu joystick o gamepad Bluetooth favorito y conduce con precisión. (Gracias a la increíble librería [Bluepad32](https://github.com/ricardoquesada/bluepad32)).
-    -   **Wi-Fi:** Usa nuestra aplicación web para controlar cada aspecto del coche desde tu teléfono, tablet o PC.
+-   **Control Total y Flexible:**
+    -   **Bluetooth:** Conecta tu joystick o gamepad Bluetooth favorito (PS3, PS4, PS5, Xbox, etc.) y conduce con precisión gracias a la librería [Bluepad32](https://github.com/ricardoquesada/bluepad32).
+    -   **Wi-Fi:** Usa la aplicación web integrada para controlar cada aspecto del coche desde tu teléfono, tablet o PC.
 
--   **Conectividad Flexible:**
-    -   **Modo Access Point (AP):** El coche crea su propia red Wi-Fi para que te conectes directamente.
-    -   **Modo Cliente:** Conecta el coche a tu red Wi-Fi existente para mayor comodidad.
+-   **Modos de Conectividad:**
+    -   **Access Point (AP):** El coche crea su propia red Wi-Fi para que te conectes directamente, ideal para usarlo en cualquier lugar.
+    -   **Modo Cliente:** Conecta el coche a tu red Wi-Fi existente para mayor comodidad en casa.
 
--   **Aplicación Web Intuitiva:**
-    -   **Dos Estilos de Joystick:** Elige entre un joystick unificado o dos palancas separadas (¡al estilo tanque!).
-    -   **Configuración en Tiempo Real:** Ajusta la velocidad máxima, la alineación del servo, los límites de giro y más, ¡todo desde el navegador y al instante!
-    -   **Control de Luces LED:** Personaliza las luces de tu coche, define funciones (freno, intermitentes, posición) y crea un estilo único.
+-   **Programación de Movimientos:** ¡Convierte tu coche en un robot programable!
+    -   **Editor de Secuencias:** Desde la pestaña "Programa", puedes crear secuencias de movimiento personalizadas. Añade pasos como "Avanzar", "Girar a la Derecha" o "Esperar" y ajusta la duración de cada uno en milisegundos.
+    -   **Modo de Programación para Niños:** Una interfaz visual y súper simplificada donde los niños pueden arrastrar y soltar bloques de comandos (avanzar, retroceder, girar, tocar la bocina) para crear sus propios programas de forma fácil e intuitiva.
+    -   **Grabación y Reproducción en Tiempo Real:**
+        -   **Graba Maniobras:** Pulsa el botón de grabar en la interfaz y simplemente conduce. El sistema registrará cada uno de tus movimientos, ya sea que uses los joysticks virtuales o un gamepad Bluetooth.
+        -   **Luz Indicadora:** Un LED en el coche parpadeará en rojo para indicar que la grabación está activa.
+        -   **Guarda y Ejecuta:** Los programas grabados y los creados en el editor se pueden guardar en la memoria del ESP32, exportar/importar como archivos JSON, y ejecutar cuando quieras, especificando el número de repeticiones o en bucle infinito.
+
+-   **Aplicación Web Completa e Intuitiva:**
+    -   **Dos Estilos de Joystick:** Elige entre un joystick unificado o dos palancas separadas (estilo tanque).
+    -   **Configuración en Tiempo Real:** Ajusta la velocidad máxima, la velocidad mínima de arranque, la alineación del servo, los límites de giro y más, ¡todo desde el navegador y al instante!
+    -   **Control Avanzado de Luces LED:** Personaliza las luces de tu coche (WS2812B). Crea grupos de LEDs y asígnales funciones como luz de posición, freno, marcha atrás, intermitentes, luz de interior o neón (Underglow). La configuración se puede importar y exportar.
     -   **Gestión del Sistema:** Reinicia el ESP32 o restaura la configuración de fábrica con un solo clic.
 
--   **Firmware Robusto:** Escrito en C++ sobre el framework oficial de Espressif (ESP-IDF), garantizando un rendimiento y estabilidad de nivel profesional.
-
--   **Fácil de Modificar:** La aplicación web se compila en un único archivo HTML, que se integra directamente en el firmware del ESP32 para un despliegue sencillo.
+-   **Firmware Robusto y Abierto:** Escrito en C++ sobre el framework oficial de Espressif (ESP-IDF), garantizando un rendimiento y estabilidad de nivel profesional.
 
 ## 📂 Estructura del Proyecto
 
@@ -225,6 +231,63 @@ Este modo ofrece dos joysticks virtuales para un manejo independiente de la acel
       <li><strong>Joystick de Aceleración:</strong> Controla la velocidad y el sentido de los motores.</li>
       <li><strong>Invertir Joysticks:</strong> Intercambia la posición de los joysticks en pantalla.</li>
       <li><strong>Controles de Luces:</strong> Idénticos a los del Joystick A (faros, intermitentes, balizas).</li>
+    </ul>
+  </li>
+</ul>
+</td>
+</tr>
+</table>
+
+### 👨‍💻 Programa
+<table width="100%">
+<tr>
+<td width="40%" valign="top">
+<!-- IMAGEN DE LA PESTAÑA PROGRAMA -->
+<img src="Imagenes/Webapp/es/09.png" width="100%">
+</td>
+<td valign="top">
+Esta pestaña convierte el coche en un robot programable. Aquí puedes crear, guardar y ejecutar secuencias de movimientos.
+<ul>
+  <li><strong>Controles del Programa:</strong>
+    <ul>
+      <li><strong>Cargar/Subir:</strong> Carga un programa desde la memoria del ESP32 o sube el que has creado para guardarlo.</li>
+      <li><strong>Exportar/Importar:</strong> Guarda tu programa en un archivo JSON en tu dispositivo o importa uno que ya tengas.</li>
+      <li><strong>Ejecutar/Detener:</strong> Inicia o para la ejecución de la secuencia.</li>
+      <li><strong>Iteraciones:</strong> Define cuántas veces se repetirá el programa, o márcalo como infinito.</li>
+    </ul>
+  </li>
+  <li><strong>Secuencia de Acciones:</strong>
+    <ul>
+      <li><strong>Añadir Acción:</strong> Agrega un nuevo paso a la secuencia.</li>
+      <li><strong>Configurar Acción:</strong> Para cada paso, puedes elegir una dirección (avanzar, retroceder, etc.) y establecer una duración en milisegundos.</li>
+      <li><strong>Ordenar y Eliminar:</strong> Arrastra las acciones para cambiar su orden o elimínalas individualmente.</li>
+    </ul>
+  </li>
+</ul>
+</td>
+</tr>
+</table>
+
+### 🧒 Modo Niños
+<table width="100%">
+<tr>
+<td width="40%" valign="top">
+<!-- IMAGEN DE LA PESTAÑA MODO NIÑOS -->
+<img src="Imagenes/Webapp/es/10.png" width="100%">
+</td>
+<td valign="top">
+Una interfaz simplificada y visual diseñada para que los niños aprendan los fundamentos de la programación por bloques.
+<ul>
+  <li><strong>Paleta de Comandos:</strong>
+    <ul>
+      <li><strong>Botones Grandes:</strong> En lugar de un editor complejo, hay botones grandes para cada acción (avanzar, girar, retroceder, tocar bocina, esperar).</li>
+      <li><strong>Construcción de Secuencia:</strong> Cada vez que se presiona un botón de comando, este se añade a la secuencia visual en la parte inferior.</li>
+    </ul>
+  </li>
+  <li><strong>Ejecución de la Secuencia:</strong>
+    <ul>
+      <li>Los controles son sencillos: Ejecutar, Detener y Limpiar todo.</li>
+      <li>También permite definir el número de repeticiones o un bucle infinito, igual que en el modo avanzado.</li>
     </ul>
   </li>
 </ul>
