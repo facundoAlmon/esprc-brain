@@ -484,6 +484,40 @@
                 <div class="button-group">
                     <button id="manageESPBtn" class="danger" data-i18n="restartEsp">Restart ESP32</button>
                 </div>
+
+                <div class="settings-section">
+                    <h3 data-i18n="otaUpdate">Firmware Update (OTA)</h3>
+                    <div id="ota-info" class="ota-info">
+                        <em data-i18n="otaInfoLoading">Loading firmware info...</em>
+                    </div>
+                    <div class="button-group" style="margin-bottom: 0.75rem;">
+                        <button id="ota-refresh-btn" class="secondary" data-i18n="refresh">Refresh</button>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label data-i18n="otaSelectBin">Firmware binary (.bin)</label>
+                            <div class="ota-file-row">
+                                <button class="secondary" type="button"
+                                    onclick="document.getElementById('ota-file-input').click()"
+                                    data-i18n="otaChooseFile">Choose file</button>
+                                <span id="ota-file-label" data-i18n="otaNoFile">No file selected</span>
+                                <input type="file" id="ota-file-input" accept=".bin,application/octet-stream"
+                                    style="display: none;">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="ota-progress" class="ota-progress" style="display: none;">
+                        <div id="ota-progress-bar" class="ota-progress-bar"></div>
+                    </div>
+                    <div id="ota-progress-text" class="ota-progress-text"></div>
+                    <div id="ota-status" class="ota-status"></div>
+                    <div class="button-group">
+                        <button id="ota-upload-btn" class="danger" data-i18n="otaUploadBtn">Upload &amp; Reboot</button>
+                    </div>
+                    <p class="ota-warning" data-i18n="otaWarning">
+                        Warning: uploading invalid firmware can brick the device until reflashed via USB.
+                    </p>
+                </div>
             </div>
 
             <!-- Pestaña 7: Visualización de la Cámara -->

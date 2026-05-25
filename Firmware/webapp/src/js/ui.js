@@ -8,6 +8,7 @@ import { uploadProgram, runProgram, stopProgram, clearProgram, showActionModal, 
 import { handleKidModeCommand, runKidSequence, stopKidSequence, clearKidSequence } from './kidMode.js';
 import { updateLightsUI } from './lights.js';
 import { translations } from './translations.js';
+import { refreshOtaInfo } from './ota.js';
 
 export function setupEventListeners() {
     elements.languageSelector.addEventListener('change', (e) => setLanguage(e.target.value));
@@ -122,6 +123,7 @@ export function openTab(tabId) {
         case 'led-config': getLedConfig(); break;
         case 'conexion': getWifiConfig(); break;
         case 'cam': getCamConfig(); break;
+        case 'manage': refreshOtaInfo(); break;
         case 'joystick-a':
         case 'joystick-b':
             requestAnimationFrame(initJoysticks);

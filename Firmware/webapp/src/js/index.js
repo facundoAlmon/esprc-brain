@@ -5,6 +5,7 @@ import { initJoysticks, startActionLoop } from './joystick.js';
 import { connectWebSockets } from './api.js';
 import { getWifiConfig } from './config.js';
 import { initLights } from './lights.js';
+import { initOta } from './ota.js';
 
 function init() {
     elements.menuLinks = document.querySelectorAll('.menu-link');
@@ -52,6 +53,7 @@ function init() {
     loadInitialData();
     startActionLoop();
     initLights();
+    initOta();
 }
 
 function loadInitialData() {

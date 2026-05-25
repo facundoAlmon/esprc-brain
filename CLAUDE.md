@@ -24,11 +24,28 @@ When IDF version conflicts cause build errors, update the component — don't pa
 
 ## Partition Table
 
-Uses a custom `Firmware/partitions.csv` (not the built-in `SINGLE_APP_LARGE`):
-- factory app: 0x1C0000 (1792 KB) — required after arduino-esp32 3.3.8 grew the binary past the 1500 KB default
-- nvs: 0x6000, phy_init: 0x1000
+Uses a custom `Firmware/partitions.csv` with a **dual-OTA layout** for 8 MB flash:
+- `nvs` (0x6000), `otadata` (0x2000), `phy_init` (0x1000)
+- `ota_0` at 0x20000 (3.94 MB) — active slot at first flash
+- `ota_1` at 0x410000 (3.94 MB) — receives OTA updates
 
-If the binary overflows the factory partition again, increase `factory` size in `partitions.csv` and delete `sdkconfig` to regenerate.
+There is **no factory partition**. The first USB flash places the app in `ota_0`; subsequent OTA writes alternate between `ota_0` and `ota_1`. Current binary is ~1.6 MB, leaving ~60% headroom per slot.
+
+If the chip only has 4 MB flash, switch `CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y` → `_4MB=y` in `sdkconfig.defaults` and shrink each slot to 0x1F0000 (start ota_1 at 0x210000). If the binary overflows a slot, shrink the app (e.g. disable `CONFIG_BLUEPAD32_USB_CONSOLE_ENABLE`).
+
+After editing `partitions.csv`, delete `sdkconfig` to regenerate the cached layout, then `idf.py build` and reflash via USB once.
+
+## OTA (Firmware Update)
+
+Implemented via the existing web server (no extra components beyond ESP-IDF's `app_update`).
+
+- `GET /api/ota/info` — returns running/boot/next partition info + `esp_app_desc_t` (version, build date, IDF version)
+- `POST /api/ota` — body is the raw `.bin` (binary stream). Receives in 4 KB chunks, writes with `esp_ota_write`, calls `esp_ota_set_boot_partition`, sends `{"status":"ok"}`, then `esp_restart()`. Validates the 0xE9 magic byte before touching flash. Stops `ProgramManager`, sequence task, and motors before writing.
+- WebApp tab "ESP32 Manage" shows the OTA section with file picker, progress bar and reboot confirmation (`webapp/src/js/ota.js`).
+
+Rollback: `esp_ota_mark_app_valid_cancel_rollback()` is called in `setup()` after all subsystems start. It's a no-op unless `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y` (off by default). To enable safe rollback, set that Kconfig in `sdkconfig.defaults` and rebuild.
+
+OTA is only possible over Wi-Fi (AP or STA). Bluepad32 does not provide an OTA channel.
 
 ## Firmware Commands
 
@@ -144,6 +161,8 @@ Configuration is persisted to ESP32 NVS under the namespace `"bl-car"`. LED conf
 | POST | `/api/config/restore` | Restore config from JSON |
 | POST | `/api/sequence` | Run ad-hoc sequence (Kids mode) |
 | GET | `/api/sequence/stop` | Stop ad-hoc sequence |
+| GET | `/api/ota/info` | Running/boot/next partition + app description |
+| POST | `/api/ota` | Upload `.bin` firmware image (binary body); reboots on success |
 
 ### Wi-Fi
 

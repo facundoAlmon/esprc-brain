@@ -21,6 +21,7 @@
 #include "esp_event.h"
 #include "esp_wifi.h"
 #include "esp_coexist.h"
+#include "esp_ota_ops.h"
 
 #include "state.h"
 #include "actuators.h"
@@ -326,9 +327,23 @@ void setup() {
     led_strip_refresh(led_strip);
 
     startServer(&vehicleState, &programManager);
-    
+
     led_strip_set_pixel(led_strip, 0, 0, 0, 0); // Apaga el LED de estado
     led_strip_refresh(led_strip);
+
+    // Marca la imagen actual como válida. Si la app fue arrancada por primera
+    // vez tras una OTA y el bootloader la dejó en estado PENDING_VERIFY (cuando
+    // CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE está activo), esto cancela el
+    // rollback automático. Si rollback está deshabilitado o ya estaba validada,
+    // la llamada simplemente no hace nada.
+    const esp_partition_t* running = esp_ota_get_running_partition();
+    esp_ota_img_states_t ota_state;
+    if (running && esp_ota_get_state_partition(running, &ota_state) == ESP_OK) {
+        if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
+            ESP_LOGI(TAG, "Imagen OTA en PENDING_VERIFY: marcando como valida");
+            esp_ota_mark_app_valid_cancel_rollback();
+        }
+    }
 }
 
 /**

@@ -5,6 +5,9 @@
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include "esp_http_server.h"
+#include "esp_ota_ops.h"
+#include "esp_app_desc.h"
+#include "esp_partition.h"
 #include "actuators.h"
 #include "state.h"
 #include "ProgramManager.h"
@@ -59,6 +62,10 @@ static esp_err_t post_config_restore_handler(httpd_req_t *req);
 static esp_err_t post_sequence_handler(httpd_req_t *req);
 static esp_err_t get_sequence_stop_handler(httpd_req_t *req);
 
+// Manejadores para OTA (Over-The-Air firmware update)
+static esp_err_t get_ota_info_handler(httpd_req_t *req);
+static esp_err_t post_ota_handler(httpd_req_t *req);
+
 // Variables para controlar la ejecución de la secuencia en segundo plano
 static TaskHandle_t sequenceTaskHandle = NULL;
 static StaticJsonDocument<1024> sequenceCommands;
@@ -98,7 +105,9 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 22; // Aumentado para nuevos endpoints
+    config.max_uri_handlers = 24; // Aumentado para nuevos endpoints (incl. OTA)
+    config.recv_wait_timeout = 30; // El upload OTA puede demorar varios segundos
+    config.send_wait_timeout = 30;
     config.lru_purge_enable = true;
     config.uri_match_fn = httpd_uri_match_wildcard;
     config.global_user_ctx = g_state; // El contexto de usuario principal sigue siendo el estado
@@ -183,6 +192,13 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
 
         httpd_uri_t get_sequence_stop_uri = {.uri = "/api/sequence/stop", .method = HTTP_GET, .handler = get_sequence_stop_handler};
         httpd_register_uri_handler(server_httpd, &get_sequence_stop_uri);
+
+        // Endpoints OTA
+        httpd_uri_t get_ota_info_uri = {.uri = "/api/ota/info", .method = HTTP_GET, .handler = get_ota_info_handler};
+        httpd_register_uri_handler(server_httpd, &get_ota_info_uri);
+
+        httpd_uri_t post_ota_uri = {.uri = "/api/ota", .method = HTTP_POST, .handler = post_ota_handler};
+        httpd_register_uri_handler(server_httpd, &post_ota_uri);
     }
 }
 
@@ -781,5 +797,194 @@ static esp_err_t post_sequence_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "text/plain");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_send(req, "OK", 2);
+    return ESP_OK;
+}
+
+// --- OTA (Over-The-Air) firmware update ---
+
+// Tamaño del buffer usado para recibir el binario en bloques. Debe ser múltiplo
+// del tamaño de sector de flash (4 KB) y suficiente para amortiguar el TCP
+// recv sin hacer demasiadas llamadas a esp_ota_write().
+#define OTA_RECV_BUF_SIZE 4096
+
+static esp_err_t get_ota_info_handler(httpd_req_t *req) {
+    JsonDocument doc;
+
+    const esp_partition_t* running = esp_ota_get_running_partition();
+    const esp_partition_t* boot = esp_ota_get_boot_partition();
+    const esp_partition_t* next = esp_ota_get_next_update_partition(NULL);
+
+    if (running) {
+        doc["running"]["label"] = running->label;
+        doc["running"]["address"] = running->address;
+        doc["running"]["size"] = running->size;
+    }
+    if (boot) {
+        doc["boot"]["label"] = boot->label;
+        doc["boot"]["address"] = boot->address;
+    }
+    if (next) {
+        doc["next"]["label"] = next->label;
+        doc["next"]["address"] = next->address;
+        doc["next"]["size"] = next->size;
+    }
+
+    const esp_app_desc_t* app_desc = esp_app_get_description();
+    if (app_desc) {
+        doc["app"]["version"] = app_desc->version;
+        doc["app"]["project_name"] = app_desc->project_name;
+        doc["app"]["compile_date"] = app_desc->date;
+        doc["app"]["compile_time"] = app_desc->time;
+        doc["app"]["idf_version"] = app_desc->idf_ver;
+    }
+
+    String output;
+    serializeJson(doc, output);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, output.c_str(), output.length());
+    ESP_LOGI("OTA", "Respondiento");
+    return ESP_OK;
+}
+
+static esp_err_t post_ota_handler(httpd_req_t *req) {
+    ESP_LOGI("OTA", "Iniciando actualizacion OTA. Tamaño esperado: %d bytes", req->content_len);
+
+    if (req->content_len <= 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Content-Length requerido y > 0");
+        return ESP_FAIL;
+    }
+
+    // Detener actuadores y programas para que la escritura de flash no se vea
+    // interrumpida por el bucle principal ni el watchdog.
+    if (g_programManager) {
+        if (g_programManager->isRunning()) {
+            g_programManager->stopProgram();
+        }
+        if (g_programManager->isRecording()) {
+            g_programManager->stopRecording();
+        }
+    }
+    if (isSequenceRunning) {
+        isSequenceRunning = false;
+    }
+    if (g_state) {
+        stopMotors(g_state);
+        g_state->apiActEnabled = false;
+    }
+
+    const esp_partition_t* update_partition = esp_ota_get_next_update_partition(NULL);
+    if (!update_partition) {
+        ESP_LOGE("OTA", "No se encontro particion OTA destino");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "No OTA partition available");
+        return ESP_FAIL;
+    }
+    ESP_LOGI("OTA", "Escribiendo en particion '%s' offset 0x%lx (%lu bytes disponibles)",
+             update_partition->label, (unsigned long)update_partition->address,
+             (unsigned long)update_partition->size);
+
+    if ((size_t)req->content_len > update_partition->size) {
+        ESP_LOGE("OTA", "Imagen demasiado grande: %d > %lu", req->content_len,
+                 (unsigned long)update_partition->size);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Image larger than OTA partition");
+        return ESP_FAIL;
+    }
+
+    esp_ota_handle_t ota_handle = 0;
+    esp_err_t err = esp_ota_begin(update_partition, OTA_WITH_SEQUENTIAL_WRITES, &ota_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE("OTA", "esp_ota_begin fallo: %s", esp_err_to_name(err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, esp_err_to_name(err));
+        return ESP_FAIL;
+    }
+
+    char* buf = (char*)malloc(OTA_RECV_BUF_SIZE);
+    if (!buf) {
+        esp_ota_abort(ota_handle);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Sin memoria");
+        return ESP_FAIL;
+    }
+
+    int total_received = 0;
+    int remaining = req->content_len;
+    bool header_checked = false;
+
+    while (remaining > 0) {
+        int to_read = remaining < OTA_RECV_BUF_SIZE ? remaining : OTA_RECV_BUF_SIZE;
+        int recv_len = httpd_req_recv(req, buf, to_read);
+        if (recv_len <= 0) {
+            if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
+                continue;
+            }
+            ESP_LOGE("OTA", "Fallo recibiendo datos (rc=%d)", recv_len);
+            esp_ota_abort(ota_handle);
+            free(buf);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Fallo recibiendo datos");
+            return ESP_FAIL;
+        }
+
+        // El primer byte de un binario ESP-IDF debe ser 0xE9
+        // (ESP_IMAGE_HEADER_MAGIC). Validacion temprana para abortar antes de
+        // estropear la particion destino con un archivo equivocado.
+        if (!header_checked) {
+            if ((uint8_t)buf[0] != 0xE9) {
+                ESP_LOGE("OTA", "Magic byte invalido en cabecera (0x%02X != 0xE9)", (uint8_t)buf[0]);
+                esp_ota_abort(ota_handle);
+                free(buf);
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Archivo no es un binario ESP-IDF valido");
+                return ESP_FAIL;
+            }
+            header_checked = true;
+        }
+
+        err = esp_ota_write(ota_handle, buf, recv_len);
+        if (err != ESP_OK) {
+            ESP_LOGE("OTA", "esp_ota_write fallo: %s", esp_err_to_name(err));
+            esp_ota_abort(ota_handle);
+            free(buf);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, esp_err_to_name(err));
+            return ESP_FAIL;
+        }
+
+        total_received += recv_len;
+        remaining -= recv_len;
+
+        if ((total_received & 0xFFFF) == 0) { // log cada 64 KB
+            ESP_LOGI("OTA", "Progreso: %d / %d bytes", total_received, req->content_len);
+        }
+    }
+
+    free(buf);
+
+    err = esp_ota_end(ota_handle);
+    if (err != ESP_OK) {
+        if (err == ESP_ERR_OTA_VALIDATE_FAILED) {
+            ESP_LOGE("OTA", "Imagen recibida invalida (validacion fallo)");
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Imagen invalida");
+        } else {
+            ESP_LOGE("OTA", "esp_ota_end fallo: %s", esp_err_to_name(err));
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, esp_err_to_name(err));
+        }
+        return ESP_FAIL;
+    }
+
+    err = esp_ota_set_boot_partition(update_partition);
+    if (err != ESP_OK) {
+        ESP_LOGE("OTA", "esp_ota_set_boot_partition fallo: %s", esp_err_to_name(err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, esp_err_to_name(err));
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI("OTA", "OTA completada (%d bytes). Reiniciando...", total_received);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    const char* ok_resp = "{\"status\":\"ok\",\"message\":\"OTA OK. Reiniciando.\"}";
+    httpd_resp_send(req, ok_resp, strlen(ok_resp));
+
+    // Dar tiempo a vaciar el socket TCP antes del reset.
+    vTaskDelay(1500 / portTICK_PERIOD_MS);
+    esp_restart();
     return ESP_OK;
 }

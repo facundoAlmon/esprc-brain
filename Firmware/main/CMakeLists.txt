@@ -8,7 +8,7 @@ set(srcs
         "src/state.cpp"
         "src/ProgramManager.cpp")
 
-set(requires "bluepad32" "bluepad32_arduino" "arduino" "btstack" "esp_http_server" "json" "nvs_flash" "esp_netif" "esp_wifi" "esp_coex")
+set(requires "bluepad32" "bluepad32_arduino" "arduino" "btstack" "esp_http_server" "json" "nvs_flash" "esp_netif" "esp_wifi" "esp_coex" "app_update" "esp_partition")
 idf_component_register(SRCS "${srcs}"
                     INCLUDE_DIRS "." "include"
                     REQUIRES "${requires}"
