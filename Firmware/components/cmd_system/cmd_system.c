@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include <argtable3/argtable3.h>
+#include <driver/gpio.h>
 #include <driver/rtc_io.h>
 #include <driver/uart.h>
 #include <esp_chip_info.h>

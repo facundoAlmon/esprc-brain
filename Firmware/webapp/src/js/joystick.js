@@ -1,167 +1,106 @@
 import { state, elements, icons } from './state.js';
 import { fetchAPI } from './api.js';
 
+const TWO_PI = 2 * Math.PI;
+const DEADZONE_RATIO = 0.12; // 12% of internal radius
+
 class JoyStick {
-    constructor(containerId, options, callback) {
+    constructor(containerId, options) {
         options = options || {};
-        this.title = options.title === undefined ? 'joystick' : options.title;
-        this.width = options.width === undefined ? 0 : options.width;
-        this.height = options.height === undefined ? 0 : options.height;
-        this.internalFillColor = options.internalFillColor === undefined ? '#00AA00' : options.internalFillColor;
-        this.internalLineWidth = options.internalLineWidth === undefined ? 2 : options.internalLineWidth;
-        this.internalStrokeColor = options.internalStrokeColor === undefined ? '#003300' : options.internalStrokeColor;
-        this.externalLineWidth = options.externalLineWidth === undefined ? 2 : options.externalLineWidth;
-        this.externalStrokeColor = options.externalStrokeColor === undefined ? '#008000' : options.externalStrokeColor;
-        this.autoReturnToCenter = options.autoReturnToCenter === undefined ? true : options.autoReturnToCenter;
-        this.callback = callback || function () { };
+        this.title = options.title || 'joystick';
+        this.autoReturnToCenter = options.autoReturnToCenter !== undefined ? options.autoReturnToCenter : true;
+        this.callback = options.callback || function() {};
+
+        // Colors (read from CSS vars or use fallbacks)
+        this.fillColor   = options.internalFillColor   || '#E8401C';
+        this.strokeColor = options.internalStrokeColor || '#7A200E';
+        this.ringColor   = options.externalStrokeColor || 'rgba(232,64,28,.55)';
+        this.isLight     = options.lightMode || false;
 
         this.container = document.getElementById(containerId);
         this.container.style.touchAction = 'none';
 
         this.canvas = document.createElement('canvas');
         this.canvas.id = this.title;
-        if (this.width === 0) this.width = this.container.clientWidth;
-        if (this.height === 0) this.height = this.container.clientHeight;
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
+        this.canvas.style.display = 'block';
+        this.canvas.style.borderRadius = '50%';
+        // CSS fills the container regardless of pixel buffer size (fixes hidden-tab init)
+        this.canvas.style.width  = '100%';
+        this.canvas.style.height = '100%';
+
+        this._resize();
         this.container.appendChild(this.canvas);
-
         this.ctx = this.canvas.getContext('2d');
-        this.pressed = 0;
-        this.twoPi = 2 * Math.PI;
-        this.touchId = null;
 
-        this.internalRadius = (this.canvas.width - (this.canvas.width / 2 + 10)) / 2;
-        this.internalRadius_2 = this.internalRadius + 5;
-        this.externalRadius = this.internalRadius + 30;
-
-        this.centerX = this.canvas.width / 2;
-        this.centerY = this.canvas.height / 2;
-
-        this.joyX = this.width / 10;
-        this.joyY = this.height / 10;
-        this.joyX_neg = -1 * this.joyX;
-        this.joyY_neg = -1 * this.joyY;
-
+        this.pressed = false;
+        this._pointerId = null;
         this.movedX = this.centerX;
         this.movedY = this.centerY;
 
-        this.setupEventListeners();
-        this.startAnimation();
+        this._onDown = this._onDown.bind(this);
+        this._onMove = this._onMove.bind(this);
+        this._onUp   = this._onUp.bind(this);
+
+        this.canvas.addEventListener('pointerdown',   this._onDown);
+        this.canvas.addEventListener('pointermove',   this._onMove);
+        this.canvas.addEventListener('pointerup',     this._onUp);
+        this.canvas.addEventListener('pointercancel', this._onUp);
+
+        this._rafId = requestAnimationFrame(this._loop.bind(this));
     }
 
-    drawExternal() {
-        this.ctx.beginPath();
-        this.ctx.arc(this.centerX, this.centerY, this.externalRadius, 0, this.twoPi, false);
-        this.ctx.lineWidth = this.externalLineWidth;
-        this.ctx.strokeStyle = this.externalStrokeColor;
-        this.ctx.stroke();
+    _resize() {
+        const size = this.container.clientWidth || 280;
+        this.canvas.width  = size;
+        this.canvas.height = size;
+        this.centerX = size / 2;
+        this.centerY = size / 2;
+        // proportional radii: ext at 68% of half-size, handle at 36%
+        this.externalRadius = (size / 2) * 0.68;
+        this.internalRadius = (size / 2) * 0.36;
+        this._dz = this.internalRadius * DEADZONE_RATIO;
+        this.movedX = this.centerX;
+        this.movedY = this.centerY;
     }
 
-    drawInternal() {
-        this.ctx.beginPath();
-        if (this.movedX < this.internalRadius) this.movedX = this.internalRadius_2;
-        if ((this.movedX + this.internalRadius) > this.canvas.width) this.movedX = this.canvas.width - this.internalRadius_2;
-        if (this.movedY < this.internalRadius) this.movedY = this.internalRadius_2;
-        if ((this.movedY + this.internalRadius) > this.canvas.height) this.movedY = this.canvas.height - this.internalRadius_2;
-
-        this.ctx.arc(this.movedX, this.movedY, this.internalRadius, 0, this.twoPi, false);
-
-        const grd = this.ctx.createRadialGradient(this.centerX, this.centerY, 5, this.centerX, this.centerY, 200);
-        grd.addColorStop(0, this.internalFillColor);
-        grd.addColorStop(1, this.internalStrokeColor);
-
-        this.ctx.fillStyle = grd;
-        this.ctx.fill();
-        this.ctx.lineWidth = this.internalLineWidth;
-        this.ctx.strokeStyle = this.internalStrokeColor;
-        this.ctx.stroke();
-    }
-
-    getCardinalDirection() {
-        let direction = "";
-        const diffX = this.movedX - this.centerX;
-        const diffY = this.movedY - this.centerY;
-
-        if (diffY >= this.joyY_neg && diffY <= this.joyY) direction = "C";
-        if (diffY < this.joyY_neg) direction = "N";
-        if (diffY > this.joyY) direction = "S";
-        if (diffX < this.joyX_neg) direction = (direction === "C") ? "W" : direction + "W";
-        if (diffX > this.joyX) direction = (direction === "C") ? "E" : direction + "E";
-
-        return direction;
-    }
-
-    setupEventListeners() {
-        this.boundDown = this.down.bind(this);
-        this.boundMove = this.move.bind(this);
-        this.boundUp = this.up.bind(this);
-
-        this.canvas.addEventListener('mousedown', this.boundDown, false);
-        this.canvas.addEventListener('touchstart', this.boundDown, { passive: false });
-    }
-
-    down(e) {
+    // ── Pointer Events ───────────────────────────────────
+    _onDown(e) {
+        if (this._pointerId !== null) return;
         e.preventDefault();
-        this.pressed = 1;
-
-        if (e.type === 'touchstart') {
-            if (this.touchId === null) {
-                this.touchId = e.changedTouches[0].identifier;
-            }
-        }
-
-        this.move(e);
-
-        document.addEventListener('mousemove', this.boundMove, false);
-        document.addEventListener('touchmove', this.boundMove, { passive: false });
-        document.addEventListener('mouseup', this.boundUp, false);
-        document.addEventListener('touchend', this.boundUp, false);
-        document.addEventListener('touchcancel', this.boundUp, false);
+        this.pressed = true;
+        this._pointerId = e.pointerId;
+        this.canvas.setPointerCapture(e.pointerId);
+        this._updatePos(e);
     }
 
-    move(e) {
-        if (!this.pressed) return;
+    _onMove(e) {
+        if (!this.pressed || e.pointerId !== this._pointerId) return;
+        e.preventDefault();
+        this._updatePos(e);
+    }
 
-        const rect = this.canvas.getBoundingClientRect();
-        let x, y;
-
-        if (e.type.startsWith('touch')) {
-            let touch = null;
-            for (let i = 0; i < e.touches.length; i++) {
-                if (e.touches[i].identifier === this.touchId) {
-                    touch = e.touches[i];
-                    break;
-                }
-            }
-
-            if (touch) {
-                x = touch.clientX - rect.left;
-                y = touch.clientY - rect.top;
-            } else {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === this.touchId) {
-                        touch = e.changedTouches[i];
-                        break;
-                    }
-                }
-                if (touch) {
-                    x = touch.clientX - rect.left;
-                    y = touch.clientY - rect.top;
-                } else {
-                    return;
-                }
-            }
-        } else {
-            x = e.clientX - rect.left;
-            y = e.clientY - rect.top;
+    _onUp(e) {
+        if (e.pointerId !== this._pointerId) return;
+        this.pressed = false;
+        this._pointerId = null;
+        if (this.autoReturnToCenter) {
+            this.movedX = this.centerX;
+            this.movedY = this.centerY;
         }
+    }
+
+    _updatePos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width  / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top)  * scaleY;
 
         const dx = x - this.centerX;
         const dy = y - this.centerY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > this.externalRadius) {
+        if (dist > this.externalRadius) {
             const angle = Math.atan2(dy, dx);
             this.movedX = this.centerX + this.externalRadius * Math.cos(angle);
             this.movedY = this.centerY + this.externalRadius * Math.sin(angle);
@@ -171,135 +110,293 @@ class JoyStick {
         }
     }
 
-    up(e) {
-        if (e.type.startsWith('touch')) {
-            let ourTouchEnded = false;
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === this.touchId) {
-                    ourTouchEnded = true;
-                    break;
-                }
+    // ── Animation Loop ───────────────────────────────────
+    _loop() {
+        this._draw();
+        this.callback({
+            xPosition: this.movedX,
+            yPosition: this.movedY,
+            x: this.GetX(),
+            y: this.GetY(),
+            cardinalDirection: this._cardinalDir()
+        });
+        this._rafId = requestAnimationFrame(this._loop.bind(this));
+    }
+
+    // ── Drawing ──────────────────────────────────────────
+    _draw() {
+        const ctx = this.ctx;
+        const cx = this.centerX, cy = this.centerY;
+        const ext = this.externalRadius, int = this.internalRadius, dz = this._dz;
+        const W = this.canvas.width, H = this.canvas.height;
+
+        ctx.clearRect(0, 0, W, H);
+
+        const dx = this.movedX - cx;
+        const dy = this.movedY - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const normDist = Math.min(1, dist / ext);
+
+        // ── 1. Background — fill entire canvas circle ─────
+        const fullR = cx; // full radius of the clipped canvas circle
+        ctx.beginPath();
+        ctx.arc(cx, cy, fullR, 0, TWO_PI);
+        const bgGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, fullR);
+        if (this.isLight) {
+            bgGrad.addColorStop(0,              'rgba(230,227,223,0.99)');
+            bgGrad.addColorStop(ext / fullR,    'rgba(220,217,213,0.99)');
+            bgGrad.addColorStop(1,              'rgba(210,207,203,0.99)');
+        } else {
+            bgGrad.addColorStop(0,              'rgba(22,22,25,0.99)');
+            bgGrad.addColorStop(ext / fullR,    'rgba(13,13,15,0.99)');
+            bgGrad.addColorStop(1,              'rgba(8,8,10,0.99)');
+        }
+        ctx.fillStyle = bgGrad;
+        ctx.fill();
+
+        // ── 2. Compass guide lines ────────────────────────
+        ctx.save();
+        ctx.strokeStyle = this.isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 8; i++) {
+            const a = (i * Math.PI) / 4;
+            const startR = dz * 1.5;
+            const endR   = ext - 5;
+            ctx.beginPath();
+            ctx.moveTo(cx + startR * Math.cos(a), cy + startR * Math.sin(a));
+            ctx.lineTo(cx + endR   * Math.cos(a), cy + endR   * Math.sin(a));
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // ── 3. Deadzone ring ──────────────────────────────
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, dz, 0, TWO_PI);
+        ctx.setLineDash([3, 5]);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = this.isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.13)';
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // ── 4. External ring ──────────────────────────────
+        ctx.beginPath();
+        ctx.arc(cx, cy, ext, 0, TWO_PI);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = this.ringColor;
+        ctx.stroke();
+
+        // ── 5. Directional sector + velocity line ─────────
+        if (dist > dz) {
+            const angle = Math.atan2(dy, dx);
+            const alpha = Math.min(1, (dist - dz) / (ext - dz));
+
+            // Arc sector glow in movement direction
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, ext - 7, angle - Math.PI / 3.5, angle + Math.PI / 3.5);
+            ctx.lineWidth = 7;
+            ctx.strokeStyle = `rgba(232,64,28,${alpha * 0.55})`;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Outer ring pulse when at boundary
+            if (alpha > 0.65) {
+                const pulseAlpha = (alpha - 0.65) / 0.35;
+                ctx.beginPath();
+                ctx.arc(cx, cy, ext + 1, 0, TWO_PI);
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = `rgba(232,64,28,${pulseAlpha * 0.7})`;
+                ctx.stroke();
             }
-            if (!ourTouchEnded) return;
+            ctx.restore();
+
+            // Velocity line
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(this.movedX, this.movedY);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(232,64,28,${alpha * 0.35})`;
+            ctx.stroke();
+            ctx.restore();
         }
 
-        this.pressed = 0;
-        this.touchId = null;
+        // ── 6. Handle ─────────────────────────────────────
+        const isActive = this.pressed && dist > dz;
 
-        if (this.autoReturnToCenter) {
-            this.movedX = this.centerX;
-            this.movedY = this.centerY;
+        // Handle shadow / outer glow
+        if (isActive && normDist > 0.5) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(this.movedX, this.movedY, int + 5, 0, TWO_PI);
+            ctx.lineWidth = 2.5;
+            const glowAlpha = (normDist - 0.5) / 0.5;
+            ctx.strokeStyle = `rgba(232,64,28,${glowAlpha * 0.6})`;
+            ctx.stroke();
+            ctx.restore();
         }
 
-        document.removeEventListener('mousemove', this.boundMove);
-        document.removeEventListener('touchmove', this.boundMove);
-        document.removeEventListener('mouseup', this.boundUp);
-        document.removeEventListener('touchend', this.boundUp);
-        document.removeEventListener('touchcancel', this.boundUp);
+        // Handle fill
+        const hx = this.movedX - int * 0.3;
+        const hy = this.movedY - int * 0.3;
+        const hGrad = ctx.createRadialGradient(hx, hy, 1, this.movedX, this.movedY, int);
+        if (isActive) {
+            hGrad.addColorStop(0, this._lighten(this.fillColor, 0.3));
+            hGrad.addColorStop(1, this.strokeColor);
+        } else {
+            const mid = this.isLight ? 'rgba(130,130,135,0.75)' : 'rgba(100,100,108,0.85)';
+            const dark = this.isLight ? 'rgba(90,90,95,0.85)' : 'rgba(50,50,58,0.9)';
+            hGrad.addColorStop(0, mid);
+            hGrad.addColorStop(1, dark);
+        }
+
+        ctx.beginPath();
+        ctx.arc(this.movedX, this.movedY, int, 0, TWO_PI);
+        ctx.fillStyle = hGrad;
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = isActive ? this.strokeColor : (this.isLight ? 'rgba(100,100,105,0.5)' : 'rgba(160,160,168,0.35)');
+        ctx.stroke();
+
+        // Center dot
+        ctx.beginPath();
+        ctx.arc(cx, cy, 2.5, 0, TWO_PI);
+        ctx.fillStyle = this.isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.15)';
+        ctx.fill();
     }
 
-    startAnimation() {
-        setInterval(() => {
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.drawExternal();
-            this.drawInternal();
-            const data = {
-                xPosition: this.movedX,
-                yPosition: this.movedY,
-                x: this.GetX(),
-                y: this.GetY(),
-                cardinalDirection: this.getCardinalDirection()
-            };
-            this.callback(data);
-        }, 10);
+    _lighten(hex, amount) {
+        const r = parseInt(hex.slice(1,3),16);
+        const g = parseInt(hex.slice(3,5),16);
+        const b = parseInt(hex.slice(5,7),16);
+        return `rgb(${Math.min(255,r+Math.round(amount*120))},${Math.min(255,g+Math.round(amount*60))},${Math.min(255,b+Math.round(amount*40))})`;
     }
 
+    // ── Output ───────────────────────────────────────────
     GetX() {
-        return ((this.movedX - this.centerX) / this.internalRadius * 100).toFixed();
+        const dx = this.movedX - this.centerX;
+        const dy = this.movedY - this.centerY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < this._dz) return '0';
+        return (dx / this.internalRadius * 100).toFixed();
     }
 
     GetY() {
-        return ((this.movedY - this.centerY) / this.internalRadius * 100).toFixed();
+        const dx = this.movedX - this.centerX;
+        const dy = this.movedY - this.centerY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < this._dz) return '0';
+        return (dy / this.internalRadius * 100).toFixed();
     }
 
-    GetDir() {
-        return this.getCardinalDirection();
+    GetDir() { return this._cardinalDir(); }
+
+    _cardinalDir() {
+        const joyX = this.canvas.width  / 10;
+        const joyY = this.canvas.height / 10;
+        const diffX = this.movedX - this.centerX;
+        const diffY = this.movedY - this.centerY;
+        let dir = '';
+        if      (diffY < -joyY) dir = 'N';
+        else if (diffY >  joyY) dir = 'S';
+        else                    dir = 'C';
+        if      (diffX < -joyX) dir = dir === 'C' ? 'W' : dir + 'W';
+        else if (diffX >  joyX) dir = dir === 'C' ? 'E' : dir + 'E';
+        return dir;
+    }
+
+    destroy() {
+        cancelAnimationFrame(this._rafId);
+        this.canvas.removeEventListener('pointerdown',   this._onDown);
+        this.canvas.removeEventListener('pointermove',   this._onMove);
+        this.canvas.removeEventListener('pointerup',     this._onUp);
+        this.canvas.removeEventListener('pointercancel', this._onUp);
+        if (this.container.contains(this.canvas)) this.container.removeChild(this.canvas);
     }
 }
 
 
 let joy1, joy2A, joy2B;
+let _resizeTimer = null;
 
 export function initJoysticks() {
-    const styles = getComputedStyle(document.documentElement);
-    const joystickOptions = {
-        "title": "Car Control",
-        "autoReturnToCenter": true,
-        width: 300,
-        height: 300,
-        internalFillColor: styles.getPropertyValue('--joystick-handle-color').trim(),
-        internalStrokeColor: styles.getPropertyValue('--joystick-handle-stroke-color').trim(),
-        externalStrokeColor: styles.getPropertyValue('--joystick-border-color').trim(),
+    const styles   = getComputedStyle(document.documentElement);
+    const isLight  = document.body.classList.contains('light-mode');
+    const fillColor   = styles.getPropertyValue('--joy-fill').trim()   || '#E8401C';
+    const strokeColor = styles.getPropertyValue('--joy-stroke').trim() || '#7A200E';
+    const ringColor   = styles.getPropertyValue('--joy-ring').trim()   || 'rgba(232,64,28,.55)';
+
+    const opts = {
+        autoReturnToCenter: true,
+        internalFillColor:   fillColor,
+        internalStrokeColor: strokeColor,
+        externalStrokeColor: ringColor,
+        lightMode: isLight,
+        callback: () => {}
     };
-    document.getElementById('joy1Div').innerHTML = '';
-    document.getElementById('joy2ADiv').innerHTML = '';
-    document.getElementById('joy2BDiv').innerHTML = '';
-    joy1 = new JoyStick('joy1Div', joystickOptions, () => { });
-    joy2A = new JoyStick('joy2ADiv', joystickOptions, () => { });
-    joy2B = new JoyStick('joy2BDiv', joystickOptions, () => { });
-    elements[`recordBtnA`].addEventListener('click', () => handleRecord());
-    elements[`recordBtnB`].addEventListener('click', () => handleRecord());
+
+    if (joy1)  joy1.destroy();
+    if (joy2A) joy2A.destroy();
+    if (joy2B) joy2B.destroy();
+
+    joy1  = new JoyStick('joy1Div',  { ...opts, title: 'joy1'  });
+    joy2A = new JoyStick('joy2ADiv', { ...opts, title: 'joy2A' });
+    joy2B = new JoyStick('joy2BDiv', { ...opts, title: 'joy2B' });
+
+    elements.recordBtnA.onclick = () => handleRecord();
+    elements.recordBtnB.onclick = () => handleRecord();
     elements.recordBtnA.innerHTML = icons.recordOff;
     elements.recordBtnB.innerHTML = icons.recordOff;
 }
 
+// Rebuild joysticks on window resize (debounced)
+window.addEventListener('resize', () => {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(initJoysticks, 220);
+});
+
 export function startActionLoop() {
     setInterval(() => {
         if (!state.socketOnline) return;
-        let actBody = {};
+        let body = {};
         if (state.activeTab === 'joystick-a') {
             const yVal = parseFloat(joy1.GetY());
             const xVal = parseFloat(joy1.GetX());
-            actBody = {
-                motorSpeed: Math.trunc(Math.min(100, Math.abs(yVal)) * 1024 / 100),
-                motorDirection: yVal < 0 ? "F" : "B",
-                steerDirection: xVal < 0 ? "L" : "R",
-                steerAng: Math.trunc(Math.min(100, Math.abs(xVal)) * 512 / 100),
+            body = {
+                motorSpeed:     Math.trunc(Math.min(100, Math.abs(yVal)) * 1024 / 100),
+                motorDirection: yVal < 0 ? 'F' : 'B',
+                steerDirection: xVal < 0 ? 'L' : 'R',
+                steerAng:       Math.trunc(Math.min(100, Math.abs(xVal)) * 512 / 100),
                 ms: 500
             };
         } else if (state.activeTab === 'joystick-b') {
-            const acelIzq = document.getElementById("acelIzq").classList.contains('active');
+            const acelIzq = document.getElementById('acelIzq').classList.contains('active');
             const joyX = parseFloat(acelIzq ? joy2B.GetX() : joy2A.GetX());
             const joyY = parseFloat(acelIzq ? joy2A.GetY() : joy2B.GetY());
-            actBody = {
-                motorSpeed: Math.trunc(Math.min(100, Math.abs(joyY)) * 1024 / 100),
-                motorDirection: joyY < 0 ? "F" : "B",
-                steerDirection: joyX < 0 ? "L" : "R",
-                steerAng: Math.trunc(Math.min(100, Math.abs(joyX)) * 512 / 100),
+            body = {
+                motorSpeed:     Math.trunc(Math.min(100, Math.abs(joyY)) * 1024 / 100),
+                motorDirection: joyY < 0 ? 'F' : 'B',
+                steerDirection: joyX < 0 ? 'L' : 'R',
+                steerAng:       Math.trunc(Math.min(100, Math.abs(joyX)) * 512 / 100),
                 ms: 500
             };
         } else { return; }
-        state.wsSocket.send(JSON.stringify(actBody));
+        state.wsSocket.send(JSON.stringify(body));
     }, 100);
 }
 
 export async function handleRecord() {
     state.recordingProgram = !state.recordingProgram;
-    elements[`recordBtnA`].classList.toggle('active', state.recordingProgram);
-    elements[`recordBtnB`].classList.toggle('active', state.recordingProgram);
-    let path = (state.recordingProgram) ? 'api/recording/start' : 'api/recording/stop';
-    await fetchAPI(path)
+    elements.recordBtnA.classList.toggle('active', state.recordingProgram);
+    elements.recordBtnB.classList.toggle('active', state.recordingProgram);
+    const path = state.recordingProgram ? 'api/recording/start' : 'api/recording/stop';
+    await fetchAPI(path);
 }
 
 export function handleJoystickLayoutSwap() {
     state.joystickLayoutSwapped = !state.joystickLayoutSwapped;
-    const joy1Container = document.querySelector('#joystick-a .joystick-container');
-    const joy1Info = document.querySelector('#joystick-a .joystick-info-card');
-    if (state.joystickLayoutSwapped) {
-        joy1Container.style.order = 2;
-        joy1Info.style.order = 1;
-    } else {
-        joy1Container.style.order = 1;
-        joy1Info.style.order = 2;
-    }
+    const layout = document.querySelector('#joystick-a .joystick-layout-single');
+    if (layout) layout.classList.toggle('swapped', state.joystickLayoutSwapped);
 }

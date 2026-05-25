@@ -11,10 +11,13 @@ import { translations } from './translations.js';
 
 export function setupEventListeners() {
     elements.languageSelector.addEventListener('change', (e) => setLanguage(e.target.value));
-    elements.menuToggle.addEventListener('click', () => {
+    const toggleSidebar = () => {
         elements.sidebar.classList.toggle('sidebar-hidden');
         elements.mainWrapper.classList.toggle('full-width');
-    });
+    };
+    elements.menuToggle.addEventListener('click', toggleSidebar);
+    const bottomNavMore = document.getElementById('bottom-nav-more');
+    if (bottomNavMore) bottomNavMore.addEventListener('click', toggleSidebar);
     elements.menuLinks.forEach(link => {
         link.addEventListener('click', () => openTab(link.dataset.tab));
     });
@@ -108,7 +111,7 @@ export function openTab(tabId) {
     elements.tabContents.forEach(content => content.classList.remove('active'));
     elements.menuLinks.forEach(link => link.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    document.querySelector(`.menu-link[data-tab="${tabId}"]`).classList.add('active');
+    document.querySelectorAll(`.menu-link[data-tab="${tabId}"]`).forEach(el => el.classList.add('active'));
     if (window.innerWidth <= 992) {
         elements.sidebar.classList.add('sidebar-hidden');
         elements.mainWrapper.classList.add('full-width');
@@ -119,6 +122,10 @@ export function openTab(tabId) {
         case 'led-config': getLedConfig(); break;
         case 'conexion': getWifiConfig(); break;
         case 'cam': getCamConfig(); break;
+        case 'joystick-a':
+        case 'joystick-b':
+            requestAnimationFrame(initJoysticks);
+            break;
     }
 }
 
