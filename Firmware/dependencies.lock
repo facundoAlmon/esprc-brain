@@ -26,16 +26,6 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 1.11.1
-  espressif/servo:
-    component_hash: 309c787e48224255fad458cfd9ab86ea53f0fdad1c5e4f6f0c50309990b17108
-    dependencies:
-    - name: idf
-      require: private
-      version: '>=4.4'
-    source:
-      registry_url: https://components.espressif.com/
-      type: service
-    version: 0.1.0
   idf:
     source:
       type: idf
@@ -44,8 +34,7 @@ direct_dependencies:
 - bblanchon/arduinojson
 - espressif/led_strip
 - espressif/mdns
-- espressif/servo
 - idf
-manifest_hash: 36c523335da3ec5a324f1f19d91d212ddd9620a685fa14d67315138a1103ba68
+manifest_hash: 5b31692a643e71f5cc15ae96a62fafcda886028dd2110625960bb3a3aaaaa1af
 target: esp32
 version: 2.0.0

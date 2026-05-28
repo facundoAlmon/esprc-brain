@@ -6,9 +6,25 @@
 #include "esp_log.h"
 #include "driver/mcpwm.h"
 #include "driver/gpio.h"
-#include "iot_servo.h"
+#include "driver/ledc.h"
 #include "soc/mcpwm_periph.h"
 #include "pins.h"
+
+#define SERVO_FREQ_HZ    50
+#define SERVO_MIN_US     500
+#define SERVO_MAX_US     2500
+#define SERVO_MAX_ANGLE  180
+#define SERVO_RES_BITS   LEDC_TIMER_14_BIT
+#define SERVO_RES_MAX    ((1u << 14) - 1)
+#define SERVO_PERIOD_US  (1000000 / SERVO_FREQ_HZ)
+
+static void servo_write_angle(int degrees) {
+    uint32_t pulse_us = SERVO_MIN_US +
+        (uint32_t)((uint32_t)degrees * (SERVO_MAX_US - SERVO_MIN_US) / SERVO_MAX_ANGLE);
+    uint32_t duty = (uint32_t)((uint64_t)pulse_us * SERVO_RES_MAX / SERVO_PERIOD_US);
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, servoChannel, duty);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, servoChannel);
+}
 
 /**
  * @brief Configura e inicializa los pines y periféricos para los actuadores.
@@ -28,27 +44,25 @@ void setupActuators() {
     gpio_set_direction((gpio_num_t)motor1Pin1, GPIO_MODE_OUTPUT);
     gpio_set_direction((gpio_num_t)motor1Pin2, GPIO_MODE_OUTPUT);
 
-    // Configura el servo de dirección.
-    servo_config_t servo_cfg = {
-        .max_angle = 180,
-        .min_width_us = 500,
-        .max_width_us = 2500,
-        .freq = 50,
-        .timer_number = LEDC_TIMER_0,
-        .channels =
-            {
-                .servo_pin =
-                    {
-                        servoPin,
-                    },
-                .ch =
-                    {
-                        servoChannel,
-                    },
-            },
-        .channel_number = 1,
+    // Configura el servo de dirección vía LEDC directo.
+    ledc_timer_config_t servo_timer = {
+        .speed_mode      = LEDC_LOW_SPEED_MODE,
+        .duty_resolution = SERVO_RES_BITS,
+        .timer_num       = LEDC_TIMER_0,
+        .freq_hz         = SERVO_FREQ_HZ,
+        .clk_cfg         = LEDC_AUTO_CLK,
     };
-    iot_servo_init(LEDC_LOW_SPEED_MODE, &servo_cfg);
+    ledc_timer_config(&servo_timer);
+    ledc_channel_config_t servo_ch = {
+        .gpio_num   = servoPin,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel    = servoChannel,
+        .intr_type  = LEDC_INTR_DISABLE,
+        .timer_sel  = LEDC_TIMER_0,
+        .duty       = 0,
+        .hpoint     = 0,
+    };
+    ledc_channel_config(&servo_ch);
 }
 
 /**
@@ -144,7 +158,7 @@ void setSteer(int angle, VehicleState* state) {
         float movS = (state->servoLimitRDeg * porc);
         posDegrees = state->servoCenterDeg + movS;
     }
-    iot_servo_write_angle(LEDC_LOW_SPEED_MODE, servoChannel, posDegrees);
+    servo_write_angle(posDegrees);
 }
 
 /**
@@ -153,5 +167,5 @@ void setSteer(int angle, VehicleState* state) {
 void stopMotors(VehicleState* state) {
     gpio_set_level((gpio_num_t)motor1Pin1, 0);
     gpio_set_level((gpio_num_t)motor1Pin2, 0);
-    iot_servo_write_angle(LEDC_LOW_SPEED_MODE, servoChannel, state->servoCenterDeg);
+    servo_write_angle(state->servoCenterDeg);
 }
