@@ -57,18 +57,6 @@ CONFIG_BLUEPAD32_USB_CONSOLE_ENABLE=y
 CONFIG_BLUEPAD32_ENABLE_VIRTUAL_DEVICE_BY_DEFAULT=n
 
 #
-# Arduino Options
-#
-CONFIG_AUTOSTART_ARDUINO=n
-CONFIG_ARDUINO_SELECTIVE_COMPILATION=y
-CONFIG_ARDUINO_SELECTIVE_BLE=n
-CONFIG_ARDUINO_SELECTIVE_BluetoothSerial=n
-# Complains about missing ESP-SR header when compiling on esp32-s3. Temporary disabled
-CONFIG_ARDUINO_SELECTIVE_ESP_SR=n
-# Cannot disable SimpleBLE since it is included from WiFiProv.cpp
-#CONFIG_ARDUINO_SELECTIVE_SimpleBLE=n
-
-#
 # BTstack
 #
 # Needs to be disabled for ESP32-C6

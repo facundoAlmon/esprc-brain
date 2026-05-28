@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Bluepad32.h>
 #include "state.h"
 #include "ProgramManager.h"
 
@@ -19,20 +18,6 @@
  * @param programManager Puntero al gestor de programas.
  */
 void setupGamepad(VehicleState* state, ProgramManager* programManager);
-
-/**
- * @brief Callback que se ejecuta cuando un gamepad se conecta.
- * 
- * @param gp Puntero al objeto Gamepad que se ha conectado.
- */
-void onConnectedGamepad(GamepadPtr gp);
-
-/**
- * @brief Callback que se ejecuta cuando un gamepad se desconecta.
- * 
- * @param gp Puntero al objeto Gamepad que se ha desconectado.
- */
-void onDisconnectedGamepad(GamepadPtr gp);
 
 /**
  * @brief Procesa las entradas de movimiento de los gamepads (joysticks/gatillos).

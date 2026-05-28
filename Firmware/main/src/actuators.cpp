@@ -3,7 +3,9 @@
  * @brief Implementación del control de actuadores (motor y servo).
  */
 #include "actuators.h"
+#include "esp_log.h"
 #include "driver/mcpwm.h"
+#include "driver/gpio.h"
 #include "iot_servo.h"
 #include "soc/mcpwm_periph.h"
 #include "pins.h"
@@ -23,8 +25,8 @@ void setupActuators() {
     mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
 
     // Configura los pines de dirección del motor.
-    pinMode(motor1Pin1, OUTPUT);
-    pinMode(motor1Pin2, OUTPUT);
+    gpio_set_direction((gpio_num_t)motor1Pin1, GPIO_MODE_OUTPUT);
+    gpio_set_direction((gpio_num_t)motor1Pin2, GPIO_MODE_OUTPUT);
 
     // Configura el servo de dirección.
     servo_config_t servo_cfg = {
@@ -77,11 +79,11 @@ void setMotor(int speed, bool forward, VehicleState* state) {
     if (speed != 0) {
         // Establece la dirección del motor.
         if (forward) {
-            digitalWrite(motor1Pin1, LOW);
-            digitalWrite(motor1Pin2, HIGH);
+            gpio_set_level((gpio_num_t)motor1Pin1, 0);
+            gpio_set_level((gpio_num_t)motor1Pin2, 1);
         } else {
-            digitalWrite(motor1Pin1, HIGH);
-            digitalWrite(motor1Pin2, LOW);
+            gpio_set_level((gpio_num_t)motor1Pin1, 1);
+            gpio_set_level((gpio_num_t)motor1Pin2, 0);
         }
         // Mapea la velocidad (0-1023) al rango de PWM configurado.
         dutyCycle = ((abs(speed) * motorMult) / 1024.0) + state->motorMinSpeed;
@@ -90,8 +92,8 @@ void setMotor(int speed, bool forward, VehicleState* state) {
         mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
     } else {
         // Detiene el motor.
-        digitalWrite(motor1Pin1, LOW);
-        digitalWrite(motor1Pin2, LOW);
+        gpio_set_level((gpio_num_t)motor1Pin1, 0);
+        gpio_set_level((gpio_num_t)motor1Pin2, 0);
     }
 }
 
@@ -149,7 +151,7 @@ void setSteer(int angle, VehicleState* state) {
  * @brief Detiene todos los actuadores.
  */
 void stopMotors(VehicleState* state) {
-    digitalWrite(motor1Pin1, LOW);
-    digitalWrite(motor1Pin2, LOW);
+    gpio_set_level((gpio_num_t)motor1Pin1, 0);
+    gpio_set_level((gpio_num_t)motor1Pin2, 0);
     iot_servo_write_angle(LEDC_LOW_SPEED_MODE, servoChannel, state->servoCenterDeg);
 }

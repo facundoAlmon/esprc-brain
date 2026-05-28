@@ -1,8 +1,11 @@
 #include "ledStripHandler.h"
 #include "sdkconfig.h"
 #include "pins.h"
+#include "esp_timer.h"
 #include <vector>
 #include <string.h>
+
+static inline uint32_t millis() { return (uint32_t)(esp_timer_get_time() / 1000ULL); }
 
 #define LED_STRIP_MEMORY_BLOCK_WORDS 0
 #define LED_STRIP_RMT_RES_HZ (10 * 1000 * 1000)
