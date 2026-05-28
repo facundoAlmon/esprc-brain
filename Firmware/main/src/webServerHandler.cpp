@@ -9,7 +9,7 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "dns_server.h"
-#include "bp32_platform.h"
+#include "hid_gamepad.h"
 #include "actuators.h"
 #include "state.h"
 #include "ProgramManager.h"
@@ -270,7 +270,7 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     else if (doc["autoTurnSignals"] == 0) state->autoTurnSignals = false;
     state->autoTurnTol = doc["autoTurnTol"];
 
-    bp32_set_scanning(state->enableScan == 1);
+    hid_gamepad_set_scanning(state->enableScan == 1);
 
     nvs_put_u32("servoCenterDeg", state->servoCenterDeg);
     nvs_put_u32("servoLimitLDeg", state->servoLimitLDeg);

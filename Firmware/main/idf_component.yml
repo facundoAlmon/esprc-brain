@@ -17,4 +17,5 @@ dependencies:
   espressif/servo: ^0.1.0
   espressif/led_strip: ^3.0.1
   bblanchon/arduinojson: "^7.4.2"
+  espressif/mdns: "^1.0.0"
   

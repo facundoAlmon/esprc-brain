@@ -3,7 +3,7 @@
 #include "state.h"
 #include "ProgramManager.h"
 #include "ledStripHandler.h"
-#include "bp32_platform.h"
+#include "hid_gamepad.h"
 #include "esp_log.h"
 
 static const char* TAG = "Gamepad";
@@ -35,8 +35,8 @@ static ButtonState btnState;
 void setupGamepad(VehicleState* state, ProgramManager* programManager) {
     g_state = state;
     g_programManager = programManager;
-    bp32_platform_set_vehicle_state(state);
-    bp32_set_scanning(state->enableScan == 1);
+    hid_gamepad_init(state);
+    hid_gamepad_set_scanning(state->enableScan == 1);
 }
 
 static void servoController(const GamepadData* gp, VehicleState* state) {
