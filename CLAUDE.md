@@ -6,21 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ESP-RC Brain is firmware for an ESP32-based RC car controller. It exposes a Wi-Fi web interface and Bluetooth gamepad support. The repo has two independently buildable sub-projects:
 
-- **Firmware** (`Firmware/`) — C++ on ESP-IDF + Arduino component, compiled with `idf.py`
+- **Firmware** (`Firmware/`) — C++ on pure ESP-IDF (no Arduino), compiled with `idf.py`
 - **WebApp** (`Firmware/webapp/`) — HTML/CSS/JS, bundled by Gulp into a single `index.html` that gets embedded in the firmware binary
 
-## Component Versions & IDF Compatibility
+The firmware has **no local component dependencies** — all Bluetooth and peripheral support uses native ESP-IDF APIs.
 
-| Component | Version | Location |
-|-----------|---------|----------|
-| arduino-esp32 | 3.3.8 | `Firmware/components/arduino/` (local, not managed) |
-| bluepad32 | 4.2.0 | `Firmware/components/bluepad32/` (local) |
+## Stack & Managed Dependencies
 
-ESP-IDF versions installed locally: `v5.5.4` and `v6.0.1` at `/mnt/EVO_EXT4/DIY/esp-idf/.espressif/`.
+| Dependency | Version | Source |
+|------------|---------|--------|
+| ESP-IDF | v5.5.4 | `/mnt/EVO_EXT4/DIY/esp-idf/.espressif/v5.5.4/esp-idf/` |
+| espressif/led_strip | ^3.0.1 | component manager (`idf_component.yml`) |
+| espressif/mdns | ^1.0.0 | component manager |
+| bblanchon/arduinojson | ^7.4.2 | component manager |
 
-To update the arduino component: `rm -rf Firmware/components/arduino && git clone --branch X.X.X --depth 1 https://github.com/espressif/arduino-esp32.git Firmware/components/arduino`
+ESP-IDF source also at `/mnt/EVO_EXT4/DIY/esp-idf/.espressif/v6.0.1/`.
 
-When IDF version conflicts cause build errors, update the component — don't patch individual files.
+## Bluetooth (ESP32 only)
+
+Bluetooth gamepad support uses **native ESP-IDF** `esp_hid_host` + Bluedroid. No Bluepad32 or BTstack.
+
+- Supported controllers: **Xbox Series X/S** (BLE HID) and **generic standard HID** gamepads
+- ESP32-C6 has no Classic BT — BT files compile only for `CONFIG_IDF_TARGET_ESP32`; a no-op stub is used for C6
+- AP mode disables BT scanning (BT/Wi-Fi coexistence workaround)
+- Key files: `main/src/hid_gamepad.cpp`, `main/src/esp_hid_gap.c`, `main/include/hid_gamepad.h`
 
 ## Partition Table
 
@@ -29,9 +38,9 @@ Uses a custom `Firmware/partitions.csv` with a **dual-OTA layout** for 8 MB flas
 - `ota_0` at 0x20000 (3.94 MB) — active slot at first flash
 - `ota_1` at 0x410000 (3.94 MB) — receives OTA updates
 
-There is **no factory partition**. The first USB flash places the app in `ota_0`; subsequent OTA writes alternate between `ota_0` and `ota_1`. Current binary is ~1.6 MB, leaving ~60% headroom per slot.
+There is **no factory partition**. The first USB flash places the app in `ota_0`; subsequent OTA writes alternate between `ota_0` and `ota_1`. Current binary is ~1.4 MB (ESP32) / ~1.0 MB (C6), leaving ~65% headroom per slot.
 
-If the chip only has 4 MB flash, switch `CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y` → `_4MB=y` in `sdkconfig.defaults` and shrink each slot to 0x1F0000 (start ota_1 at 0x210000). If the binary overflows a slot, shrink the app (e.g. disable `CONFIG_BLUEPAD32_USB_CONSOLE_ENABLE`).
+If the chip only has 4 MB flash, switch `CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y` → `_4MB=y` in `sdkconfig.defaults` and shrink each slot to 0x1F0000 (start ota_1 at 0x210000).
 
 After editing `partitions.csv`, delete `sdkconfig` to regenerate the cached layout, then `idf.py build` and reflash via USB once.
 
@@ -39,13 +48,14 @@ After editing `partitions.csv`, delete `sdkconfig` to regenerate the cached layo
 
 Implemented via the existing web server (no extra components beyond ESP-IDF's `app_update`).
 
+- Upload file: **`Firmware/build/esprc_brain.bin`** (app binary only — bootloader and partition table are USB-only)
 - `GET /api/ota/info` — returns running/boot/next partition info + `esp_app_desc_t` (version, build date, IDF version)
 - `POST /api/ota` — body is the raw `.bin` (binary stream). Receives in 4 KB chunks, writes with `esp_ota_write`, calls `esp_ota_set_boot_partition`, sends `{"status":"ok"}`, then `esp_restart()`. Validates the 0xE9 magic byte before touching flash. Stops `ProgramManager`, sequence task, and motors before writing.
 - WebApp tab "ESP32 Manage" shows the OTA section with file picker, progress bar and reboot confirmation (`webapp/src/js/ota.js`).
 
-Rollback: `esp_ota_mark_app_valid_cancel_rollback()` is called in `setup()` after all subsystems start. It's a no-op unless `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y` (off by default). To enable safe rollback, set that Kconfig in `sdkconfig.defaults` and rebuild.
+Rollback: `esp_ota_mark_app_valid_cancel_rollback()` is called in `main_task` after all subsystems start. It's a no-op unless `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y` (off by default).
 
-OTA is only possible over Wi-Fi (AP or STA). Bluepad32 does not provide an OTA channel.
+OTA is only possible over Wi-Fi (AP or STA).
 
 ## Firmware Commands
 
@@ -98,18 +108,23 @@ Configuration is persisted to ESP32 NVS under the namespace `"bl-car"`. LED conf
 
 | File | Responsibility |
 |------|---------------|
-| `main.c` | Bluepad32 / BTstack entry point; calls `btstack_run_loop_execute()` |
-| `src/sketch.cpp` | Arduino `setup()` / `loop()`; initialises all subsystems, manages Wi-Fi (AP and STA modes) |
-| `src/actuators.cpp` | DC motor (LEDC PWM via L298N enable/direction pins) and steering servo |
-| `src/gamepadHandler.cpp` | Bluepad32 gamepad callbacks; maps axes/buttons to motor/steer/lights |
+| `main.c` | Entry point; calls `app_task_start()` which creates the main FreeRTOS task |
+| `src/sketch.cpp` | `main_task`: nvs_flash_init, initPreferences, WiFi, actuators, gamepad, web server, main loop (15 ms) |
+| `src/actuators.cpp` | DC motor (MCPWM via L298N) and steering servo (LEDC direct, LEDC_TIMER_0, 50 Hz, 14-bit) |
+| `src/gamepadHandler.cpp` | Gamepad callbacks; maps axes/buttons to motor/steer/lights |
 | `src/ledStripHandler.cpp` | WS2812B strip via RMT encoder; maps `LedFunction` groups to physical LEDs |
 | `src/webServerHandler.cpp` | `esp_http_server` REST API + WebSocket; serves the embedded `index.html` |
 | `src/ProgramManager.cpp` | Records/plays back movement sequences; persists programs to NVS |
+| `src/nvs_prefs.cpp` | NVS wrapper replacing Arduino Preferences (`NvsPrefs` class) |
+| `src/hid_gamepad.cpp` | BT init, scan loop, Xbox Series X/S HID parser, generic HID parser (ESP32 only) |
+| `src/esp_hid_gap.c` | BT controller + Bluedroid init, GAP scanning (adapted from IDF example) (ESP32 only) |
+| `src/hid_gamepad_stub.cpp` | No-op stubs for non-ESP32 targets |
+| `src/dns_server.c` | Captive DNS for AP mode |
 | `src/state.cpp` | State utility helpers |
 
 ### Main Loop
 
-`loop()` runs on a 15 ms non-blocking interval. Priority order each tick:
+`main_task` runs a 15 ms non-blocking interval loop. Priority order each tick:
 
 1. `handleGamepadButtons()` — always processed (lights, recording, program control)
 2. `handleGamepadMotion()` — skipped when `ProgramManager::isRunning()`
@@ -162,7 +177,7 @@ Configuration is persisted to ESP32 NVS under the namespace `"bl-car"`. LED conf
 | POST | `/api/sequence` | Run ad-hoc sequence (Kids mode) |
 | GET | `/api/sequence/stop` | Stop ad-hoc sequence |
 | GET | `/api/ota/info` | Running/boot/next partition + app description |
-| POST | `/api/ota` | Upload `.bin` firmware image (binary body); reboots on success |
+| POST | `/api/ota` | Upload `esprc_brain.bin` (binary body); reboots on success |
 
 ### Wi-Fi
 
