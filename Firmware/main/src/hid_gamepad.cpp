@@ -19,45 +19,56 @@ static TaskHandle_t s_scan_task = nullptr;
 static esp_hidh_dev_t *s_dev_map[MAX_GAMEPADS] = {};
 
 // ---- Xbox Series X/S BLE HID report parser ----
-// Report ID 0x01, 16-byte payload (report ID stripped by esp_hidh):
-//   Byte 0 bits [3:0]  Hat switch  0=N 1=NE 2=E 3=SE 4=S 5=SW 6=W 7=NW 8=Center
-//   Byte 0 bits [7:4]  Buttons A, B, View, X
-//   Byte 1 bits [7:0]  Buttons Y, Menu, LB, RB, Guide, Share, LS, RS
-//   Bytes  2-3   Left X  int16
-//   Bytes  4-5   Left Y  int16
-//   Bytes  6-7   Right X int16
-//   Bytes  8-9   Right Y int16
-//   Bytes 10-11  Left  Trigger uint16 0-1023
-//   Bytes 12-13  Right Trigger uint16 0-1023
-//   Bytes 14-15  Padding
+// Layout confirmado desde reports capturados:
+//   Bytes  0-1:  Left  stick X  (uint16 LE, 0=izq, 32767=centro, 65535=der)
+//   Bytes  2-3:  Left  stick Y  (uint16 LE, 0=arriba, 32767=centro, 65535=abajo)
+//   Bytes  4-5:  Right stick X
+//   Bytes  6-7:  Right stick Y
+//   Bytes  8-9:  Left  trigger  (uint16 0-1023)
+//   Bytes 10-11: Right trigger  (uint16 0-1023)
+//   Bytes 12-13: Botones + HAT  (uint16 LE):
+//     bits 3:0 = HAT  (0=nada,1=N,2=NE,3=E,4=SE,5=S,6=SW,7=W,8=NW)
+//     bit   8  = A
+//     bit   9  = B
+//     bit  11  = X
+//     bit  12  = Y
+//     bit  14  = LB
+//     bit  15  = RB
+//   Byte 14: bit2=View  bit3=Menu  bit5=LS  bit6=RS
+//   Byte 15: bit0=Capture
 static void parse_xbox(GamepadData *gp, const uint8_t *d, uint16_t len)
 {
     if (len < 14) return;
 
-    gp->dpad = d[0] & 0x0F;
+    // Sticks: uint16 centrado en 32767 → rango -512..+512
+    uint16_t lx = (uint16_t)d[0] | ((uint16_t)d[1] << 8);
+    uint16_t ly = (uint16_t)d[2] | ((uint16_t)d[3] << 8);
+    gp->axis_x = (int16_t)((int32_t)((int32_t)lx - 32767) * 512 / 32767);
+    gp->axis_y = (int16_t)((int32_t)((int32_t)ly - 32767) * 512 / 32767);
 
-    uint16_t btn = (uint16_t)(d[0] >> 4) | ((uint16_t)d[1] << 4);
+    // Triggers
+    gp->brake    = (uint16_t)d[8]  | ((uint16_t)d[9]  << 8);   // LT
+    gp->throttle = (uint16_t)d[10] | ((uint16_t)d[11] << 8);   // RT
+
+    // Botones en bytes 12-13 (confirmados con datos capturados)
+    uint16_t btns = (uint16_t)d[12] | ((uint16_t)d[13] << 8);
+    gp->dpad    = btns & 0x0F;  // HAT: 0=none,1=N,2=NE,3=E,4=SE,5=S,6=SW,7=W,8=NW
     gp->buttons = 0;
-    if (btn & (1u << 0))  gp->buttons |= GAMEPAD_BTN_A;
-    if (btn & (1u << 1))  gp->buttons |= GAMEPAD_BTN_B;
-    // bit 2 = View (Back)
-    if (btn & (1u << 3))  gp->buttons |= GAMEPAD_BTN_X;
-    if (btn & (1u << 4))  gp->buttons |= GAMEPAD_BTN_Y;
-    // bit 5 = Menu (Start)
-    if (btn & (1u << 6))  gp->buttons |= GAMEPAD_BTN_L1;   // LB
-    if (btn & (1u << 7))  gp->buttons |= GAMEPAD_BTN_R1;   // RB
-    // bit 8 = Guide
-    // bit 9 = Share
-    if (btn & (1u << 10)) gp->buttons |= GAMEPAD_BTN_THUMB_L;  // LS
-    if (btn & (1u << 11)) gp->buttons |= GAMEPAD_BTN_THUMB_R;  // RS
+    if (btns & (1u <<  8)) gp->buttons |= GAMEPAD_BTN_A;
+    if (btns & (1u <<  9)) gp->buttons |= GAMEPAD_BTN_B;
+    if (btns & (1u << 11)) gp->buttons |= GAMEPAD_BTN_X;
+    if (btns & (1u << 12)) gp->buttons |= GAMEPAD_BTN_Y;
+    if (btns & (1u << 14)) gp->buttons |= GAMEPAD_BTN_L1;   // LB
+    if (btns & (1u << 15)) gp->buttons |= GAMEPAD_BTN_R1;   // RB
 
-    int16_t raw_lx = (int16_t)((uint16_t)d[2] | ((uint16_t)d[3] << 8));
-    int16_t raw_ly = (int16_t)((uint16_t)d[4] | ((uint16_t)d[5] << 8));
-    gp->axis_x = (int16_t)((int32_t)raw_lx * 512 / 32767);
-    gp->axis_y = (int16_t)((int32_t)raw_ly * 512 / 32767);
-
-    gp->brake    = (int16_t)((uint16_t)d[10] | ((uint16_t)d[11] << 8));  // Left  trigger
-    gp->throttle = (int16_t)((uint16_t)d[12] | ((uint16_t)d[13] << 8));  // Right trigger
+    // Botones en byte 14 (confirmados con datos capturados)
+    if (len > 14) {
+        uint8_t b14 = d[14];
+        // bit 2 = View (⧉)   bit 3 = Menu (≡)  — no usados en gamepadHandler
+        if (b14 & (1u << 5)) gp->buttons |= GAMEPAD_BTN_THUMB_L;  // LS
+        if (b14 & (1u << 6)) gp->buttons |= GAMEPAD_BTN_THUMB_R;  // RS
+    }
+    // Byte 15 bit 0 = Capture/Share — no usado en gamepadHandler
 }
 
 // ---- Generic HID gamepad parser ----
