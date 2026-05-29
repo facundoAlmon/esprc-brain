@@ -47,7 +47,7 @@ This is not just an RC car, it is an open platform for you to experiment, learn 
 ## ✨ Key Features
 
 -   **Total and Flexible Control:**
-    -   **Bluetooth:** Connect an Xbox Series X/S gamepad or a standard generic HID controller via Bluetooth. The BT stack is 100% native ESP-IDF (`esp_hid_host` + Bluedroid), no external dependencies. Only available on ESP32 (Classic BT); ESP32-C6 uses Wi-Fi only.
+    -   **Bluetooth:** Connect an Xbox Series X/S gamepad or a standard generic HID controller via Bluetooth. The BT stack is 100% native ESP-IDF (`esp_hid_host` + Bluedroid), no external dependencies. Works on both **ESP32** (Classic BT + BLE) and **ESP32-C6** (BLE).
     -   **Wi-Fi:** Use the integrated web application to control every aspect of the car from your phone, tablet, or PC.
 
 -   **Connectivity Modes:**
@@ -180,7 +180,7 @@ By default, the ESP32 starts in **Access Point (AP) Mode**.
 
 ### Bluetooth Joystick Connection
 
-> Only available on ESP32 (not ESP32-C6). Supported controllers: **Xbox Series X/S** and **standard generic HID** gamepads.
+> Supported controllers: **Xbox Series X/S** and **standard generic HID** gamepads. Works on ESP32 and ESP32-C6 (both via BLE).
 
 1. Put the joystick in pairing mode
 2. Make sure you have bluetooth enabled in the **Car Configuration** section

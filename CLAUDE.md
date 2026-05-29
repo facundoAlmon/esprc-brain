@@ -22,14 +22,33 @@ The firmware has **no local component dependencies** — all Bluetooth and perip
 
 ESP-IDF source also at `/mnt/EVO_EXT4/DIY/esp-idf/.espressif/v6.0.1/`.
 
-## Bluetooth (ESP32 only)
+## Bluetooth
 
-Bluetooth gamepad support uses **native ESP-IDF** `esp_hid_host` + Bluedroid. No Bluepad32 or BTstack.
+Bluetooth gamepad support usa **ESP-IDF nativo** `esp_hid_host` + Bluedroid. Sin Bluepad32 ni BTstack.
 
-- Supported controllers: **Xbox Series X/S** (BLE HID) and **generic standard HID** gamepads
-- ESP32-C6 has no Classic BT — BT files compile only for `CONFIG_IDF_TARGET_ESP32`; a no-op stub is used for C6
-- AP mode disables BT scanning (BT/Wi-Fi coexistence workaround)
+- Supported controllers: **Xbox Series X/S** (BLE) y gamepads **HID estándar genéricos**
+- **ESP32**: Classic BT + BLE (`HIDH_BTDM_MODE`)
+- **ESP32-C6**: BLE-only (`HIDH_BLE_MODE`) — Xbox Series X/S funciona vía BLE. `CONFIG_BT_BLE_ENABLED=y` requerido en `sdkconfig.defaults.esp32c6`
+- BT y C6: `bt`+`esp_hid` van en REQUIRES **incondicional** en CMakeLists — REQUIRES dinámico dentro de `if()` no propaga include paths en IDF CMake
+- `esp_hid_gap.h` necesita `#include "sdkconfig.h"` propio para que `HID_HOST_MODE` se evalúe correctamente al ser incluido desde C++
+- AP mode deshabilita BT scanning (workaround coexistencia BT/Wi-Fi)
 - Key files: `main/src/hid_gamepad.cpp`, `main/src/esp_hid_gap.c`, `main/include/hid_gamepad.h`
+
+### Xbox Series X/S BLE HID report layout (confirmado desde hardware real)
+
+Report ID 0x01, 16 bytes (report ID stripped por esp_hidh):
+
+| Bytes | Campo | Detalle |
+|-------|-------|---------|
+| 0-1 | Left stick X | uint16 LE, centro=32767 |
+| 2-3 | Left stick Y | uint16 LE, centro=32767 |
+| 4-5 | Right stick X | uint16 LE, centro=32767 |
+| 6-7 | Right stick Y | uint16 LE, centro=32767 |
+| 8-9 | Left trigger | uint16, 0-1023 |
+| 10-11 | Right trigger | uint16, 0-1023 |
+| 12-13 | Botones + HAT | A=bit8 B=bit9 X=bit11 Y=bit12 LB=bit14 RB=bit15; HAT=bits3:0 (0=none,1=N,3=E,5=S,7=W) |
+| 14 | Botones extra | View=bit2 Menu=bit3 LS=bit5 RS=bit6 |
+| 15 | Botones extra | Capture=bit0 |
 
 ## Partition Table
 
