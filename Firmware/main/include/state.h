@@ -8,7 +8,7 @@
  */
 #pragma once
 
-#include <Bluepad32.h>
+#include "gamepad_types.h"
 #include <vector>
 
 // Declaración anticipada para evitar dependencias circulares.
@@ -51,7 +51,7 @@ typedef struct {
  */
 struct VehicleState {
     // --- Estado del Gamepad ---
-    GamepadPtr myGamepads[BP32_MAX_GAMEPADS];
+    GamepadData myGamepads[MAX_GAMEPADS];
 
     // --- Estado de los LEDs ---
     bool giroDerecho;           //< Intermitente derecho activado.

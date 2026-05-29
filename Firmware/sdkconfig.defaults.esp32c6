@@ -1,2 +1,5 @@
 # Increase main task stack size for ESP32C6 build (eg: idf.py set-target esp32c6).
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
+
+# C6 is BLE-only — Classic BT HID host not available
+# CONFIG_BT_HID_HOST_ENABLED is not set

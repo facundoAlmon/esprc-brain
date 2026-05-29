@@ -1,27 +1,20 @@
-/**
- * @file sketch.cpp
- * @brief Archivo principal del firmware del ESP32.
- * 
- * Este archivo contiene las funciones `setup()` y `loop()`, que son el punto de
- * entrada del programa. Se encarga de inicializar todos los subsistemas
- * (WiFi, actuadores, gamepad, servidor web, etc.) y de ejecutar el bucle
- * principal que mantiene el vehículo en funcionamiento.
- */
-#include <Arduino.h>
-#include <Preferences.h>
 #include <string.h>
+#include <string>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "esp_system.h"
 #include "esp_log.h"
+#include "esp_timer.h"
+#include "esp_mac.h"
 #include "nvs_flash.h"
 #include "esp_netif.h"
 #include "esp_event.h"
 #include "esp_wifi.h"
 #include "esp_coexist.h"
 #include "esp_ota_ops.h"
+#include <ArduinoJson.h>
 
 #include "state.h"
 #include "actuators.h"
@@ -29,37 +22,25 @@
 #include "ledStripHandler.h"
 #include "webServerHandler.h"
 #include "ProgramManager.h"
-
+#include "nvs_prefs.h"
 #include "pins.h"
 
-// Instancia global de la estructura de estado del vehículo.
+static inline uint32_t millis() { return (uint32_t)(esp_timer_get_time() / 1000ULL); }
+
 VehicleState vehicleState;
 ProgramManager programManager(&vehicleState);
+NvsPrefs preferences;
 
-// Objeto para manejar el almacenamiento no volátil (NVS).
-Preferences preferences;
-
-// Variables para el bucle no bloqueante.
-unsigned long lastLoopTime = 0;
-const unsigned long loopInterval = 15; // ms
-
-// --- Configuración y manejo de WiFi ---
 static const char *TAG = "WIFI";
 static EventGroupHandle_t s_wifi_event_group;
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 static int s_retry_num = 0;
 
-static void start_ap_mode(bool is_fallback); // Declaración adelantada
+static void start_ap_mode(bool is_fallback);
 
-/**
- * @brief Manejador de eventos de WiFi. 
- * 
- * Gestiona eventos como la conexión, desconexión y obtención de IP.
- */
-static void wifi_event_handler(void* arg, esp_event_base_t event_base, 
-                                int32_t event_id, void* event_data)
-{
+static void wifi_event_handler(void* arg, esp_event_base_t event_base,
+                                int32_t event_id, void* event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
@@ -70,7 +51,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
         }
-        ESP_LOGI(TAG,"Fallo al conectar al AP");
+        ESP_LOGI(TAG, "Fallo al conectar al AP");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "IP obtenida:" IPSTR, IP2STR(&event->ip_info.ip));
@@ -85,41 +66,26 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-/**
- * @brief Inicia el modo Access Point (AP).
- * 
- * @param is_fallback Si es true, crea una red abierta de respaldo.
- *                    Si es false, usa la configuración guardada.
- * En ambos casos, aplica el workaround de coexistencia para BT/WiFi.
- */
 static void start_ap_mode(bool is_fallback) {
-    if (is_fallback) {
-        ESP_LOGI(TAG, "Iniciando en modo Access Point (AP) de respaldo");
-    } else {
-        ESP_LOGI(TAG, "Iniciando en modo Access Point (AP)");
-    }
+    ESP_LOGI(TAG, "Iniciando en modo Access Point (AP)%s", is_fallback ? " de respaldo" : "");
 
-    // Workaround de coexistencia: Deshabilita el escaneo BT para fiabilidad del AP.
+    // Workaround de coexistencia: deshabilita el escaneo BT en AP.
     vehicleState.enableScan = 0;
 
     esp_netif_t* ap_netif = esp_netif_create_default_wifi_ap();
-
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, NULL));
 
     wifi_config_t wifi_config = {};
-    
     if (is_fallback) {
         strncpy((char*)wifi_config.ap.ssid, "ESP-RC-CAR", sizeof(wifi_config.ap.ssid));
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
-        memset(wifi_config.ap.password, 0, sizeof(wifi_config.ap.password));
-    } else { // Modo AP primario
+    } else {
         strncpy((char*)wifi_config.ap.ssid, vehicleState.wifiName, sizeof(wifi_config.ap.ssid));
         strncpy((char*)wifi_config.ap.password, vehicleState.wifiPass, sizeof(wifi_config.ap.password));
         wifi_config.ap.authmode = (strlen(vehicleState.wifiPass) < 8) ? WIFI_AUTH_OPEN : WIFI_AUTH_WPA2_PSK;
     }
-    
     wifi_config.ap.ssid_len = strlen((char*)wifi_config.ap.ssid);
     wifi_config.ap.channel = 1;
     wifi_config.ap.max_connection = 4;
@@ -133,18 +99,10 @@ static void start_ap_mode(bool is_fallback) {
     esp_netif_ip_info_t ip_info;
     esp_netif_get_ip_info(ap_netif, &ip_info);
     esp_ip4addr_ntoa(&ip_info.ip, vehicleState.espIP, sizeof(vehicleState.espIP));
-    
     strncpy(vehicleState.wifiMode, "AP", sizeof(vehicleState.wifiMode));
-    if (is_fallback) {
-        ESP_LOGI(TAG, "Modo AP de respaldo iniciado. IP: %s", vehicleState.espIP);
-    } else {
-        ESP_LOGI(TAG, "Modo AP iniciado. IP: %s", vehicleState.espIP);
-    }
+    ESP_LOGI(TAG, "Modo AP%s iniciado. IP: %s", is_fallback ? " de respaldo" : "", vehicleState.espIP);
 }
 
-/**
- * @brief Inicia el modo Cliente (STA) y cambia a modo AP si falla.
- */
 static void start_sta_mode() {
     ESP_LOGI(TAG, "Iniciando en modo Cliente (STA)");
     s_wifi_event_group = xEventGroupCreate();
@@ -166,126 +124,94 @@ static void start_sta_mode() {
     ESP_ERROR_CHECK(esp_wifi_start());
 
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
-
     if (bits & WIFI_CONNECTED_BIT) {
         esp_netif_ip_info_t ip_info;
         esp_netif_get_ip_info(sta_netif, &ip_info);
         esp_ip4addr_ntoa(&ip_info.ip, vehicleState.espIP, sizeof(vehicleState.espIP));
-        Console.printf("\nWiFi Conectado. IP: %s\n", vehicleState.espIP);
+        ESP_LOGI(TAG, "WiFi Conectado. IP: %s", vehicleState.espIP);
     } else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGW(TAG, "Fallo al conectar a %s. Cambiando a modo AP de respaldo.", vehicleState.wifiName);
-        // Limpia recursos de STA y vuelve a iniciar en modo AP.
+        ESP_LOGW(TAG, "Fallo al conectar a %s. Cambiando a AP de respaldo.", vehicleState.wifiName);
         esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip);
         esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id);
         esp_wifi_stop();
         esp_wifi_deinit();
         esp_netif_destroy(sta_netif);
         vEventGroupDelete(s_wifi_event_group);
-
-        start_ap_mode(true); // Llamada explícita al modo de respaldo
-    } else {
-        ESP_LOGE(TAG, "EVENTO INESPERADO");
+        start_ap_mode(true);
     }
 }
 
-
-/**
- * @brief Inicializa el WiFi en modo Access Point (AP) o Cliente (STA).
- */
 void initWiFi() {
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     if (strcmp(vehicleState.wifiMode, "AP") == 0) {
-        start_ap_mode(false); // Llamada explícita al modo primario
-    } else { // Modo Cliente (STA)
+        start_ap_mode(false);
+    } else {
         start_sta_mode();
     }
     esp_wifi_set_ps(WIFI_PS_NONE);
 }
 
-
-
-#include <ArduinoJson.h>
-
-// ... (resto de includes)
-
-// ... (código anterior)
-
-/**
- * @brief Carga la configuración guardada desde la memoria no volátil (NVS).
- */
 void initPreferences() {
     preferences.begin("bl-car", false);
 
-    // Carga configuración del vehículo.
-    vehicleState.servoCenterDeg = preferences.getUInt("servoCenterDeg", 93);
-    vehicleState.servoLimitLDeg = preferences.getUInt("servoLimitLDeg", 35);
-    vehicleState.servoLimitRDeg = preferences.getUInt("servoLimitRDeg", 45);
-    vehicleState.motorMinSpeed = preferences.getUInt("motorMinSpeed", 150);
-    vehicleState.motorMaxSpeed = preferences.getUInt("motorMaxSpeed", 255);
+    vehicleState.servoCenterDeg  = preferences.getUInt("servoCenterDeg", 93);
+    vehicleState.servoLimitLDeg  = preferences.getUInt("servoLimitLDeg", 35);
+    vehicleState.servoLimitRDeg  = preferences.getUInt("servoLimitRDeg", 45);
+    vehicleState.motorMinSpeed   = preferences.getUInt("motorMinSpeed", 150);
+    vehicleState.motorMaxSpeed   = preferences.getUInt("motorMaxSpeed", 255);
     vehicleState.autoTurnSignals = preferences.getBool("autoTurnSignals", true);
-    vehicleState.autoTurnTol = preferences.getUInt("autoTurnTol", 10);
+    vehicleState.autoTurnTol     = preferences.getUInt("autoTurnTol", 10);
     vehicleState.lastSteerDirection = 0;
-    vehicleState.lastMotorSpeed = 0;
-    vehicleState.lastMotorForward = true;
+    vehicleState.lastMotorSpeed     = 0;
+    vehicleState.lastMotorForward   = true;
     vehicleState.enableScan = preferences.getUInt("enableScan", 0);
-    
-    // Carga configuración de WiFi. Si no existe una clave, se crea con valores por defecto
-    // para evitar errores de "NOT_FOUND" en el log en cada arranque.
+
     if (preferences.isKey("wifiName")) {
-        preferences.getString("wifiName", vehicleState.wifiName, sizeof(vehicleState.wifiName));
+        std::string v = preferences.getString("wifiName");
+        strncpy(vehicleState.wifiName, v.c_str(), sizeof(vehicleState.wifiName));
     } else {
         strncpy(vehicleState.wifiName, "ESP-RC-CAR", sizeof(vehicleState.wifiName));
         preferences.putString("wifiName", vehicleState.wifiName);
     }
     if (preferences.isKey("wifiPass")) {
-        preferences.getString("wifiPass", vehicleState.wifiPass, sizeof(vehicleState.wifiPass));
+        std::string v = preferences.getString("wifiPass");
+        strncpy(vehicleState.wifiPass, v.c_str(), sizeof(vehicleState.wifiPass));
     } else {
         strncpy(vehicleState.wifiPass, "", sizeof(vehicleState.wifiPass));
         preferences.putString("wifiPass", vehicleState.wifiPass);
     }
     if (preferences.isKey("wifiMode")) {
-        preferences.getString("wifiMode", vehicleState.wifiMode, sizeof(vehicleState.wifiMode));
+        std::string v = preferences.getString("wifiMode");
+        strncpy(vehicleState.wifiMode, v.c_str(), sizeof(vehicleState.wifiMode));
     } else {
         strncpy(vehicleState.wifiMode, "AP", sizeof(vehicleState.wifiMode));
         preferences.putString("wifiMode", vehicleState.wifiMode);
     }
 
-    // Workaround de coexistencia: Si se inicia en modo AP, deshabilita el escaneo BT
-    // para asegurar que el AP de WiFi se inicie de forma fiable.
     if (strcmp(vehicleState.wifiMode, "AP") == 0) {
         vehicleState.enableScan = 0;
     }
 
     vehicleState.apiActMSTimeout = 30000;
 
-    // Carga configuración de LEDs desde JSON. Si no existe, la crea con valores por defecto.
-    String ledConfigJson;
+    // LED config
+    std::string ledConfigJson;
     if (preferences.isKey("ledConfig")) {
         ledConfigJson = preferences.getString("ledConfig");
     } else {
         ledConfigJson = "{}";
-        preferences.putString("ledConfig", ledConfigJson);
+        preferences.putString("ledConfig", "{}");
     }
-    
+
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, ledConfigJson);
-
     if (error) {
-        ESP_LOGE(TAG, "Fallo al parsear la configuración de LEDs: %s", error.c_str());
-        // Cargar una configuración por defecto si falla el parseo
+        ESP_LOGE(TAG, "Fallo al parsear ledConfig: %s", error.c_str());
         vehicleState.ledCount = 12;
     } else {
         vehicleState.ledCount = doc["total_leds"] | 12;
-        
         JsonArray groups = doc["grupos"].as<JsonArray>();
         vehicleState.ledGroups.clear();
         for (JsonObject group : groups) {
@@ -301,80 +227,81 @@ void initPreferences() {
     }
 }
 
-/**
- * @brief Función de configuración principal, se ejecuta una vez al arrancar.
- */
-void setup() {
-    Console.printf("Firmware: %s\n", BP32.firmwareVersion());
-    
-    initPreferences();
-    programManager.loadProgramFromNVS(); // Carga el programa guardado en NVS al arrancar
-    setupLedStrip(&vehicleState); // This calls configure_led() 
+// Main application task — equivalent to Arduino setup() + loop()
+static void main_task(void* pvParameters) {
+    esp_err_t nvs_ret = nvs_flash_init();
+    if (nvs_ret == ESP_ERR_NVS_NO_FREE_PAGES || nvs_ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        nvs_ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(nvs_ret);
 
-    led_strip_set_pixel(led_strip, 0, 255, 0, 0); // LED rojo: iniciando
+    initPreferences();
+    programManager.loadProgramFromNVS();
+    setupLedStrip(&vehicleState);
+
+    led_strip_set_pixel(led_strip, 0, 255, 0, 0);
     led_strip_refresh(led_strip);
 
     initWiFi();
-    Console.printf("WiFi: %s (%s)\n", vehicleState.wifiName, vehicleState.wifiMode);
+    ESP_LOGI(TAG, "WiFi: %s (%s)", vehicleState.wifiName, vehicleState.wifiMode);
     setupActuators();
 
-    led_strip_set_pixel(led_strip, 0, 0, 0, 255); // LED azul: WiFi/actuadores listos
+    led_strip_set_pixel(led_strip, 0, 0, 0, 255);
     led_strip_refresh(led_strip);
 
-    setupGamepad(&vehicleState, &programManager); // This calls BP32.setup() 
+    setupGamepad(&vehicleState, &programManager);
 
-    led_strip_set_pixel(led_strip, 0, 0, 255, 0); // LED verde: todo listo
+    led_strip_set_pixel(led_strip, 0, 0, 255, 0);
     led_strip_refresh(led_strip);
 
     startServer(&vehicleState, &programManager);
 
-    led_strip_set_pixel(led_strip, 0, 0, 0, 0); // Apaga el LED de estado
+    led_strip_set_pixel(led_strip, 0, 0, 0, 0);
     led_strip_refresh(led_strip);
 
-    // Marca la imagen actual como válida. Si la app fue arrancada por primera
-    // vez tras una OTA y el bootloader la dejó en estado PENDING_VERIFY (cuando
-    // CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE está activo), esto cancela el
-    // rollback automático. Si rollback está deshabilitado o ya estaba validada,
-    // la llamada simplemente no hace nada.
+    // Mark OTA image as valid if needed
     const esp_partition_t* running = esp_ota_get_running_partition();
     esp_ota_img_states_t ota_state;
     if (running && esp_ota_get_state_partition(running, &ota_state) == ESP_OK) {
         if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
-            ESP_LOGI(TAG, "Imagen OTA en PENDING_VERIFY: marcando como valida");
+            ESP_LOGI(TAG, "OTA PENDING_VERIFY: marcando como valida");
             esp_ota_mark_app_valid_cancel_rollback();
         }
     }
+
+    // Main loop (15 ms non-blocking interval)
+    uint32_t lastLoopTime = 0;
+    const uint32_t loopInterval = 15;
+
+    for (;;) {
+        uint32_t currentTime = millis();
+        if (currentTime - lastLoopTime >= loopInterval) {
+            lastLoopTime = currentTime;
+
+            handleGamepadButtons(&vehicleState, &programManager);
+
+            if (!programManager.isRunning()) {
+                handleGamepadMotion(&vehicleState);
+            }
+
+            if (vehicleState.apiActEnabled) {
+                if ((millis() - vehicleState.apiActMSStart) >= vehicleState.apiActMS) {
+                    stopMotors(&vehicleState);
+                    vehicleState.apiActEnabled = false;
+                    vehicleState.apiActMSStart = 0;
+                    vehicleState.apiActMS = 0;
+                }
+            }
+
+            programManager.loop();
+            handleLedStrip(&vehicleState, &programManager);
+        }
+        vTaskDelay(1 / portTICK_PERIOD_MS);
+    }
 }
 
-/**
- * @brief Bucle principal del programa, se ejecuta repetidamente.
- */
-void loop() {
-    unsigned long currentTime = millis();
-
-    // Bucle no bloqueante con un intervalo fijo.
-    if (currentTime - lastLoopTime >= loopInterval) {
-        lastLoopTime = currentTime;
-
-        // Procesa siempre los botones del gamepad para acciones (luces, programa, etc.).
-        handleGamepadButtons(&vehicleState, &programManager);
-
-        // Solo procesa el movimiento del gamepad si no hay un programa en ejecución.
-        if (!programManager.isRunning()) {
-            handleGamepadMotion(&vehicleState);
-        }
-
-        // Timeout para las acciones recibidas por la API.
-        if (vehicleState.apiActEnabled) {
-            if ((millis() - vehicleState.apiActMSStart) >= vehicleState.apiActMS) {
-                stopMotors(&vehicleState);
-                vehicleState.apiActEnabled = false;
-                vehicleState.apiActMSStart = 0;
-                vehicleState.apiActMS = 0;
-            }
-        }
-        
-        programManager.loop(); // Ejecuta el bucle del gestor de programas
-        handleLedStrip(&vehicleState, &programManager);
-    }
+// Called from main.c after bluepad32/btstack init
+extern "C" void app_task_start(void) {
+    xTaskCreatePinnedToCore(main_task, "main_task", 8192, NULL, 5, NULL, tskNO_AFFINITY);
 }

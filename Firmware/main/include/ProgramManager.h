@@ -2,26 +2,22 @@
 #define PROGRAM_MANAGER_H
 
 #include <vector>
+#include <string>
 #include <ArduinoJson.h>
-#include "state.h" // To get access to VehicleState
-#include <Preferences.h>
+#include "state.h"
 
-// Enum for identifying the type of action
 enum class ProgramActionType {
     MOVE_STEER,
     LIGHTS_CYCLE,
     HAZARDS_TOGGLE,
     RIGHT_TURN_TOGGLE,
     LEFT_TURN_TOGGLE,
-    WAIT // A special action for pausas
+    WAIT
 };
 
-// Structure for a single action in a program
 struct ProgrammedAction {
     ProgramActionType type;
-    uint32_t duration_ms; // Duration of the action in milliseconds
-
-    // Parameters for the action (not all will be used in every action)
+    uint32_t duration_ms;
     int motorSpeed;
     int steerAngle;
 };
@@ -41,7 +37,7 @@ public:
     void recordStep(int motorSpeed, int steerAngle);
     bool isRecording() const;
 
-    void loop(); // Main method to be called in the application's loop
+    void loop();
 
     bool isRunning() const;
     JsonDocument getProgramAsJson();
@@ -55,7 +51,6 @@ private:
     int _totalIterations = 0;
     int _currentIteration = 0;
 
-    // Recording state
     bool _isRecording = false;
     uint32_t _lastActionRecordTime = 0;
     ProgrammedAction _lastRecordedAction;

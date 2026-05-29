@@ -47,7 +47,7 @@ This is not just an RC car, it is an open platform for you to experiment, learn 
 ## ✨ Key Features
 
 -   **Total and Flexible Control:**
-    -   **Bluetooth:** Connect your favorite Bluetooth joystick or gamepad (PS3, PS4, PS5, Xbox, etc.) and drive with precision thanks to the [Bluepad32](https://github.com/ricardoquesada/bluepad32) library.
+    -   **Bluetooth:** Connect an Xbox Series X/S gamepad or a standard generic HID controller via Bluetooth. The BT stack is 100% native ESP-IDF (`esp_hid_host` + Bluedroid), no external dependencies. Only available on ESP32 (Classic BT); ESP32-C6 uses Wi-Fi only.
     -   **Wi-Fi:** Use the integrated web application to control every aspect of the car from your phone, tablet, or PC.
 
 -   **Connectivity Modes:**
@@ -68,14 +68,14 @@ This is not just an RC car, it is an open platform for you to experiment, learn 
     -   **Advanced LED Light Control:** Customize your car's lights (WS2812B). Create LED groups and assign them functions like position light, brake, reverse, turn signals, interior light, or underglow. The configuration can be imported and exported.
     -   **System Management:** Restart the ESP32 or restore factory settings with a single click.
 
--   **Robust and Open Firmware:** Written in C++ on the official Espressif framework (ESP-IDF), ensuring professional-level performance and stability.
+-   **Robust and Open Firmware:** Written in C++ on the official Espressif framework (ESP-IDF) **pure** — no Arduino, Bluepad32, or BTstack dependencies. Binary size ~1.4 MB, 66% of the partition free.
 
 ## 📂 Project Structure
 
 We have organized the repository logically so that you can find everything easily.
 
 ```
-esprc-brain-c6/
+esprc-brain/
 ├── Firmware/
 │   ├── main/             # Main source code of the ESP32 (C++).
 │   │   ├── src/          # .cpp files with the application logic.
@@ -83,8 +83,8 @@ esprc-brain-c6/
 │   │
 │   ├── webapp/           # Source code of the web application (HTML, CSS, JS).
 │   │
-│   ├── components/       # Libraries and components of ESP-IDF (like Bluepad32).
 │   └── build/            # Compilation folder (generated automatically).
+│       └── esprc_brain.bin  # Binary for flashing/OTA
 │
 ├── Models/               # 3D models to print the car parts.
 │   ├── SCADs/            # OpenSCAD source files (modifiable).
@@ -123,10 +123,9 @@ Ready to build? Here we explain how to get everything up and running.
 ### Prepare the Firmware (ESP32)
 
 1.  **Clone the repository:**
-    It is very important to use the `--recursive` option to also download the necessary submodules (like Bluepad32).
     ```bash
-    git clone --recursive https://gitlab.com/falmon/esprc-brain.git
-    cd esprc-brain-c6/Firmware
+    git clone https://gitlab.com/falmon/esprc-brain.git
+    cd esprc-brain/Firmware
     ```
 
 2.  **Configure the project:**
@@ -180,6 +179,8 @@ By default, the ESP32 starts in **Access Point (AP) Mode**.
 3.  **Let's drive!** You are now in the control interface. From the **"Connection"** tab, you can switch to Client mode so that the car connects to your local Wi-Fi network.
 
 ### Bluetooth Joystick Connection
+
+> Only available on ESP32 (not ESP32-C6). Supported controllers: **Xbox Series X/S** and **standard generic HID** gamepads.
 
 1. Put the joystick in pairing mode
 2. Make sure you have bluetooth enabled in the **Car Configuration** section
@@ -488,14 +489,14 @@ Contributions are the engine of open source and are more than welcome! If you ha
 ## 🙏 Acknowledgments
 
 -   **[Duke Doks](https://dukedoks.com/):** For creating and sharing the incredible 3D models of the [chassis](https://dukedoks.com/portfolio/guia-chasis-rc/) and the [body](https://dukedoks.com/portfolio/guia-delorean-bttf/).
--   **[Ricardo Quesada](https://github.com/ricardoquesada):** For developing the fantastic [Bluepad32](https://github.com/ricardoquesada/bluepad32) library.
 -   **[Benoît Blanchon](https://github.com/bblanchon):** For the indispensable [ArduinoJson](https://github.com/bblanchon/ArduinoJson) library.
+-   **[Ricardo Quesada](https://github.com/ricardoquesada):** For [Bluepad32](https://github.com/ricardoquesada/bluepad32), which was the foundation of BT support in earlier versions of this project.
 
 ## 📜 License
 
 This project is distributed under the **MIT License**. This means that you are free to use, modify and distribute the code as you wish, as long as you keep the original copyright notice.
 
-> **Important:** Bluepad32 depends on the [BTstack](https://github.com/bluekitchen/btstack) library, which is free for open source projects but requires a commercial license for closed source projects.
+> The firmware uses exclusively native ESP-IDF components and libraries under permissive licenses (MIT/Apache 2.0). There are no restrictively-licensed dependencies.
 
 ---
 Made with ❤️, ☕ and many cables by [Facundo Almon](https://github.com/facundoAlmon).
