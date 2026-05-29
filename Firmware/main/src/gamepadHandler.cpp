@@ -106,7 +106,7 @@ static void buttonController(const GamepadData* gp, VehicleState* state, Program
 }
 
 void handleGamepadButtons(VehicleState* state, ProgramManager* programManager) {
-    // Data is pushed via bp32_platform callbacks — no polling call needed.
+    // Data is pushed via hid_gamepad callbacks — no polling call needed.
     const GamepadData* gp = &state->myGamepads[0];
     if (gp->connected) {
         buttonController(gp, state, programManager);

@@ -301,7 +301,7 @@ static void main_task(void* pvParameters) {
     }
 }
 
-// Called from main.c after bluepad32/btstack init
+// Called from main.c
 extern "C" void app_task_start(void) {
     xTaskCreatePinnedToCore(main_task, "main_task", 8192, NULL, 5, NULL, tskNO_AFFINITY);
 }

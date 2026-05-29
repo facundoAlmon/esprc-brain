@@ -4,7 +4,7 @@
 
 #define MAX_GAMEPADS 4
 
-// Button bitmasks — same mapping order as bluepad32 uni_gamepad.h BUTTON_* enums.
+// Button bitmasks — parsed from HID reports in hid_gamepad.cpp.
 #define GAMEPAD_BTN_A          (1u << 0)
 #define GAMEPAD_BTN_B          (1u << 1)
 #define GAMEPAD_BTN_X          (1u << 2)
