@@ -116,7 +116,7 @@ Ready to build? Here we explain how to get everything up and running.
     - Power supply:
       - I am currently using 3 18650 batteries connected to a battery protector. And a Step-Down regulator to lower the voltage to 5v for the ESP32 and the Servo Motor.
 2.  **Software:**
-    -   [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html): The Espressif development environment.
+    -   [ESP-IDF v6.0.1](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32/get-started/index.html): The Espressif development environment (required version: **v6.0.1**).
     -   [Node.js and npm](https://nodejs.org/): To manage and compile the web application. (Only necessary if you want to modify the webapp)
     -   [Git](https://git-scm.com/): To clone the repository.
 
@@ -128,24 +128,36 @@ Ready to build? Here we explain how to get everything up and running.
     cd esprc-brain/Firmware
     ```
 
-2.  **Configure the project:**
-    Open the ESP-IDF configuration menu to adjust specific parameters of your hardware if necessary.
+2.  **Activate the ESP-IDF v6.0.1 environment** (required in every new terminal session):
+    ```bash
+    . /path/to/esp-idf-v6.0.1/export.sh
+    ```
+    > Use the `export.sh` script from your local ESP-IDF installation.
+
+3.  **Select the target** (once per clone, or when switching chips):
+    ```bash
+    idf.py set-target esp32c6   # or: set-target esp32
+    ```
+
+4.  **Configure the project** (optional):
+    Open the configuration menu to adjust hardware-specific parameters.
     ```bash
     idf.py menuconfig
     ```
 
-3.  **Compile the firmware:**
-    This command will compile all the C++ code and prepare it to be transferred to the ESP32.
+5.  **Compile the firmware:**
     ```bash
     idf.py build
     ```
 
-4.  **Flash the ESP32:**
+6.  **Flash the ESP32:**
     Connect your ESP32 via USB and run the following command. Remember to change `/dev/ttyUSB0` to the corresponding serial port on your system.
     ```bash
     idf.py -p /dev/ttyUSB0 flash monitor
     ```
     This command flashes the firmware and opens a serial console so you can see the diagnostic messages in real time.
+
+> **Note:** If this is your first flash or you changed the target, delete `sdkconfig` before building so it regenerates cleanly: `rm -f sdkconfig`
 
 ### WebApp Development (Optional)
 
@@ -210,29 +222,6 @@ This mode presents a single virtual joystick for unified control of the vehicle.
       <li><strong>Lights:</strong> Cycles through the headlight modes (off, position, low and high).</li>
       <li><strong>Turn signals:</strong> Activates the left and right turn signals.</li>
       <li><strong>Hazard lights:</strong> Activates the emergency lights.</li>
-      <li><strong>Record:</strong> Starts recording (The LEDs of the "RECORDING LIGHT" group will flash when recording is active).</li>
-    </ul>
-  </li>
-</ul>
-</td>
-</tr>
-</table>
-
-### 🕹️🕹️ Joystick B
-<table width="100%">
-<tr>
-<td width="40%" valign="top">
-<img src="Imagenes/Webapp/en/03.png" width="100%">
-</td>
-<td valign="top">
-This mode offers two virtual joysticks for independent handling of acceleration and steering, similar to a tank.
-<ul>
-  <li><strong>Available controls:</strong>
-    <ul>
-      <li><strong>Steering Joystick:</strong> Controls the steering servo.</li>
-      <li><strong>Acceleration Joystick:</strong> Controls the speed and direction of the motors.</li>
-      <li><strong>Invert Joysticks:</strong> Swaps the position of the joysticks on the screen.</li>
-      <li><strong>Light Controls:</strong> Identical to those of Joystick A (headlights, turn signals, hazard lights).</li>
       <li><strong>Record:</strong> Starts recording (The LEDs of the "RECORDING LIGHT" group will flash when recording is active).</li>
     </ul>
   </li>
@@ -484,7 +473,7 @@ Contributions are the engine of open source and are more than welcome! If you ha
 ## 📝 To-Do List
 
 -   [ ] Add a schematic of the electronic circuit.
--   [ ] Function to export and import the complete car configuration.
+-   [x] Function to export and import the complete car configuration. (`/api/config/backup` and `/api/config/restore`)
 
 ## 🙏 Acknowledgments
 

@@ -29,12 +29,12 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.5.4
+    version: 6.0.1
 direct_dependencies:
 - bblanchon/arduinojson
 - espressif/led_strip
 - espressif/mdns
 - idf
-manifest_hash: 5b31692a643e71f5cc15ae96a62fafcda886028dd2110625960bb3a3aaaaa1af
+manifest_hash: c72b6a3e256c82383f14d161ae4de50f5427c852aba50c7087b5200322c3360d
 target: esp32c6
-version: 2.0.0
+version: 3.0.0

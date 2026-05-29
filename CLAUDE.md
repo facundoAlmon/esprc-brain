@@ -15,12 +15,10 @@ The firmware has **no local component dependencies** — all Bluetooth and perip
 
 | Dependency | Version | Source |
 |------------|---------|--------|
-| ESP-IDF | v5.5.4 | `/mnt/EVO_EXT4/DIY/esp-idf/.espressif/v5.5.4/esp-idf/` |
+| ESP-IDF | v6.0.1 | `/mnt/EVO_EXT4/DIY/esp-idf/.espressif/v6.0.1/esp-idf/` |
 | espressif/led_strip | ^3.0.1 | component manager (`idf_component.yml`) |
 | espressif/mdns | ^1.0.0 | component manager |
 | bblanchon/arduinojson | ^7.4.2 | component manager |
-
-ESP-IDF source also at `/mnt/EVO_EXT4/DIY/esp-idf/.espressif/v6.0.1/`.
 
 ## Bluetooth
 
@@ -30,6 +28,9 @@ Bluetooth gamepad support usa **ESP-IDF nativo** `esp_hid_host` + Bluedroid. Sin
 - **ESP32**: Classic BT + BLE (`HIDH_BTDM_MODE`)
 - **ESP32-C6**: BLE-only (`HIDH_BLE_MODE`) — Xbox Series X/S funciona vía BLE. `CONFIG_BT_BLE_ENABLED=y` requerido en `sdkconfig.defaults.esp32c6`
 - BT y C6: `bt`+`esp_hid` van en REQUIRES **incondicional** en CMakeLists — REQUIRES dinámico dentro de `if()` no propaga include paths en IDF CMake
+- IDF v6.0 separó `driver` en sub-componentes: `esp_driver_gpio`, `esp_driver_ledc`, `esp_driver_mcpwm` deben estar en REQUIRES explícitamente (ya agregados)
+- IDF v6.0 eliminó `driver/mcpwm.h` legacy — se usa la nueva API handle-based (`driver/mcpwm_prelude.h`) con timer→operator→comparator→generator
+- IDF v6.0 eliminó el componente `json` (cJSON) — el proyecto usa solo ArduinoJSON, sin impacto
 - `esp_hid_gap.h` necesita `#include "sdkconfig.h"` propio para que `HID_HOST_MODE` se evalúe correctamente al ser incluido desde C++
 - AP mode deshabilita BT scanning (workaround coexistencia BT/Wi-Fi)
 - Key files: `main/src/hid_gamepad.cpp`, `main/src/esp_hid_gap.c`, `main/include/hid_gamepad.h`
@@ -78,11 +79,22 @@ OTA is only possible over Wi-Fi (AP or STA).
 
 ## Firmware Commands
 
-First-time setup on a fresh clone (run once per target):
+First-time setup on a fresh clone (run once per target). The IDF v6.0.1 environment must be active — the shell does **not** persist between sessions, so export before every build session:
 
 ```bash
+# Activate IDF v6.0.1 (run in every new terminal session)
+export IDF_PATH=/mnt/EVO_EXT4/DIY/esp-idf/.espressif/v6.0.1/esp-idf
+export IDF_PYTHON_ENV_PATH=/home/falmon/.espressif/python_env/idf6.0_py3.12_env
+export ESP_IDF_VERSION=6.0.1
+export PATH="$IDF_PATH/tools:/home/falmon/.espressif/tools/riscv32-esp-elf/esp-15.2.0_20251204/riscv32-esp-elf/bin:/home/falmon/.espressif/tools/xtensa-esp-elf/esp-15.2.0_20251204/xtensa-esp-elf/bin:$IDF_PYTHON_ENV_PATH/bin:$PATH"
+
 cd Firmware
 idf.py set-target esp32c6   # or: set-target esp32
+```
+
+After switching IDF versions or changing target, delete `sdkconfig` to force regeneration:
+```bash
+rm -f Firmware/sdkconfig
 ```
 
 All `idf.py` commands must be run from `Firmware/`:

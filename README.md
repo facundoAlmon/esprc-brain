@@ -116,7 +116,7 @@ Todos los modelos 3D utilizados para imprimir el chasis y la carrocería del coc
     - Alimentacion:
       - Actualmente estoy usando 3 baterias 18650 conectadas a un protector de bateria. Y un regulador Step-Down para bajar la tension a 5v para el ESP32 y el Motor Servo.
 2.  **Software:**
-    -   [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html): El entorno de desarrollo de Espressif.
+    -   [ESP-IDF v6.0.1](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32/get-started/index.html): El entorno de desarrollo de Espressif (versión requerida: **v6.0.1**).
     -   [Node.js y npm](https://nodejs.org/): Para gestionar y compilar la aplicación web. (Solo necesario si se quiere modificar la webapp)
     -   [Git](https://git-scm.com/): Para clonar el repositorio.
 
@@ -128,24 +128,36 @@ Todos los modelos 3D utilizados para imprimir el chasis y la carrocería del coc
     cd esprc-brain/Firmware
     ```
 
-2.  **Configura el proyecto:**
-    Abre el menú de configuración de ESP-IDF para ajustar parámetros específicos de tu hardware si fuera necesario.
+2.  **Activa el entorno ESP-IDF v6.0.1** (necesario en cada nueva sesión de terminal):
+    ```bash
+    . /ruta/a/esp-idf-v6.0.1/export.sh
+    ```
+    > Si instalaste IDF con el instalador oficial, usa el script `export.sh` de tu instalación local.
+
+3.  **Selecciona el target** (una sola vez por clon, o al cambiar de chip):
+    ```bash
+    idf.py set-target esp32c6   # o: set-target esp32
+    ```
+
+4.  **Configura el proyecto** (opcional):
+    Abre el menú de configuración para ajustar parámetros específicos de tu hardware.
     ```bash
     idf.py menuconfig
     ```
 
-3.  **Compila el firmware:**
-    Este comando compilará todo el código C++ y lo preparará para ser transferido al ESP32.
+5.  **Compila el firmware:**
     ```bash
     idf.py build
     ```
 
-4.  **Flashea el ESP32:**
+6.  **Flashea el ESP32:**
     Conecta tu ESP32 por USB y ejecuta el siguiente comando. Recuerda cambiar `/dev/ttyUSB0` por el puerto serie que corresponda en tu sistema.
     ```bash
     idf.py -p /dev/ttyUSB0 flash monitor
     ```
     Este comando flashea el firmware y abre una consola serie para que veas los mensajes de diagnóstico en tiempo real.
+
+> **Nota:** Si es la primera vez que flasheas o cambiaste el target, asegúrate de eliminar el archivo `sdkconfig` antes de compilar para que se regenere limpio: `rm -f sdkconfig`
 
 ### Desarrollo de la WebApp (Opcional)
 
@@ -460,7 +472,7 @@ Configuraciones propias de la aplicación web.
 ## 📝 Tareas Pendientes (ToDo)
 
 -   [ ] Agregar un esquema del circuito electrónico.
--   [ ] Función para exportar e importar la configuración completa del coche.
+-   [x] Función para exportar e importar la configuración completa del coche. (`/api/config/backup` y `/api/config/restore`)
 
 
 

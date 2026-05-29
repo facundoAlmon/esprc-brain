@@ -4,10 +4,9 @@
  */
 #include "actuators.h"
 #include "esp_log.h"
-#include "driver/mcpwm.h"
+#include "driver/mcpwm_prelude.h"
 #include "driver/gpio.h"
 #include "driver/ledc.h"
-#include "soc/mcpwm_periph.h"
 #include "pins.h"
 
 #define SERVO_FREQ_HZ    50
@@ -17,6 +16,12 @@
 #define SERVO_RES_BITS   LEDC_TIMER_14_BIT
 #define SERVO_RES_MAX    ((1u << 14) - 1)
 #define SERVO_PERIOD_US  (1000000 / SERVO_FREQ_HZ)
+#define MOTOR_PERIOD_TICKS 50  // 1 MHz / 20 kHz
+
+static mcpwm_timer_handle_t s_motor_timer = NULL;
+static mcpwm_oper_handle_t  s_motor_oper  = NULL;
+static mcpwm_cmpr_handle_t  s_motor_cmpr  = NULL;
+static mcpwm_gen_handle_t   s_motor_gen   = NULL;
 
 static void servo_write_angle(int degrees) {
     uint32_t pulse_us = SERVO_MIN_US +
@@ -30,15 +35,37 @@ static void servo_write_angle(int degrees) {
  * @brief Configura e inicializa los pines y periféricos para los actuadores.
  */
 void setupActuators() {
-    // Configura el periférico MCPWM para el control del motor.
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, (gpio_num_t)enable1Pin);
-    mcpwm_config_t pwm_config;
-    pwm_config.frequency = 20000;    // Frecuencia de PWM de 20kHz, común para ESCs.
-    pwm_config.cmpr_a = 0;           // Ciclo de trabajo inicial 0%.
-    pwm_config.cmpr_b = 0;
-    pwm_config.counter_mode = MCPWM_UP_COUNTER;
-    pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
-    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
+    // MCPWM: motor ESC 20 kHz (API handle-based IDF v6.0+)
+    mcpwm_timer_config_t timer_cfg = {
+        .group_id      = 0,
+        .clk_src       = MCPWM_TIMER_CLK_SRC_DEFAULT,
+        .resolution_hz = 1000000,
+        .count_mode    = MCPWM_TIMER_COUNT_MODE_UP,
+        .period_ticks  = MOTOR_PERIOD_TICKS,
+    };
+    mcpwm_new_timer(&timer_cfg, &s_motor_timer);
+
+    mcpwm_operator_config_t oper_cfg = { .group_id = 0 };
+    mcpwm_new_operator(&oper_cfg, &s_motor_oper);
+    mcpwm_operator_connect_timer(s_motor_oper, s_motor_timer);
+
+    mcpwm_comparator_config_t cmpr_cfg = {};
+    cmpr_cfg.flags.update_cmp_on_tez = true;
+    mcpwm_new_comparator(s_motor_oper, &cmpr_cfg, &s_motor_cmpr);
+    mcpwm_comparator_set_compare_value(s_motor_cmpr, 0);
+
+    mcpwm_generator_config_t gen_cfg = { .gen_gpio_num = enable1Pin };
+    mcpwm_new_generator(s_motor_oper, &gen_cfg, &s_motor_gen);
+    mcpwm_generator_set_action_on_timer_event(s_motor_gen,
+        MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,
+                                     MCPWM_TIMER_EVENT_EMPTY,
+                                     MCPWM_GEN_ACTION_HIGH));
+    mcpwm_generator_set_action_on_compare_event(s_motor_gen,
+        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,
+                                       s_motor_cmpr,
+                                       MCPWM_GEN_ACTION_LOW));
+    mcpwm_timer_enable(s_motor_timer);
+    mcpwm_timer_start_stop(s_motor_timer, MCPWM_TIMER_START_NO_STOP);
 
     // Configura los pines de dirección del motor.
     gpio_set_direction((gpio_num_t)motor1Pin1, GPIO_MODE_OUTPUT);
@@ -102,8 +129,8 @@ void setMotor(int speed, bool forward, VehicleState* state) {
         // Mapea la velocidad (0-1023) al rango de PWM configurado.
         dutyCycle = ((abs(speed) * motorMult) / 1024.0) + state->motorMinSpeed;
         ESP_LOGD("DC", "Motor speed: %d, Duty cycle: %.2f%%", speed, dutyCycle * 100.0 / 1024.0);
-        mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, dutyCycle * 100.0 / 1024.0);
-        mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
+        mcpwm_comparator_set_compare_value(s_motor_cmpr,
+            (uint32_t)(dutyCycle * MOTOR_PERIOD_TICKS / 1024.0f));
     } else {
         // Detiene el motor.
         gpio_set_level((gpio_num_t)motor1Pin1, 0);
