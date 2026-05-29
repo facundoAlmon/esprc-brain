@@ -4,20 +4,44 @@
 #include "esp_timer.h"
 #include "nvs_flash.h"
 #include "nvs.h"
+#include <vector>
 
 static const char* TAG = "ProgramManager";
-static const char* NVS_PROGRAM_KEY = "program";
+static const char* NVS_PROGRAM_KEY = "program";      // legacy JSON key
+static const char* NVS_PROGRAM_BIN_KEY = "prog_bin"; // binary format key
 static const char* NVS_NS = "bl-car";
+static const uint8_t BIN_FORMAT_VERSION = 1;
+
+// Binary on-disk layout per action: 9 bytes packed.
+// Reduces storage ~7x vs JSON (65 bytes/action → 9 bytes/action).
+#pragma pack(push, 1)
+struct ProgramActionBin {
+    uint8_t  type;
+    int16_t  motorSpeed;
+    int16_t  steerAngle;
+    uint32_t duration_ms;
+};
+#pragma pack(pop)
 
 static inline uint32_t millis() { return (uint32_t)(esp_timer_get_time() / 1000ULL); }
 
-// NVS helpers used only in this file
-static bool nvs_put_str(const char* key, const char* value) {
+static bool nvs_put_blob(const char* key, const void* data, size_t len) {
     nvs_handle_t h;
     if (nvs_open(NVS_NS, NVS_READWRITE, &h) != ESP_OK) return false;
-    bool ok = (nvs_set_str(h, key, value) == ESP_OK) && (nvs_commit(h) == ESP_OK);
+    bool ok = (nvs_set_blob(h, key, data, len) == ESP_OK) && (nvs_commit(h) == ESP_OK);
     nvs_close(h);
     return ok;
+}
+
+static bool nvs_get_blob(const char* key, std::vector<uint8_t>& out) {
+    nvs_handle_t h;
+    if (nvs_open(NVS_NS, NVS_READONLY, &h) != ESP_OK) return false;
+    size_t sz = 0;
+    if (nvs_get_blob(h, key, nullptr, &sz) != ESP_OK || sz == 0) { nvs_close(h); return false; }
+    out.resize(sz);
+    esp_err_t err = nvs_get_blob(h, key, out.data(), &sz);
+    nvs_close(h);
+    return err == ESP_OK;
 }
 
 static std::string nvs_get_str_or(const char* key, const char* def) {
@@ -32,14 +56,6 @@ static std::string nvs_get_str_or(const char* key, const char* def) {
     return result;
 }
 
-static bool nvs_has_key(const char* key) {
-    nvs_handle_t h;
-    if (nvs_open(NVS_NS, NVS_READONLY, &h) != ESP_OK) return false;
-    size_t sz = 0;
-    bool found = (nvs_get_str(h, key, nullptr, &sz) == ESP_OK);
-    nvs_close(h);
-    return found;
-}
 
 static bool nvs_erase(const char* key) {
     nvs_handle_t h;
@@ -62,26 +78,45 @@ void ProgramManager::loadProgram(const JsonArray& programJson) {
 }
 
 void ProgramManager::loadProgramFromNVS() {
-    if (!nvs_has_key(NVS_PROGRAM_KEY)) {
+    // Try binary format first (new, efficient)
+    std::vector<uint8_t> blob;
+    if (nvs_get_blob(NVS_PROGRAM_BIN_KEY, blob) && blob.size() > 1) {
+        if (blob[0] != BIN_FORMAT_VERSION) {
+            ESP_LOGW(TAG, "Unknown binary program version %d, skipping.", blob[0]);
+        } else {
+            size_t count = (blob.size() - 1) / sizeof(ProgramActionBin);
+            auto* actions = reinterpret_cast<const ProgramActionBin*>(blob.data() + 1);
+            _program.clear();
+            _program.reserve(count);
+            for (size_t i = 0; i < count; i++) {
+                ProgrammedAction a;
+                a.type        = static_cast<ProgramActionType>(actions[i].type);
+                a.motorSpeed  = actions[i].motorSpeed;
+                a.steerAngle  = actions[i].steerAngle;
+                a.duration_ms = actions[i].duration_ms;
+                _program.push_back(a);
+            }
+            ESP_LOGI(TAG, "Loaded %d actions from NVS (binary, %d bytes).",
+                     (int)_program.size(), (int)blob.size());
+            return;
+        }
+    }
+
+    // Fallback: legacy JSON format — load once, then migrate to binary
+    std::string programString = nvs_get_str_or(NVS_PROGRAM_KEY, "");
+    if (programString.empty()) {
         ESP_LOGI(TAG, "No program in NVS.");
         return;
     }
-
-    std::string programString = nvs_get_str_or(NVS_PROGRAM_KEY, "");
-    if (programString.empty()) {
-        ESP_LOGW(TAG, "Program key exists but is empty.");
-        return;
-    }
-
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, programString);
     if (error) {
-        ESP_LOGE(TAG, "Failed to parse program from NVS: %s", error.c_str());
+        ESP_LOGE(TAG, "Failed to parse legacy program JSON: %s", error.c_str());
         return;
     }
-
     parseProgramFromJson(doc.as<JsonArray>());
-    ESP_LOGI(TAG, "Loaded %d actions from NVS.", _program.size());
+    ESP_LOGI(TAG, "Loaded %d actions from NVS (JSON legacy). Migrating to binary.", (int)_program.size());
+    saveProgramToNVS(); // converts and erases old JSON key
 }
 
 void ProgramManager::parseProgramFromJson(const JsonArray& programJson) {
@@ -117,22 +152,24 @@ void ProgramManager::parseProgramFromJson(const JsonArray& programJson) {
 void ProgramManager::saveProgramToNVS() {
     if (_program.empty()) { clearProgram(); return; }
 
-    JsonDocument doc = getProgramAsJson();
-    std::string programString;
-    serializeJson(doc, programString);
-
-    nvs_stats_t nvs_stats;
-    if (nvs_get_stats(NULL, &nvs_stats) == ESP_OK) {
-        size_t free_bytes = nvs_stats.free_entries * 32;
-        if (programString.size() + 32 > free_bytes) {
-            ESP_LOGE(TAG, "Not enough NVS space to save program!");
-        }
+    size_t count = _program.size();
+    // Blob layout: 1 byte version header + count * ProgramActionBin
+    size_t blobSize = 1 + count * sizeof(ProgramActionBin);
+    std::vector<uint8_t> blob(blobSize);
+    blob[0] = BIN_FORMAT_VERSION;
+    auto* dst = reinterpret_cast<ProgramActionBin*>(blob.data() + 1);
+    for (size_t i = 0; i < count; i++) {
+        dst[i].type        = static_cast<uint8_t>(_program[i].type);
+        dst[i].motorSpeed  = static_cast<int16_t>(_program[i].motorSpeed);
+        dst[i].steerAngle  = static_cast<int16_t>(_program[i].steerAngle);
+        dst[i].duration_ms = _program[i].duration_ms;
     }
 
-    if (nvs_put_str(NVS_PROGRAM_KEY, programString.c_str())) {
-        ESP_LOGI(TAG, "Program saved to NVS. Size: %d bytes", (int)programString.size());
+    if (nvs_put_blob(NVS_PROGRAM_BIN_KEY, blob.data(), blobSize)) {
+        ESP_LOGI(TAG, "Program saved to NVS (binary). %d actions, %d bytes.", (int)count, (int)blobSize);
+        nvs_erase(NVS_PROGRAM_KEY); // remove legacy JSON key if present
     } else {
-        ESP_LOGE(TAG, "Failed to save program to NVS. Size: %d", (int)programString.size());
+        ESP_LOGE(TAG, "Failed to save program to NVS. %d actions, %d bytes.", (int)count, (int)blobSize);
     }
 }
 
@@ -163,12 +200,9 @@ void ProgramManager::stopProgram() {
 void ProgramManager::clearProgram() {
     stopProgram();
     _program.clear();
-    if (nvs_has_key(NVS_PROGRAM_KEY)) {
-        nvs_erase(NVS_PROGRAM_KEY);
-        ESP_LOGI(TAG, "Program cleared from memory and NVS.");
-    } else {
-        ESP_LOGI(TAG, "Program cleared from memory.");
-    }
+    nvs_erase(NVS_PROGRAM_BIN_KEY);
+    nvs_erase(NVS_PROGRAM_KEY);
+    ESP_LOGI(TAG, "Program cleared.");
 }
 
 bool ProgramManager::isRecording() const { return _isRecording; }
