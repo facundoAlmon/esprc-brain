@@ -5,6 +5,7 @@
  * Adapted from IDF examples/bluetooth/esp_hid_host for this project.
  */
 #pragma once
+#include "sdkconfig.h"
 
 #define HIDH_IDLE_MODE  0x00
 #define HIDH_BLE_MODE   0x01
