@@ -8,7 +8,7 @@
 
 Este no es solo un coche a RC, es una plataforma abierta para que puedas experimentar, aprender y, sobre todo, ¡divertirte a lo grande!
 
-¿Querés ver lo que ve el coche? Este proyecto tiene un módulo de cámara FPV complementario: **[esprc-cam](../esprc-cam/)**, un firmware para el módulo AI-Thinker ESP32-CAM que transmite video en vivo directamente a la webapp del brain.
+¿Querés ver lo que ve el coche? Este proyecto tiene un módulo de cámara FPV complementario: **[esprc-cam](https://github.com/facundoAlmon/esprc-cam)**, un firmware para el módulo AI-Thinker ESP32-CAM que transmite video en vivo directamente a la webapp del brain.
 
 ## 🎬 Galería del Proyecto
 
@@ -72,7 +72,7 @@ Este no es solo un coche a RC, es una plataforma abierta para que puedas experim
 
 -   **Firmware Robusto y Abierto:** Escrito en C++ sobre el framework oficial de Espressif (ESP-IDF) **puro** — sin dependencias de Arduino, Bluepad32 ni BTstack. Binario de ~1.4 MB, 66% de la partición libre.
 
--   **📷 Visión FPV integrada (con [esprc-cam](../esprc-cam/)):** Agregá un módulo AI-Thinker ESP32-CAM y disfrutá de una vista en primera persona directamente en la webapp. La cámara se descubre automáticamente en la red local vía **mDNS** cada 30 segundos — sin configuración manual de IP. El stream MJPEG aparece en la pestaña **Cámara** al instante, con soporte para pantalla completa y ajuste de imagen en tiempo real.
+-   **📷 Visión FPV integrada (con [esprc-cam](https://github.com/facundoAlmon/esprc-cam)):** Agregá un módulo AI-Thinker ESP32-CAM y disfrutá de una vista en primera persona directamente en la webapp. La cámara se descubre automáticamente en la red local vía **mDNS** cada 30 segundos — sin configuración manual de IP. El stream MJPEG aparece en la pestaña **Cámara** al instante, con soporte para pantalla completa y ajuste de imagen en tiempo real.
 
 ## 📂 Estructura del Proyecto
 
@@ -261,14 +261,14 @@ Este modo ofrece dos joysticks virtuales para un manejo independiente de la acel
 <table width="100%">
 <tr>
 <td valign="top">
-Esta pestaña muestra el video en vivo del módulo <strong><a href="../esprc-cam/">esprc-cam</a></strong> si hay una cámara disponible en la red.
+Esta pestaña muestra el video en vivo del módulo <strong><a href="https://github.com/facundoAlmon/esprc-cam">esprc-cam</a></strong> si hay una cámara disponible en la red.
 <ul>
   <li><strong>Stream automático:</strong> Al abrir la webapp, el brain consulta la API y conecta el stream MJPEG automáticamente si la cámara fue descubierta vía mDNS.</li>
   <li><strong>Pantalla completa:</strong> Botón para ver el video en pantalla completa. El stream se mueve al overlay sin crear una segunda conexión.</li>
   <li><strong>Configuración de cámara:</strong> Ajustá resolución, calidad JPEG, brillo, contraste, saturación, espejo, volteo y parámetros avanzados del sensor OV2640 directamente desde esta pestaña.</li>
   <li><strong>Estadísticas FPS:</strong> Muestra los cuadros por segundo en tiempo real cuando las estadísticas están habilitadas en la cámara.</li>
 </ul>
-<blockquote>Requiere tener flasheado y encendido el módulo <strong><a href="../esprc-cam/">esprc-cam</a></strong> en la misma red Wi-Fi que el brain. La IP se guarda automáticamente en la memoria NVS del brain para reconexiones instantáneas.</blockquote>
+<blockquote>Requiere tener flasheado y encendido el módulo <strong><a href="https://github.com/facundoAlmon/esprc-cam">esprc-cam</a></strong> en la misma red Wi-Fi que el brain. La IP se guarda automáticamente en la memoria NVS del brain para reconexiones instantáneas.</blockquote>
 </td>
 </tr>
 </table>
