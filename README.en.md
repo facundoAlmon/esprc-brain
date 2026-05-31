@@ -8,6 +8,8 @@ Welcome to the ESP-RC Brain repository! This project is the brain of a smart rad
 
 This is not just an RC car, it is an open platform for you to experiment, learn and, above all, have a great time!
 
+Want to see what the car sees? This project has a complementary FPV camera module: **[esprc-cam](../esprc-cam/)**, a firmware for the AI-Thinker ESP32-CAM module that streams live video directly to the brain's webapp.
+
 ## 🎬 Project Gallery
 
 ### Videos
@@ -69,6 +71,8 @@ This is not just an RC car, it is an open platform for you to experiment, learn 
     -   **System Management:** Restart the ESP32 or restore factory settings with a single click.
 
 -   **Robust and Open Firmware:** Written in C++ on the official Espressif framework (ESP-IDF) **pure** — no Arduino, Bluepad32, or BTstack dependencies. Binary size ~1.4 MB, 66% of the partition free.
+
+-   **📷 Integrated FPV Vision (with [esprc-cam](../esprc-cam/)):** Add an AI-Thinker ESP32-CAM module and enjoy a first-person view directly in the webapp. The camera is discovered automatically on the local network via **mDNS** every 30 seconds — no manual IP configuration needed. The MJPEG stream appears instantly in the **Camera** tab, with fullscreen support and real-time image adjustment.
 
 ## 📂 Project Structure
 
@@ -249,6 +253,22 @@ This mode offers two virtual joysticks for independent handling of acceleration 
     </ul>
   </li>
 </ul>
+</td>
+</tr>
+</table>
+
+### 📷 Camera
+<table width="100%">
+<tr>
+<td valign="top">
+This tab shows the live video feed from the <strong><a href="../esprc-cam/">esprc-cam</a></strong> module if a camera is available on the network.
+<ul>
+  <li><strong>Automatic stream:</strong> When the webapp loads, the brain queries the camera API and connects the MJPEG stream automatically if the camera was discovered via mDNS.</li>
+  <li><strong>Fullscreen:</strong> Button to watch the video in fullscreen. The stream element is moved to the overlay without creating a second connection.</li>
+  <li><strong>Camera configuration:</strong> Adjust resolution, JPEG quality, brightness, contrast, saturation, mirror, flip, and advanced OV2640 sensor parameters directly from this tab.</li>
+  <li><strong>FPS stats:</strong> Shows frames per second in real time when stats are enabled on the camera.</li>
+</ul>
+<blockquote>Requires the <strong><a href="../esprc-cam/">esprc-cam</a></strong> module to be flashed and powered on the same Wi-Fi network as the brain. The IP is saved automatically to the brain's NVS memory for instant reconnection.</blockquote>
 </td>
 </tr>
 </table>
@@ -474,6 +494,7 @@ Contributions are the engine of open source and are more than welcome! If you ha
 
 -   [ ] Add a schematic of the electronic circuit.
 -   [x] Function to export and import the complete car configuration. (`/api/config/backup` and `/api/config/restore`)
+-   [x] FPV camera support via **[esprc-cam](../esprc-cam/)** with mDNS auto-discovery and in-webapp image control.
 
 ## 🙏 Acknowledgments
 
