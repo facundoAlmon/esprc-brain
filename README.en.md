@@ -8,7 +8,7 @@ Welcome to the ESP-RC Brain repository! This project is the brain of a smart rad
 
 This is not just an RC car, it is an open platform for you to experiment, learn and, above all, have a great time!
 
-Want to see what the car sees? This project has a complementary FPV camera module: **[esprc-cam](../esprc-cam/)**, a firmware for the AI-Thinker ESP32-CAM module that streams live video directly to the brain's webapp.
+Want to see what the car sees? This project has a complementary FPV camera module: **[esprc-cam](https://github.com/facundoAlmon/esprc-cam)**, a firmware for the AI-Thinker ESP32-CAM module that streams live video directly to the brain's webapp.
 
 ## 🎬 Project Gallery
 

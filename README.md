@@ -493,7 +493,7 @@ Configuraciones propias de la aplicación web.
 
 -   [ ] Agregar un esquema del circuito electrónico.
 -   [x] Función para exportar e importar la configuración completa del coche. (`/api/config/backup` y `/api/config/restore`)
--   [x] Soporte para cámara FPV vía **[esprc-cam](../esprc-cam/)** con auto-descubrimiento mDNS y control de imagen desde la webapp.
+-   [x] Soporte para cámara FPV vía **[esprc-cam](https://github.com/facundoAlmon/esprc-cam)** con auto-descubrimiento mDNS y control de imagen desde la webapp.
 
 
 
