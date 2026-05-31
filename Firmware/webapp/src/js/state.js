@@ -24,7 +24,8 @@ export const state = {
     kidModeInterval: null,
     programSequence: [],
     draggedIndex: null,
-    recordingProgram: false
+    recordingProgram: false,
+    cameraInfo: null
 };
 
 export const icons = {

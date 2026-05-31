@@ -127,6 +127,10 @@ After `npm run build`, re-run `idf.py build` and flash to apply webapp changes t
 
 The Gulp pipeline: Rollup bundles `script.js` → `gulp-inline-source` inlines CSS and JS into `index.html` → `htmlmin` minifies → output copied to `Firmware/main/index.html`. CMake embeds this file into the firmware binary via `EMBED_FILES`.
 
+### CSS gotcha — imágenes fullscreen en mobile landscape
+
+Para `<img>` dentro de un flex container fullscreen, usar `width:100%; height:100%; object-fit:contain` + `min-height:0` en el contenedor. `max-width/max-height:100%` falla en landscape mobile porque el browser no resuelve `max-height` correctamente contra un flex item sin `min-height:0`.
+
 ## Architecture
 
 ### State

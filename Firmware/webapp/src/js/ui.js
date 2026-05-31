@@ -2,7 +2,7 @@ import { state, elements, icons } from './state.js';
 import { setLanguage } from './language.js';
 import { initJoysticks } from './joystick.js';
 import { getWifiConfig, saveWifiConfig, getConfig, saveConfig, exportConfig, importConfig, getLedConfig, saveLedConfig, exportLedConfig, importLedConfig, getCamConfig, setCamConfig } from './config.js';
-import { wsReconnect, fetchAPI } from './api.js';
+import { wsReconnect, fetchAPI, connectCamMjpeg } from './api.js';
 import { addLedGroup } from './leds.js';
 import { uploadProgram, runProgram, stopProgram, clearProgram, showActionModal, loadProgramFromServer, exportProgram, importProgram } from './program.js';
 import { handleKidModeCommand, runKidSequence, stopKidSequence, clearKidSequence } from './kidMode.js';
@@ -47,6 +47,14 @@ export function setupEventListeners() {
     attachClick('stopCamStreamBtn', stopCamStream);
     attachClick('getCamConfigBtn', getCamConfig);
     attachClick('setCamConfigBtn', setCamConfig);
+    attachClick('camFullscreenBtn', enterCamFs);
+    attachClick('camExitFsBtn', exitCamFs);
+    document.addEventListener('fullscreenchange', function() {
+        if (!document.fullscreenElement && camFsActive) exitCamFs();
+    });
+    document.addEventListener('webkitfullscreenchange', function() {
+        if (!document.webkitFullscreenElement && camFsActive) exitCamFs();
+    });
     attachClick('uploadProgramBtn', uploadProgram);
     attachClick('runProgramBtn', runProgram);
     attachClick('stopProgramBtn', stopProgram);
@@ -108,6 +116,7 @@ function attachClick(id, handler) {
 }
 
 export function openTab(tabId) {
+    if (state.activeTab === 'cam' && tabId !== 'cam') stopCamStatsPolling();
     state.activeTab = tabId;
     elements.tabContents.forEach(content => content.classList.remove('active'));
     elements.menuLinks.forEach(link => link.classList.remove('active'));
@@ -122,7 +131,7 @@ export function openTab(tabId) {
         case 'config': getConfig(); break;
         case 'led-config': getLedConfig(); break;
         case 'conexion': getWifiConfig(); break;
-        case 'cam': getCamConfig(); break;
+        case 'cam': getCamConfig(); startCamStatsPolling(); break;
         case 'manage': refreshOtaInfo(); break;
         case 'joystick-a':
         case 'joystick-b':
@@ -168,12 +177,12 @@ export function updateForm(jsonData) {
 export function serializeForm(formSelector) {
     const form = document.querySelector(formSelector);
     const configBody = {};
-    form.querySelectorAll('input, select').forEach(el => {
+    form.querySelectorAll('input, select, button.icon-toggle').forEach(el => {
         if (el.id) {
-            if (el.type === 'checkbox') {
-                configBody[el.id] = el.checked ? 1 : 0;
-            } else if (el.classList.contains('icon-toggle')) {
+            if (el.tagName === 'BUTTON') {
                 configBody[el.id] = el.classList.contains('active') ? 1 : 0;
+            } else if (el.type === 'checkbox') {
+                configBody[el.id] = el.checked ? 1 : 0;
             } else if (el.type === 'range' || el.type === 'number') {
                 configBody[el.id] = parseInt(el.value, 10);
             } else if (el.tagName === 'SELECT' || el.type !== 'radio' || el.checked) {
@@ -231,14 +240,92 @@ async function manageESP() {
     alert(translations[state.currentLanguage].restartedAlert);
 }
 
-async function startCamStream() {
-    const camApiUrl = `${window.location.protocol}//${state.wifiConfig.camIP}/`;
-    await fetchAPI('enable-stream', {}, camApiUrl);
+function startCamStream() {
+    if (state.cameraInfo && state.cameraInfo.mjpegUrl) {
+        connectCamMjpeg(state.cameraInfo.mjpegUrl);
+        return;
+    }
+    const ip = state.wifiConfig && state.wifiConfig.camIP;
+    if (!ip) { console.warn('No camera IP configured'); return; }
+    connectCamMjpeg(`http://${ip}/mjpeg`);
 }
 
-async function stopCamStream() {
-    const camApiUrl = `${window.location.protocol}//${state.wifiConfig.camIP}/`;
-    await fetchAPI('disable-stream', {}, camApiUrl);
+function stopCamStream() {
+    const img = document.getElementById('camImg');
+    if (img) { img.src = ''; }
+    state.socketCamOnline = false;
+}
+
+// ── Camera fullscreen ────────────────────────
+let camFsActive = false;
+let camImgOriginalParent = null;
+
+function enterCamFs() {
+    const img = document.getElementById('camImg');
+    const fsStream = document.getElementById('camFsStream');
+    const fsOverlay = document.getElementById('camFsOverlay');
+    if (!img || !fsStream || !fsOverlay) return;
+    camImgOriginalParent = img.parentNode;
+    fsStream.appendChild(img);
+    fsOverlay.classList.add('active');
+    camFsActive = true;
+    if (fsOverlay.requestFullscreen) fsOverlay.requestFullscreen().catch(function() {});
+    else if (fsOverlay.webkitRequestFullscreen) fsOverlay.webkitRequestFullscreen();
+}
+
+function exitCamFs() {
+    const img = document.getElementById('camImg');
+    const fsOverlay = document.getElementById('camFsOverlay');
+    if (!img || !fsOverlay) return;
+    if (camImgOriginalParent) {
+        // Re-insert img as first child of .cam-stream (before .cam-overlay)
+        const firstChild = camImgOriginalParent.firstChild;
+        camImgOriginalParent.insertBefore(img, firstChild);
+    }
+    fsOverlay.classList.remove('active');
+    camFsActive = false;
+    if (document.fullscreenElement) document.exitFullscreen().catch(function() {});
+    else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+}
+
+// ── Camera stats polling ─────────────────────
+let camStatsTimer = null;
+
+function startCamStatsPolling() {
+    if (camStatsTimer) return;
+    camStatsTimer = setInterval(updateCamStats, 2000);
+}
+
+function stopCamStatsPolling() {
+    if (camStatsTimer) { clearInterval(camStatsTimer); camStatsTimer = null; }
+    var fpsEl = document.getElementById('fps');
+    var fpsFull = document.getElementById('fpsFull');
+    if (fpsEl) fpsEl.textContent = '';
+    if (fpsFull) fpsFull.textContent = '';
+}
+
+function updateCamStats() {
+    var statsEl = document.getElementById('statsEnabled');
+    if (statsEl && !statsEl.checked) {
+        var fpsEl = document.getElementById('fps');
+        var fpsFull = document.getElementById('fpsFull');
+        if (fpsEl) fpsEl.textContent = '';
+        if (fpsFull) fpsFull.textContent = '';
+        return;
+    }
+    var ip = (state.cameraInfo && state.cameraInfo.ip) || (state.wifiConfig && state.wifiConfig.camIP);
+    if (!ip) return;
+    fetch('http://' + ip + '/api/stats').then(function(r) {
+        if (!r.ok) return null;
+        return r.json();
+    }).then(function(d) {
+        if (!d) return;
+        var fpsEl = document.getElementById('fps');
+        var fpsFull = document.getElementById('fpsFull');
+        var text = (d.enabled && typeof d.fps === 'number') ? d.fps.toFixed(1) + ' FPS' : '';
+        if (fpsEl) fpsEl.textContent = text;
+        if (fpsFull) fpsFull.textContent = text;
+    }).catch(function() {});
 }
 
 export function setupUI() {

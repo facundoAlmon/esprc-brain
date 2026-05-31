@@ -28,13 +28,35 @@ export function wsReconnect() {
     connectWebSockets();
 }
 
+// Connect camera via MJPEG (lowest-latency, no memory leak vs. blob URLs).
+// mjpegUrl: full URL like "http://192.168.x.x/mjpeg"
+export function connectCamMjpeg(mjpegUrl) {
+    if (!mjpegUrl) return;
+    const img = document.getElementById('camImg');
+    if (!img) return;
+    img.src = mjpegUrl;
+    state.socketCamOnline = true;
+    img.onerror = () => { state.socketCamOnline = false; };
+}
+
+// Legacy WebSocket camera stream (kept for backward compatibility).
+// Uses canvas + createImageBitmap to avoid memory leaks from object URLs.
 export function connectCamWebSocket(camIP) {
     if (!camIP || state.socketCamOnline) return;
     const camWsUrl = `ws://${camIP}/ws`;
     try {
         state.wsSocketCam = new WebSocket(camWsUrl);
-        state.wsSocketCam.onmessage = (event) => {
-            document.getElementById('camImg').src = URL.createObjectURL(event.data);
+        const canvas = document.getElementById('camCanvas');
+        const ctx = canvas ? canvas.getContext('2d') : null;
+        state.wsSocketCam.binaryType = 'blob';
+        state.wsSocketCam.onmessage = async (event) => {
+            if (ctx) {
+                const bitmap = await createImageBitmap(event.data);
+                canvas.width = bitmap.width;
+                canvas.height = bitmap.height;
+                ctx.drawImage(bitmap, 0, 0);
+                bitmap.close();
+            }
         };
         state.wsSocketCam.onopen = () => state.socketCamOnline = true;
         state.wsSocketCam.onclose = () => state.socketCamOnline = false;
@@ -42,6 +64,19 @@ export function connectCamWebSocket(camIP) {
     } catch (err) {
         console.error('Failed to create cam WebSocket:', err);
     }
+}
+
+// Auto-discover camera from brain and connect MJPEG stream.
+export async function autoConnectCamera() {
+    try {
+        const r = await fetch('/api/camera');
+        if (!r.ok) return;
+        const d = await r.json();
+        state.cameraInfo = d.available ? d : null;
+        if (d.available && d.mjpegUrl) {
+            connectCamMjpeg(d.mjpegUrl);
+        }
+    } catch (_) {}
 }
 
 export function sendWsAction(action) {

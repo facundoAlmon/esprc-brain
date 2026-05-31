@@ -24,6 +24,7 @@
 #include "ProgramManager.h"
 #include "nvs_prefs.h"
 #include "pins.h"
+#include "espnow_manager.h"
 
 static inline uint32_t millis() { return (uint32_t)(esp_timer_get_time() / 1000ULL); }
 
@@ -245,6 +246,10 @@ static void main_task(void* pvParameters) {
 
     initWiFi();
     ESP_LOGI(TAG, "WiFi: %s (%s)", vehicleState.wifiName, vehicleState.wifiMode);
+
+    wifi_interface_t espnow_iface = (strcmp(vehicleState.wifiMode, "AP") == 0) ? WIFI_IF_AP : WIFI_IF_STA;
+    espnow_init(&vehicleState, espnow_iface);
+
     setupActuators();
 
     led_strip_set_pixel(led_strip, 0, 0, 0, 255);

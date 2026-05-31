@@ -8,7 +8,8 @@ set(srcs
         "src/state.cpp"
         "src/ProgramManager.cpp"
         "src/nvs_prefs.cpp"
-        "src/dns_server.c")
+        "src/dns_server.c"
+        "src/espnow_manager.cpp")
 
 if(CONFIG_BT_BLUEDROID_ENABLED)
     list(APPEND srcs "src/hid_gamepad.cpp" "src/esp_hid_gap.c")

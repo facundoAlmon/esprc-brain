@@ -103,7 +103,7 @@
                     <span data-i18n="espManage">ESP32 Manage</span>
                 </button>
             </li>
-            <li style="display: none;">
+            <li>
                 <button class="menu-link" data-tab="cam">
                     <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"
                         fill="currentColor">
@@ -523,99 +523,118 @@
             <!-- Pestaña 7: Visualización de la Cámara -->
             <div id="cam" class="tab-content">
                 <div class="cam-container">
-                    <div class="cam-stream">
-                        <img src="" alt="Camera Stream" id="camImg">
-                        <div class="cam-overlay">
-                            <p>FPS: <span id="fps">0</span></p>
-                            <div class="button-group">
-                                <button id="startCamStreamBtn" data-i18n="startStream">Start Stream</button>
-                                <button id="stopCamStreamBtn" data-i18n="stopStream">Stop Stream</button>
+                    <!-- Stream -->
+                    <div class="cam-stream-wrapper">
+                        <div class="cam-stream">
+                            <img src="" alt="" id="camImg">
+                            <div class="cam-overlay">
+                                <span id="fps" class="fps-badge"></span>
+                                <button id="camFullscreenBtn" class="cam-act-btn" title="Fullscreen">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                                </button>
                             </div>
+                        </div>
+                        <div class="cam-stream-bar">
+                            <button id="startCamStreamBtn" class="cam-act-btn cam-act-primary" title="Start stream">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            </button>
+                            <button id="stopCamStreamBtn" class="cam-act-btn" title="Stop stream">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
+                            </button>
                         </div>
                     </div>
+
+                    <!-- Controls -->
                     <div class="cam-controls">
-                        <h2 data-i18n="cameraSettings">Camera Settings</h2>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="camResolution" data-i18n="resolution">Resolution</label>
-                                <input type="number" id="camResolution">
+                        <!-- Primary settings -->
+                        <div class="settings-section">
+                            <h3 data-i18n="streamSettings">Stream</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="framesize" data-i18n="resolution">Resolution</label>
+                                    <select id="framesize">
+                                        <option value="1">QQVGA 160×120</option>
+                                        <option value="3">HQVGA 240×176</option>
+                                        <option value="5" selected>QVGA 320×240</option>
+                                        <option value="6">CIF 400×296</option>
+                                        <option value="7">HVGA 480×320</option>
+                                        <option value="8">VGA 640×480</option>
+                                        <option value="9">SVGA 800×600</option>
+                                        <option value="10">XGA 1024×768</option>
+                                        <option value="12">SXGA 1280×1024</option>
+                                        <option value="13">UXGA 1600×1200</option>
+                                    </select>
+                                </div>
+                                <div class="form-group slider-group">
+                                    <label for="camQuality"><span data-i18n="quality">Quality</span>: <span id="camQualityValue">20</span></label>
+                                    <input type="range" value="20" min="4" max="63" id="camQuality">
+                                </div>
+                                <div class="form-group slider-group">
+                                    <label for="camBright"><span data-i18n="brightness">Brightness</span>: <span id="camBrightValue">0</span></label>
+                                    <input type="range" value="0" min="-2" max="2" id="camBright">
+                                </div>
+                                <div class="form-group slider-group">
+                                    <label for="camContrast"><span data-i18n="contrast">Contrast</span>: <span id="camContrastValue">0</span></label>
+                                    <input type="range" value="0" min="-2" max="2" id="camContrast">
+                                </div>
+                                <div class="form-group slider-group">
+                                    <label for="camSaturation"><span data-i18n="saturation">Saturation</span>: <span id="camSaturationValue">0</span></label>
+                                    <input type="range" value="0" min="-2" max="2" id="camSaturation">
+                                </div>
                             </div>
-                            <div class="form-group slider-group">
-                                <label for="camQuality"><span data-i18n="quality">Quality</span>: <span
-                                        id="camQualityValue">20</span></label>
-                                <input type="range" value="20" min="4" max="63" id="camQuality">
+                            <div class="cam-toggles">
+                                <div class="control-group"><label for="camHmirror" data-i18n="hMirror">H-Mirror</label><input type="checkbox" class="toggle" id="camHmirror"></div>
+                                <div class="control-group"><label for="camVFlip" data-i18n="vFlip">V-Flip</label><input type="checkbox" class="toggle" id="camVFlip"></div>
+                                <div class="control-group"><label for="statsEnabled" data-i18n="statsEnabled">FPS Stats</label><input type="checkbox" class="toggle" id="statsEnabled"></div>
                             </div>
-                            <div class="form-group slider-group">
-                                <label for="camBright"><span data-i18n="brightness">Brightness</span>: <span
-                                        id="camBrightValue">0</span></label>
-                                <input type="range" value="0" min="-2" max="2" id="camBright">
-                            </div>
-                            <div class="form-group slider-group">
-                                <label for="camContrast"><span data-i18n="contrast">Contrast</span>: <span
-                                        id="camContrastValue">0</span></label>
-                                <input type="range" value="0" min="-2" max="2" id="camContrast">
-                            </div>
-                            <div class="form-group slider-group">
-                                <label for="camSaturation"><span data-i18n="saturation">Saturation</span>: <span
-                                        id="camSaturationValue">0</span></label>
-                                <input type="range" value="0" min="-2" max="2" id="camSaturation">
-                            </div>
-                            <div class="form-group">
-                                <label for="camEffect" data-i18n="effect">Effect</label>
-                                <input type="number" id="camEffect">
-                            </div>
-                            <div class="form-group">
-                                <label for="camWBMode" data-i18n="wbMode">WB Mode</label>
-                                <input type="number" id="camWBMode">
-                            </div>
-                            <div class="form-group slider-group">
-                                <label for="camAELevel"><span data-i18n="aeLevel">AE Level</span>: <span
-                                        id="camAELevelValue">0</span></label>
-                                <input type="range" value="0" min="-2" max="2" id="camAELevel">
-                            </div>
-                            <div class="form-group slider-group">
-                                <label for="camExpo"><span data-i18n="exposure">Exposure</span>: <span
-                                        id="camExpoValue">0</span></label>
-                                <input type="range" value="0" min="0" max="1200" id="camExpo">
-                            </div>
-                            <div class="form-group slider-group">
-                                <label for="camAGCGain"><span data-i18n="agcGain">AGC Gain</span>: <span
-                                        id="camAGCGainValue">5</span></label>
-                                <input type="range" value="5" min="1" max="31" id="camAGCGain">
-                            </div>
-                            <div class="form-group slider-group">
-                                <label for="camGainCeiling"><span data-i18n="gainCeiling">Gain Ceiling</span>: <span
-                                        id="camGainCeilingValue">2</span></label>
-                                <input type="range" value="2" min="2" max="128" id="camGainCeiling">
-                            </div>
-                            <div class="control-group"> <span data-i18n="awb">AWB</span> <button class="icon-toggle"
-                                    id="camAwb" data-tooltip-key="awb"></button> </div>
-                            <div class="control-group"> <span data-i18n="awbGain">AWB Gain</span> <button
-                                    class="icon-toggle" id="camAwbGain" data-tooltip-key="awbGain"></button> </div>
-                            <div class="control-group"> <span data-i18n="aecSensor">AEC Sensor</span> <button
-                                    class="icon-toggle" id="camAECSensor" data-tooltip-key="aecSensor"></button> </div>
-                            <div class="control-group"> <span data-i18n="aecDsp">AEC DSP</span> <button
-                                    class="icon-toggle" id="camAECDSP" data-tooltip-key="aecDsp"></button> </div>
-                            <div class="control-group"> <span data-i18n="agc">AGC</span> <button class="icon-toggle"
-                                    id="camAGC" data-tooltip-key="agc"></button> </div>
-                            <div class="control-group"> <span data-i18n="bpc">BPC</span> <button class="icon-toggle"
-                                    id="camBPC" data-tooltip-key="bpc"></button> </div>
-                            <div class="control-group"> <span data-i18n="wpc">WPC</span> <button class="icon-toggle"
-                                    id="camWPC" data-tooltip-key="wpc"></button> </div>
-                            <div class="control-group"> <span data-i18n="rawGma">RAW GMA</span> <button
-                                    class="icon-toggle" id="camRAWGCMA" data-tooltip-key="rawGma"></button> </div>
-                            <div class="control-group"> <span data-i18n="lensCorrection">Lens Correction</span> <button
-                                    class="icon-toggle" id="camLensCorr" data-tooltip-key="lensCorrection"></button>
-                            </div>
-                            <div class="control-group"> <span data-i18n="hMirror">H-Mirror</span> <button
-                                    class="icon-toggle" id="camHmirror" data-tooltip-key="hMirror"></button> </div>
-                            <div class="control-group"> <span data-i18n="vFlip">V-Flip</span> <button
-                                    class="icon-toggle" id="camVFlip" data-tooltip-key="vFlip"></button> </div>
-                            <div class="control-group"> <span data-i18n="dcw">DCW</span> <button class="icon-toggle"
-                                    id="camDCW" data-tooltip-key="dcw"></button> </div>
-                            <div class="control-group"> <span data-i18n="colorBar">Color Bar</span> <button
-                                    id="camColorBar" data-tooltip-key="colorBar"></button> </div>
                         </div>
+
+                        <!-- Advanced (collapsible) -->
+                        <details class="cam-advanced">
+                            <summary><span data-i18n="advancedSettings">Advanced Settings</span></summary>
+                            <div class="cam-advanced-inner">
+                                <div class="form-grid">
+                                    <div class="form-group slider-group">
+                                        <label for="camAELevel"><span data-i18n="aeLevel">AE Level</span>: <span id="camAELevelValue">0</span></label>
+                                        <input type="range" value="0" min="-2" max="2" id="camAELevel">
+                                    </div>
+                                    <div class="form-group slider-group">
+                                        <label for="camExpo"><span data-i18n="exposure">Exposure</span>: <span id="camExpoValue">0</span></label>
+                                        <input type="range" value="0" min="0" max="1200" id="camExpo">
+                                    </div>
+                                    <div class="form-group slider-group">
+                                        <label for="camAGCGain"><span data-i18n="agcGain">AGC Gain</span>: <span id="camAGCGainValue">5</span></label>
+                                        <input type="range" value="5" min="1" max="31" id="camAGCGain">
+                                    </div>
+                                    <div class="form-group slider-group">
+                                        <label for="camGainCeiling"><span data-i18n="gainCeiling">Gain Ceiling</span>: <span id="camGainCeilingValue">2</span></label>
+                                        <input type="range" value="2" min="2" max="128" id="camGainCeiling">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="camEffect" data-i18n="effect">Effect</label>
+                                        <input type="number" id="camEffect">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="camWBMode" data-i18n="wbMode">WB Mode</label>
+                                        <input type="number" id="camWBMode">
+                                    </div>
+                                </div>
+                                <div class="cam-toggles">
+                                    <div class="control-group"><label for="camAwb" data-i18n="awb">AWB</label><input type="checkbox" class="toggle" id="camAwb"></div>
+                                    <div class="control-group"><label for="camAwbGain" data-i18n="awbGain">AWB Gain</label><input type="checkbox" class="toggle" id="camAwbGain"></div>
+                                    <div class="control-group"><label for="camAECSensor" data-i18n="aecSensor">AEC Sensor</label><input type="checkbox" class="toggle" id="camAECSensor"></div>
+                                    <div class="control-group"><label for="camAECDSP" data-i18n="aecDsp">AEC DSP</label><input type="checkbox" class="toggle" id="camAECDSP"></div>
+                                    <div class="control-group"><label for="camAGC" data-i18n="agc">AGC</label><input type="checkbox" class="toggle" id="camAGC"></div>
+                                    <div class="control-group"><label for="camBPC" data-i18n="bpc">BPC</label><input type="checkbox" class="toggle" id="camBPC"></div>
+                                    <div class="control-group"><label for="camWPC" data-i18n="wpc">WPC</label><input type="checkbox" class="toggle" id="camWPC"></div>
+                                    <div class="control-group"><label for="camRAWGCMA" data-i18n="rawGma">RAW GMA</label><input type="checkbox" class="toggle" id="camRAWGCMA"></div>
+                                    <div class="control-group"><label for="camLensCorr" data-i18n="lensCorrection">Lens Corr.</label><input type="checkbox" class="toggle" id="camLensCorr"></div>
+                                    <div class="control-group"><label for="camDCW" data-i18n="dcw">DCW</label><input type="checkbox" class="toggle" id="camDCW"></div>
+                                    <div class="control-group"><label for="camColorBar" data-i18n="colorBar">Color Bar</label><input type="checkbox" class="toggle" id="camColorBar"></div>
+                                </div>
+                            </div>
+                        </details>
+
                         <div class="button-group">
                             <button id="getCamConfigBtn" data-i18n="getConfig">Get Config</button>
                             <button id="setCamConfigBtn" data-i18n="setConfig">Set Config</button>
@@ -675,6 +694,17 @@
             <span>More</span>
         </button>
     </nav>
+
+    <!-- Camera fullscreen overlay — img is moved here, not duplicated -->
+    <div id="camFsOverlay" class="cam-fs-overlay">
+        <div id="camFsStream" class="cam-fs-stream"></div>
+        <div class="cam-fs-hud">
+            <span id="fpsFull" class="fps-badge"></span>
+            <button id="camExitFsBtn" class="cam-fs-exit-btn" title="Exit fullscreen">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+        </div>
+    </div>
 
     <div id="tooltip" class="tooltip"></div>
 

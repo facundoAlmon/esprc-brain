@@ -166,14 +166,22 @@ export function importLedConfig(event) {
     reader.readAsText(file);
 }
 
+function camApiUrl() {
+    const ip = (state.cameraInfo && state.cameraInfo.ip) || (state.wifiConfig && state.wifiConfig.camIP);
+    return ip ? `http://${ip}/` : null;
+}
+
 export async function getCamConfig() {
-    const camApiUrl = `${window.location.protocol}//${state.wifiConfig.camIP}/`;
-    const json = await fetchAPI('cam-config', {}, camApiUrl);
+    const url = camApiUrl();
+    if (!url) return;
+    const json = await fetchAPI('api/config', {}, url);
     if (json) updateForm(json);
 }
 
 export async function setCamConfig() {
-    const camApiUrl = `${window.location.protocol}//${state.wifiConfig.camIP}/`;
+    const url = camApiUrl();
+    if (!url) return;
     const configBody = serializeForm('#cam .cam-controls');
-    await fetchAPI('cam-config', { method: 'POST', body: JSON.stringify(configBody), headers: { 'Content-Type': 'application/json' } }, camApiUrl);
+    if (configBody.framesize !== undefined) configBody.framesize = parseInt(configBody.framesize, 10);
+    await fetchAPI('api/config', { method: 'POST', body: JSON.stringify(configBody), headers: { 'Content-Type': 'application/json' } }, url);
 }

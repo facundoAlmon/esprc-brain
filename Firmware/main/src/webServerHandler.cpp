@@ -120,6 +120,8 @@ static esp_err_t post_sequence_handler(httpd_req_t *req);
 static esp_err_t get_sequence_stop_handler(httpd_req_t *req);
 static esp_err_t get_ota_info_handler(httpd_req_t *req);
 static esp_err_t post_ota_handler(httpd_req_t *req);
+static esp_err_t get_camera_handler(httpd_req_t *req);
+static void discover_camera_task(void*);
 
 static TaskHandle_t sequenceTaskHandle = NULL;
 static StaticJsonDocument<1024> sequenceCommands;
@@ -153,7 +155,7 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 24;
+    config.max_uri_handlers = 26;
     config.recv_wait_timeout = 30;
     config.send_wait_timeout = 30;
     config.lru_purge_enable = true;
@@ -221,7 +223,16 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
         httpd_register_uri_handler(server_httpd, &get_ota_info_uri);
         httpd_uri_t post_ota_uri = {.uri = "/api/ota", .method = HTTP_POST, .handler = post_ota_handler};
         httpd_register_uri_handler(server_httpd, &post_ota_uri);
+        httpd_uri_t get_camera_uri = {.uri = "/api/camera", .method = HTTP_GET, .handler = get_camera_handler};
+        httpd_register_uri_handler(server_httpd, &get_camera_uri);
     }
+
+    // Load persisted camera IP and start discovery task
+    std::string saved_cam_ip = nvs_get_str_or("camIP", "");
+    if (!saved_cam_ip.empty()) {
+        strncpy(g_state->cameraIP, saved_cam_ip.c_str(), sizeof(g_state->cameraIP));
+    }
+    xTaskCreate(discover_camera_task, "cam_discover", 4096, NULL, 3, NULL);
 }
 
 void stopServer() {
@@ -758,5 +769,50 @@ static esp_err_t post_ota_handler(httpd_req_t *req) {
     httpd_resp_send(req, "{\"status\":\"ok\",\"message\":\"OTA OK. Reiniciando.\"}", -1);
     vTaskDelay(1500 / portTICK_PERIOD_MS);
     esp_restart();
+    return ESP_OK;
+}
+
+// ---- Camera discovery via mDNS ----
+
+static void discover_camera_task(void*) {
+    while (true) {
+        esp_ip4_addr_t addr;
+        esp_err_t err = mdns_query_a("esprc-cam", 3000, &addr);
+        if (err == ESP_OK) {
+            char ip[16];
+            esp_ip4addr_ntoa(&addr, ip, sizeof(ip));
+            if (strcmp(ip, g_state->cameraIP) != 0) {
+                strncpy(g_state->cameraIP, ip, sizeof(g_state->cameraIP));
+                nvs_put_str("camIP", ip);
+                ESP_LOGI(TAG, "Camera discovered at %s", ip);
+            }
+        } else {
+            // Camera not found; clear IP to mark unavailable
+            if (g_state->cameraIP[0] != '\0') {
+                ESP_LOGI(TAG, "Camera lost");
+                g_state->cameraIP[0] = '\0';
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(30000));
+    }
+}
+
+static esp_err_t get_camera_handler(httpd_req_t* req) {
+    JsonDocument doc;
+    bool available = (g_state->cameraIP[0] != '\0');
+    doc["available"] = available;
+    doc["ip"]        = g_state->cameraIP;
+    if (available) {
+        char url[48];
+        snprintf(url, sizeof(url), "http://%s/mjpeg", g_state->cameraIP);
+        doc["mjpegUrl"] = url;
+        snprintf(url, sizeof(url), "ws://%s/ws", g_state->cameraIP);
+        doc["wsUrl"] = url;
+    }
+    std::string out;
+    serializeJson(doc, out);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, out.c_str(), out.length());
     return ESP_OK;
 }

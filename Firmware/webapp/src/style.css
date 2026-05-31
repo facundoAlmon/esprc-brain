@@ -493,24 +493,160 @@ input:checked+.slider::before{transform:translateX(24px);background:#fff}
 .remove-led-group{align-self:flex-end;clip-path:none;border-radius:var(--r)}
 
 /* ── Camera ─────────────────────────────────── */
-.cam-container{display:grid;grid-template-columns:2fr 1fr;gap:2rem}
-.cam-stream{position:relative}
+.cam-container{display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;align-items:start}
+
+/* Stream wrapper: image + controls bar below */
+.cam-stream-wrapper{display:flex;flex-direction:column;gap:.5rem}
+.cam-stream{position:relative;background:#000;line-height:0}
 .cam-stream img{
-  width:100%;height:auto;background:#000;
+  width:100%;height:auto;display:block;
+  background:#000;
   border:1px solid var(--border-s);
   clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
 }
+/* Overlay: fps badge (left) + fullscreen btn (right), always on top of image */
 .cam-overlay{
-  position:absolute;bottom:0;left:0;right:0;
-  padding:.75rem;
-  background:linear-gradient(to top,rgba(0,0,0,.8),transparent);
+  position:absolute;top:0;left:0;right:0;
+  padding:.5rem .65rem;
+  background:linear-gradient(to bottom,rgba(0,0,0,.65),transparent);
   display:flex;justify-content:space-between;align-items:center;
+  pointer-events:none;
 }
-.cam-overlay .button-group{margin:0}
-.cam-controls h2{
-  font-size:.75rem;font-weight:800;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--txt-m);margin-bottom:1rem;
+.cam-overlay>*{pointer-events:auto}
+
+/* Buttons row below the stream image */
+.cam-stream-bar{
+  display:flex;
+  gap:.5rem;
+  padding:.35rem 0;
 }
+
+/* Compact icon-only buttons used in stream area */
+.cam-act-btn{
+  width:40px;height:40px;
+  clip-path:none;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  padding:0;
+  border:1.5px solid var(--border-s);
+  background:var(--surf2);
+  color:var(--txt-m);
+  transition:background .18s,border-color .2s,color .18s;
+  flex-shrink:0;
+}
+.cam-act-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 14px var(--accent-gl)}
+.cam-act-btn svg{display:block;flex-shrink:0}
+/* Primary action (play) gets accent colour by default */
+.cam-act-btn.cam-act-primary{border-color:var(--accent);color:var(--accent)}
+.cam-act-btn.cam-act-primary:hover{background:var(--accent);color:#fff}
+
+/* FPS badge */
+.fps-badge{
+  font-family:var(--mono);
+  font-size:.82rem;
+  font-weight:700;
+  color:var(--ok);
+  background:rgba(0,0,0,.7);
+  padding:.2rem .55rem;
+  border-radius:4px;
+  letter-spacing:.03em;
+  display:inline-block;
+  min-height:1.4rem;
+}
+
+/* Camera controls panel */
+.cam-controls{
+  display:flex;
+  flex-direction:column;
+  gap:.85rem;
+  max-height:75vh;
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--accent-gl) transparent;
+}
+.cam-controls::-webkit-scrollbar{width:4px}
+.cam-controls::-webkit-scrollbar-thumb{background:var(--accent-gl);border-radius:2px}
+.cam-toggles{display:flex;flex-direction:column;gap:0;margin-top:.5rem}
+.cam-toggles .control-group{padding:.35rem 0}
+
+/* Collapsible advanced settings */
+.cam-advanced{
+  background:var(--surf2);
+  border:1px solid var(--border-s);
+}
+.cam-advanced summary{
+  list-style:none;
+  padding:.7rem 1rem;
+  cursor:pointer;
+  font-size:.72rem;font-weight:800;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--txt-m);
+  display:flex;align-items:center;gap:.5rem;
+  user-select:none;
+  transition:color .2s,background .2s;
+}
+.cam-advanced summary::-webkit-details-marker{display:none}
+.cam-advanced summary::before{
+  content:'›';
+  font-size:1.1rem;line-height:1;
+  transition:transform .2s;
+  color:var(--accent);
+}
+.cam-advanced[open] summary::before{transform:rotate(90deg)}
+.cam-advanced summary:hover{color:var(--txt);background:var(--border-s)}
+.cam-advanced-inner{
+  padding:1rem;
+  border-top:1px solid var(--border-s);
+  display:flex;flex-direction:column;gap:.85rem;
+}
+
+/* Fullscreen overlay */
+.cam-fs-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:5000;
+  background:#000;
+  flex-direction:column;
+}
+.cam-fs-overlay.active{display:flex}
+.cam-fs-stream{
+  flex:1;
+  min-height:0;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.cam-fs-stream img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  clip-path:none !important;
+  border:none !important;
+  display:block;
+}
+.cam-fs-hud{
+  position:absolute;
+  top:0;left:0;right:0;
+  padding:.75rem 1rem;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:linear-gradient(to bottom,rgba(0,0,0,.75),transparent);
+  pointer-events:none;
+}
+.cam-fs-hud>*{pointer-events:auto}
+.cam-fs-exit-btn{
+  width:44px;height:44px;
+  clip-path:none;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  padding:0;
+  background:rgba(0,0,0,.6);
+  border:1.5px solid rgba(255,255,255,.25);
+  color:#fff;
+}
+.cam-fs-exit-btn:hover{background:var(--danger);border-color:var(--danger);box-shadow:none}
 
 /* ── Program Editor ─────────────────────────── */
 .toolbar{
@@ -746,6 +882,8 @@ input:checked+.slider::before{transform:translateX(24px);background:#fff}
 /* ── Responsive ─────────────────────────────── */
 @media (max-width:1200px){
   .cam-container{grid-template-columns:1fr}
+  .cam-controls{max-height:none;overflow-y:visible}
+  .cam-stream-bar{justify-content:center}
 }
 
 @media (max-width:991px){
