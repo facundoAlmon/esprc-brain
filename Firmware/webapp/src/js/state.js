@@ -25,7 +25,8 @@ export const state = {
     programSequence: [],
     draggedIndex: null,
     recordingProgram: false,
-    cameraInfo: null
+    cameraInfo: null,
+    camServoEnabled: false
 };
 
 export const icons = {

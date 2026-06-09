@@ -163,6 +163,10 @@
                             <button class="icon-toggle control-btn-up-left" id="swap-layout-btn-a" data-tooltip-key="swapLayout"></button>
                             <button class="icon-toggle control-btn-up-right" id="record-btn-a" data-tooltip-key="toggleRecording"></button>
                         </div>
+                        <div id="camJoyContainer" style="display:none">
+                            <p class="cam-joy-label" data-i18n="camJoyTitle">Camera</p>
+                            <div id="joy3Div"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -439,6 +443,103 @@
                         <input class="toggle" id="enableScan" type="checkbox" data-tooltip-key="enableBluetooth" />
                     </div>
                 </div>
+
+                <div class="settings-section">
+                    <h3 data-i18n="camServoSettings">Camera Servo Settings</h3>
+                    <div class="control-group">
+                        <span data-i18n="camServoEnabled">Enable Camera Servos</span>
+                        <input class="toggle" id="camServoEnabled" type="checkbox" />
+                    </div>
+                    <div id="camServoOptions" style="display:none">
+                        <div class="control-group">
+                            <span data-i18n="camGamepadEnabled">Gamepad Right Stick controls camera</span>
+                            <input class="toggle" id="camGamepadEnabled" type="checkbox" />
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group slider-group">
+                                <label for="camStickDZ"><span data-i18n="camStickDZ">Stick Deadzone</span>: <span id="camStickDZValue">30</span></label>
+                                <input type="range" value="30" min="0" max="200" id="camStickDZ">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="camStickSat"><span data-i18n="camStickSat">Stick Saturation</span>: <span id="camStickSatValue">350</span></label>
+                                <input type="range" value="350" min="50" max="512" id="camStickSat">
+                            </div>
+                        </div>
+
+                        <h4 data-i18n="panServo">Pan Servo (left/right)</h4>
+                        <div class="control-group">
+                            <span data-i18n="invertAxis">Invert Axis</span>
+                            <input class="toggle" id="panInvert" type="checkbox" />
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="servoType">Servo Type</label>
+                            <select id="panServoType">
+                                <option value="sg90">SG90</option>
+                                <option value="s3003">S3003</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group slider-group">
+                                <label for="panCenterDeg"><span data-i18n="servoCenter">Center Position</span>: <span id="panCenterDegValue">90</span></label>
+                                <input type="range" value="90" min="0" max="180" id="panCenterDeg">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="panLimitLDeg"><span data-i18n="servoLimitLeft">Left Limit</span>: <span id="panLimitLDegValue">45</span></label>
+                                <input type="range" value="45" min="0" max="90" id="panLimitLDeg">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="panLimitRDeg"><span data-i18n="servoLimitRight">Right Limit</span>: <span id="panLimitRDegValue">45</span></label>
+                                <input type="range" value="45" min="0" max="90" id="panLimitRDeg">
+                            </div>
+                            <div class="form-group">
+                                <label for="panMinUs" data-i18n="servoMinUs">Min Pulse (µs)</label>
+                                <input type="number" id="panMinUs" value="500" min="400" max="1500">
+                            </div>
+                            <div class="form-group">
+                                <label for="panMaxUs" data-i18n="servoMaxUs">Max Pulse (µs)</label>
+                                <input type="number" id="panMaxUs" value="2400" min="1500" max="2600">
+                            </div>
+                        </div>
+
+                        <h4 data-i18n="tiltServo">Tilt Servo (up/down)</h4>
+                        <div class="control-group">
+                            <span data-i18n="invertAxis">Invert Axis</span>
+                            <input class="toggle" id="tiltInvert" type="checkbox" />
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="servoType">Servo Type</label>
+                            <select id="tiltServoType">
+                                <option value="sg90">SG90</option>
+                                <option value="s3003">S3003</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group slider-group">
+                                <label for="tiltCenterDeg"><span data-i18n="servoCenter">Center Position</span>: <span id="tiltCenterDegValue">90</span></label>
+                                <input type="range" value="90" min="0" max="180" id="tiltCenterDeg">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="tiltLimUpDeg"><span data-i18n="servoLimitUp">Up Limit</span>: <span id="tiltLimUpDegValue">30</span></label>
+                                <input type="range" value="30" min="0" max="90" id="tiltLimUpDeg">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="tiltLimDnDeg"><span data-i18n="servoLimitDown">Down Limit</span>: <span id="tiltLimDnDegValue">30</span></label>
+                                <input type="range" value="30" min="0" max="90" id="tiltLimDnDeg">
+                            </div>
+                            <div class="form-group">
+                                <label for="tiltMinUs" data-i18n="servoMinUs">Min Pulse (µs)</label>
+                                <input type="number" id="tiltMinUs" value="500" min="400" max="1500">
+                            </div>
+                            <div class="form-group">
+                                <label for="tiltMaxUs" data-i18n="servoMaxUs">Max Pulse (µs)</label>
+                                <input type="number" id="tiltMaxUs" value="2400" min="1500" max="2600">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="button-group">
                     <button id="getConfigBtn" data-i18n="refresh">Refresh</button>
                     <button id="saveConfigBtn" data-i18n="save">Save</button>
@@ -496,13 +597,13 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label data-i18n="otaSelectBin">Firmware binary (.bin)</label>
-                            <div class="ota-file-row">
-                                <button class="secondary" type="button"
-                                    onclick="document.getElementById('ota-file-input').click()"
-                                    data-i18n="otaChooseFile">Choose file</button>
-                                <span id="ota-file-label" data-i18n="otaNoFile">No file selected</span>
-                                <input type="file" id="ota-file-input" accept=".bin,application/octet-stream"
-                                    style="display: none;">
+                            <div class="ota-drop-zone" id="ota-drop-zone">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="36" viewBox="0 0 24 24" width="36" fill="currentColor" aria-hidden="true">
+                                    <path d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                                </svg>
+                                <span id="ota-file-label" data-i18n="otaDropZone">Drop .bin file here or click to choose</span>
+                                <input type="file" id="ota-file-input" accept=".bin,application/octet-stream" style="display:none">
                             </div>
                         </div>
                     </div>

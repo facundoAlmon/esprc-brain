@@ -75,6 +75,26 @@ struct VehicleState {
     int lastMotorSpeed;         //< Última velocidad del motor.
     bool lastMotorForward;      //< Última dirección del motor.
 
+    // --- Servos de Cámara (Pan/Tilt) ---
+    bool         camServoEnabled;       //< Habilita los servos de cámara.
+    bool         camGamepadEnabled;     //< Habilita control de cámara con gamepad (stick derecho).
+    bool         panInvert;             //< Invierte el eje pan.
+    bool         tiltInvert;            //< Invierte el eje tilt.
+    unsigned int camStickDZ;            //< Deadzone del stick de gamepad para cámara (0-100).
+    unsigned int camStickSat;           //< Saturación del stick: a este valor el servo llega al límite.
+    unsigned int panCenterDeg;          //< Ángulo central del servo pan.
+    unsigned int panLimitLDeg;          //< Límite de giro a la izquierda del servo pan.
+    unsigned int panLimitRDeg;          //< Límite de giro a la derecha del servo pan.
+    unsigned int panMinUs;              //< Pulso mínimo del servo pan (microsegundos).
+    unsigned int panMaxUs;              //< Pulso máximo del servo pan (microsegundos).
+    unsigned int tiltCenterDeg;         //< Ángulo central del servo tilt.
+    unsigned int tiltLimitUpDeg;        //< Límite de giro hacia arriba del servo tilt.
+    unsigned int tiltLimitDownDeg;      //< Límite de giro hacia abajo del servo tilt.
+    unsigned int tiltMinUs;             //< Pulso mínimo del servo tilt (microsegundos).
+    unsigned int tiltMaxUs;             //< Pulso máximo del servo tilt (microsegundos).
+    int          lastPanAngle;          //< Último ángulo de pan (-512..512).
+    int          lastTiltAngle;         //< Último ángulo de tilt (-512..512).
+
     // --- Estado de la API ---
     bool apiActEnabled;             //< Indica si una acción de la API está en curso.
     unsigned long apiActMSStart;    //< Timestamp de inicio de la acción de la API.

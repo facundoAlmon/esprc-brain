@@ -137,13 +137,30 @@ static char* get_config_json() {
     doc["servoCenterDeg"] = g_state->servoCenterDeg;
     doc["servoLimitLDeg"] = g_state->servoLimitLDeg;
     doc["servoLimitRDeg"] = g_state->servoLimitRDeg;
-    doc["motorMaxSpeed"] = g_state->motorMaxSpeed;
-    doc["motorMinSpeed"] = g_state->motorMinSpeed;
-    doc["enableScan"] = g_state->enableScan;
+    doc["motorMaxSpeed"]  = g_state->motorMaxSpeed;
+    doc["motorMinSpeed"]  = g_state->motorMinSpeed;
+    doc["enableScan"]     = g_state->enableScan;
     doc["autoTurnSignals"] = g_state->autoTurnSignals;
-    doc["autoTurnTol"] = g_state->autoTurnTol;
-    char *json_string = (char*)malloc(512);
-    serializeJson(doc, json_string, 512);
+    doc["autoTurnTol"]    = g_state->autoTurnTol;
+    // Camera servos
+    doc["camServoEnabled"]   = g_state->camServoEnabled  ? 1 : 0;
+    doc["camGamepadEnabled"] = g_state->camGamepadEnabled ? 1 : 0;
+    doc["panInvert"]         = g_state->panInvert  ? 1 : 0;
+    doc["tiltInvert"]        = g_state->tiltInvert ? 1 : 0;
+    doc["camStickDZ"]        = g_state->camStickDZ;
+    doc["camStickSat"]       = g_state->camStickSat;
+    doc["panCenterDeg"]  = g_state->panCenterDeg;
+    doc["panLimitLDeg"]  = g_state->panLimitLDeg;
+    doc["panLimitRDeg"]  = g_state->panLimitRDeg;
+    doc["panMinUs"]      = g_state->panMinUs;
+    doc["panMaxUs"]      = g_state->panMaxUs;
+    doc["tiltCenterDeg"] = g_state->tiltCenterDeg;
+    doc["tiltLimUpDeg"]  = g_state->tiltLimitUpDeg;
+    doc["tiltLimDnDeg"]  = g_state->tiltLimitDownDeg;
+    doc["tiltMinUs"]     = g_state->tiltMinUs;
+    doc["tiltMaxUs"]     = g_state->tiltMaxUs;
+    char *json_string = (char*)malloc(768);
+    serializeJson(doc, json_string, 768);
     return json_string;
 }
 
@@ -283,6 +300,26 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
 
     hid_gamepad_set_scanning(state->enableScan == 1);
 
+    // Camera servos
+    bool prevCamEnabled = state->camServoEnabled;
+    if (doc.containsKey("camServoEnabled"))   state->camServoEnabled   = (doc["camServoEnabled"]   != 0);
+    if (doc.containsKey("camGamepadEnabled")) state->camGamepadEnabled = (doc["camGamepadEnabled"] != 0);
+    if (doc.containsKey("panInvert"))         state->panInvert         = (doc["panInvert"]  != 0);
+    if (doc.containsKey("tiltInvert"))        state->tiltInvert        = (doc["tiltInvert"] != 0);
+    if (doc.containsKey("panCenterDeg"))  state->panCenterDeg      = doc["panCenterDeg"];
+    if (doc.containsKey("panLimitLDeg"))  state->panLimitLDeg      = doc["panLimitLDeg"];
+    if (doc.containsKey("panLimitRDeg"))  state->panLimitRDeg      = doc["panLimitRDeg"];
+    if (doc.containsKey("panMinUs"))      state->panMinUs           = doc["panMinUs"];
+    if (doc.containsKey("panMaxUs"))      state->panMaxUs           = doc["panMaxUs"];
+    if (doc.containsKey("tiltCenterDeg")) state->tiltCenterDeg     = doc["tiltCenterDeg"];
+    if (doc.containsKey("tiltLimUpDeg"))  state->tiltLimitUpDeg    = doc["tiltLimUpDeg"];
+    if (doc.containsKey("tiltLimDnDeg"))  state->tiltLimitDownDeg  = doc["tiltLimDnDeg"];
+    if (doc.containsKey("tiltMinUs"))     state->tiltMinUs          = doc["tiltMinUs"];
+    if (doc.containsKey("tiltMaxUs"))     state->tiltMaxUs          = doc["tiltMaxUs"];
+    if (doc.containsKey("camStickDZ"))    state->camStickDZ         = doc["camStickDZ"];
+    if (doc.containsKey("camStickSat"))   state->camStickSat        = doc["camStickSat"];
+
+    // Persist BEFORE applying hardware changes to guarantee NVS is written
     nvs_put_u32("servoCenterDeg", state->servoCenterDeg);
     nvs_put_u32("servoLimitLDeg", state->servoLimitLDeg);
     nvs_put_u32("servoLimitRDeg", state->servoLimitRDeg);
@@ -291,6 +328,31 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     nvs_put_u32("enableScan",     state->enableScan);
     nvs_put_bool("autoTurnSignals", state->autoTurnSignals);
     nvs_put_u32("autoTurnTol",    state->autoTurnTol);
+    nvs_put_bool("camServoEn",    state->camServoEnabled);
+    nvs_put_bool("camGamepadEn",  state->camGamepadEnabled);
+    nvs_put_bool("panInvert",     state->panInvert);
+    nvs_put_bool("tiltInvert",    state->tiltInvert);
+    nvs_put_u32("panCenterDeg",   state->panCenterDeg);
+    nvs_put_u32("panLimitLDeg",   state->panLimitLDeg);
+    nvs_put_u32("panLimitRDeg",   state->panLimitRDeg);
+    nvs_put_u32("panMinUs",       state->panMinUs);
+    nvs_put_u32("panMaxUs",       state->panMaxUs);
+    nvs_put_u32("tiltCenterDeg",  state->tiltCenterDeg);
+    nvs_put_u32("tiltLimUpDeg",   state->tiltLimitUpDeg);
+    nvs_put_u32("tiltLimDnDeg",   state->tiltLimitDownDeg);
+    nvs_put_u32("tiltMinUs",      state->tiltMinUs);
+    nvs_put_u32("tiltMaxUs",      state->tiltMaxUs);
+    nvs_put_u32("camStickDZ",     state->camStickDZ);
+    nvs_put_u32("camStickSat",    state->camStickSat);
+
+    // Apply hardware changes after NVS is safe
+    if (!prevCamEnabled && state->camServoEnabled) {
+        setupCamServos(state);
+    } else if (prevCamEnabled && !state->camServoEnabled) {
+        centerCamServos(state);
+    } else if (state->camServoEnabled) {
+        centerCamServos(state);
+    }
 
     httpd_resp_set_type(req, "text/plain");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
@@ -427,6 +489,11 @@ static void act_from_json(JsonDocument& doc, VehicleState* state) {
 
         if (g_programManager->isRecording()) g_programManager->recordStep(motorSpeed, steerAngle);
     }
+
+    if (doc.containsKey("panAng") && state->camServoEnabled)
+        setCamPan(doc["panAng"] | 0, state);
+    if (doc.containsKey("tiltAng") && state->camServoEnabled)
+        setCamTilt(doc["tiltAng"] | 0, state);
 
     if (doc.containsKey("action")) {
         const char* action = doc["action"];
@@ -581,7 +648,23 @@ static esp_err_t get_config_backup_handler(httpd_req_t *req) {
     doc["wifiPass"]        = nvs_get_str_or("wifiPass", "");
     doc["wifiMode"]        = nvs_get_str_or("wifiMode", "");
     doc["camIP"]           = nvs_get_str_or("camIP", "");
-    doc["program"]         = g_programManager->getProgramAsJson();
+    doc["camServoEnabled"]   = nvs_get_bool_or("camServoEn",   false) ? 1 : 0;
+    doc["camGamepadEnabled"] = nvs_get_bool_or("camGamepadEn", false) ? 1 : 0;
+    doc["panInvert"]         = nvs_get_bool_or("panInvert",    false) ? 1 : 0;
+    doc["tiltInvert"]        = nvs_get_bool_or("tiltInvert",   false) ? 1 : 0;
+    doc["camStickDZ"]        = nvs_get_u32_or("camStickDZ",   30);
+    doc["camStickSat"]       = nvs_get_u32_or("camStickSat",  350);
+    doc["panCenterDeg"]  = nvs_get_u32_or("panCenterDeg", 90);
+    doc["panLimitLDeg"]  = nvs_get_u32_or("panLimitLDeg",  45);
+    doc["panLimitRDeg"]  = nvs_get_u32_or("panLimitRDeg",  45);
+    doc["panMinUs"]      = nvs_get_u32_or("panMinUs",      500);
+    doc["panMaxUs"]      = nvs_get_u32_or("panMaxUs",      2400);
+    doc["tiltCenterDeg"] = nvs_get_u32_or("tiltCenterDeg", 90);
+    doc["tiltLimUpDeg"]  = nvs_get_u32_or("tiltLimUpDeg",  30);
+    doc["tiltLimDnDeg"]  = nvs_get_u32_or("tiltLimDnDeg",  30);
+    doc["tiltMinUs"]     = nvs_get_u32_or("tiltMinUs",     500);
+    doc["tiltMaxUs"]     = nvs_get_u32_or("tiltMaxUs",     2400);
+    doc["program"]       = g_programManager->getProgramAsJson();
 
     std::string output;
     serializeJson(doc, output);
@@ -612,6 +695,22 @@ static esp_err_t post_config_restore_handler(httpd_req_t *req) {
     if (doc.containsKey("autoTurnTol"))    nvs_put_u32("autoTurnTol",    doc["autoTurnTol"]);
     if (doc.containsKey("ledConfig"))      nvs_put_str("ledConfig",      doc["ledConfig"].as<const char*>());
     if (doc.containsKey("program"))        g_programManager->loadProgram(doc["program"].as<JsonArray>());
+    if (doc.containsKey("camServoEnabled"))   nvs_put_bool("camServoEn",   (bool)(doc["camServoEnabled"]   != 0));
+    if (doc.containsKey("camGamepadEnabled")) nvs_put_bool("camGamepadEn", (bool)(doc["camGamepadEnabled"] != 0));
+    if (doc.containsKey("panInvert"))         nvs_put_bool("panInvert",    (bool)(doc["panInvert"]  != 0));
+    if (doc.containsKey("tiltInvert"))        nvs_put_bool("tiltInvert",   (bool)(doc["tiltInvert"] != 0));
+    if (doc.containsKey("camStickDZ"))        nvs_put_u32("camStickDZ",    doc["camStickDZ"]);
+    if (doc.containsKey("camStickSat"))       nvs_put_u32("camStickSat",   doc["camStickSat"]);
+    if (doc.containsKey("panCenterDeg"))  nvs_put_u32("panCenterDeg",  doc["panCenterDeg"]);
+    if (doc.containsKey("panLimitLDeg"))  nvs_put_u32("panLimitLDeg",  doc["panLimitLDeg"]);
+    if (doc.containsKey("panLimitRDeg"))  nvs_put_u32("panLimitRDeg",  doc["panLimitRDeg"]);
+    if (doc.containsKey("panMinUs"))      nvs_put_u32("panMinUs",       doc["panMinUs"]);
+    if (doc.containsKey("panMaxUs"))      nvs_put_u32("panMaxUs",       doc["panMaxUs"]);
+    if (doc.containsKey("tiltCenterDeg")) nvs_put_u32("tiltCenterDeg", doc["tiltCenterDeg"]);
+    if (doc.containsKey("tiltLimUpDeg"))  nvs_put_u32("tiltLimUpDeg",  doc["tiltLimUpDeg"]);
+    if (doc.containsKey("tiltLimDnDeg"))  nvs_put_u32("tiltLimDnDeg",  doc["tiltLimDnDeg"]);
+    if (doc.containsKey("tiltMinUs"))     nvs_put_u32("tiltMinUs",      doc["tiltMinUs"]);
+    if (doc.containsKey("tiltMaxUs"))     nvs_put_u32("tiltMaxUs",      doc["tiltMaxUs"]);
 
     auto check_wifi = [&](const char* key) {
         if (!doc.containsKey(key)) return;

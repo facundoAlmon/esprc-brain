@@ -36,8 +36,30 @@ void setSteer(int angle, VehicleState* state);
 
 /**
  * @brief Detiene todos los actuadores.
- * 
+ *
  * Pone el motor en punto muerto y centra el servo de dirección.
  * @param state Puntero al estado global del vehículo.
  */
 void stopMotors(VehicleState* state);
+
+/**
+ * @brief Inicializa los servos de cámara (pan y tilt) si están habilitados.
+ */
+void setupCamServos(VehicleState* state);
+
+/**
+ * @brief Mueve el servo de pan al ángulo dado.
+ * @param angle Ángulo de -512 a 512 (negativo = izquierda, positivo = derecha).
+ */
+void setCamPan(int angle, VehicleState* state);
+
+/**
+ * @brief Mueve el servo de tilt al ángulo dado.
+ * @param angle Ángulo de -512 a 512 (negativo = arriba, positivo = abajo).
+ */
+void setCamTilt(int angle, VehicleState* state);
+
+/**
+ * @brief Centra ambos servos de cámara.
+ */
+void centerCamServos(VehicleState* state);

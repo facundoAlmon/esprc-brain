@@ -20,6 +20,8 @@ typedef struct {
     bool     connected;
     int16_t  axis_x;     // -512 to 511 (left stick X)
     int16_t  axis_y;     // -512 to 511 (left stick Y)
+    int16_t  axis_rx;    // -512 to 511 (right stick X → camera pan)
+    int16_t  axis_ry;    // -512 to 511 (right stick Y → camera tilt)
     int16_t  throttle;   // 0-1023 (right trigger)
     int16_t  brake;      // 0-1023 (left trigger)
     uint32_t buttons;    // bitmask, see GAMEPAD_BTN_* macros

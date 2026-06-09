@@ -46,6 +46,31 @@ static void servoController(const GamepadData* gp, VehicleState* state) {
     lastSteer = mov;
 }
 
+static int scale_cam_stick(int raw, int dz, int sat) {
+    if (abs(raw) < dz) return 0;
+    if (sat <= 0) sat = 1;
+    int out = raw * 512 / sat;
+    if (out >  512) out =  512;
+    if (out < -512) out = -512;
+    return out;
+}
+
+static void camServoController(const GamepadData* gp, VehicleState* state) {
+    if (!state->camServoEnabled || !state->camGamepadEnabled) return;
+    int dz  = (int)state->camStickDZ;
+    int sat = (int)state->camStickSat;
+
+    // Many budget gamepads have mechanical crosstalk between the analog
+    // triggers (L2/R2) and the right stick Y axis: pressing a trigger shifts
+    // axis_ry by a small amount (~30-60 units). When the motor is running,
+    // double the deadzone to absorb that drift without the user needing to
+    // retune camStickDZ. At rest, full sensitivity is restored.
+    if (gp->brake > 20 || gp->throttle > 20) dz *= 2;
+
+    setCamPan (scale_cam_stick(gp->axis_rx, dz, sat), state);
+    setCamTilt(scale_cam_stick(gp->axis_ry, dz, sat), state);
+}
+
 static void motorController(const GamepadData* gp, VehicleState* state) {
     int motorSpeed = 0;
     if (gp->brake > 20) {
@@ -118,6 +143,7 @@ void handleGamepadMotion(VehicleState* state) {
     if (gp->connected) {
         servoController(gp, state);
         motorController(gp, state);
+        camServoController(gp, state);
 
         if (isRecording) {
             g_programManager->recordStep(lastMotor, lastSteer);

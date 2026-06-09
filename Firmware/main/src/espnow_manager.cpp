@@ -100,11 +100,16 @@ static void espnow_task(void*) {
 
     recv_event_t evt;
     int64_t last_beacon_us = 0;
-    const int64_t BEACON_INTERVAL_US = 5000000LL; // 5 s
+    // Fast while cam is undiscovered; slow once we have its IP (cam sends its
+    // own 30s CAM_HELLO keepalive so beacons are only needed for reconnection).
+    const int64_t BEACON_INTERVAL_FAST_US = 5000000LL;  // 5 s — discovery
+    const int64_t BEACON_INTERVAL_SLOW_US = 30000000LL; // 30 s — maintenance
 
     for (;;) {
         int64_t now = esp_timer_get_time();
-        if (now - last_beacon_us >= BEACON_INTERVAL_US) {
+        bool cam_known = (s_state->cameraIP[0] != '\0');
+        int64_t interval = cam_known ? BEACON_INTERVAL_SLOW_US : BEACON_INTERVAL_FAST_US;
+        if (now - last_beacon_us >= interval) {
             last_beacon_us = now;
 
             espnow_beacon_t beacon = {};

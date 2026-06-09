@@ -3,7 +3,7 @@ import { setupLanguage } from './language.js';
 import { setupUI, setupEventListeners } from './ui.js';
 import { initJoysticks, startActionLoop } from './joystick.js';
 import { connectWebSockets, autoConnectCamera } from './api.js';
-import { getWifiConfig } from './config.js';
+import { getWifiConfig, getConfig, initCamServoUI } from './config.js';
 import { initLights } from './lights.js';
 import { initOta } from './ota.js';
 
@@ -54,10 +54,12 @@ function init() {
     startActionLoop();
     initLights();
     initOta();
+    initCamServoUI();
 }
 
 function loadInitialData() {
     getWifiConfig();
+    getConfig();
     // Try to auto-connect camera via mDNS discovery
     setTimeout(autoConnectCamera, 1500);
 }

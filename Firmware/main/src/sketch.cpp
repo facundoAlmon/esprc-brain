@@ -197,6 +197,26 @@ void initPreferences() {
 
     vehicleState.apiActMSTimeout = 30000;
 
+    // Camera servos
+    vehicleState.camServoEnabled   = preferences.getBool("camServoEn",   false);
+    vehicleState.camGamepadEnabled = preferences.getBool("camGamepadEn", false);
+    vehicleState.panInvert         = preferences.getBool("panInvert",    false);
+    vehicleState.tiltInvert        = preferences.getBool("tiltInvert",   false);
+    vehicleState.camStickDZ        = preferences.getUInt("camStickDZ",   30);
+    vehicleState.camStickSat       = preferences.getUInt("camStickSat",  350);
+    vehicleState.panCenterDeg      = preferences.getUInt("panCenterDeg",  90);
+    vehicleState.panLimitLDeg      = preferences.getUInt("panLimitLDeg",  45);
+    vehicleState.panLimitRDeg      = preferences.getUInt("panLimitRDeg",  45);
+    vehicleState.panMinUs          = preferences.getUInt("panMinUs",      500);
+    vehicleState.panMaxUs          = preferences.getUInt("panMaxUs",      2400);
+    vehicleState.tiltCenterDeg     = preferences.getUInt("tiltCenterDeg", 90);
+    vehicleState.tiltLimitUpDeg    = preferences.getUInt("tiltLimUpDeg",  30);
+    vehicleState.tiltLimitDownDeg  = preferences.getUInt("tiltLimDnDeg",  30);
+    vehicleState.tiltMinUs         = preferences.getUInt("tiltMinUs",     500);
+    vehicleState.tiltMaxUs         = preferences.getUInt("tiltMaxUs",     2400);
+    vehicleState.lastPanAngle      = 0;
+    vehicleState.lastTiltAngle     = 0;
+
     // LED config
     std::string ledConfigJson;
     if (preferences.isKey("ledConfig")) {
@@ -251,6 +271,7 @@ static void main_task(void* pvParameters) {
     espnow_init(&vehicleState, espnow_iface);
 
     setupActuators();
+    setupCamServos(&vehicleState);
 
     led_strip_set_pixel(led_strip, 0, 0, 0, 255);
     led_strip_refresh(led_strip);

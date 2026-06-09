@@ -43,8 +43,12 @@ static void parse_xbox(GamepadData *gp, const uint8_t *d, uint16_t len)
     // Sticks: uint16 centrado en 32767 → rango -512..+512
     uint16_t lx = (uint16_t)d[0] | ((uint16_t)d[1] << 8);
     uint16_t ly = (uint16_t)d[2] | ((uint16_t)d[3] << 8);
-    gp->axis_x = (int16_t)((int32_t)((int32_t)lx - 32767) * 512 / 32767);
-    gp->axis_y = (int16_t)((int32_t)((int32_t)ly - 32767) * 512 / 32767);
+    uint16_t rx = (uint16_t)d[4] | ((uint16_t)d[5] << 8);
+    uint16_t ry = (uint16_t)d[6] | ((uint16_t)d[7] << 8);
+    gp->axis_x  = (int16_t)((int32_t)((int32_t)lx - 32767) * 512 / 32767);
+    gp->axis_y  = (int16_t)((int32_t)((int32_t)ly - 32767) * 512 / 32767);
+    gp->axis_rx = (int16_t)((int32_t)((int32_t)rx - 32767) * 512 / 32767);
+    gp->axis_ry = (int16_t)((int32_t)((int32_t)ry - 32767) * 512 / 32767);
 
     // Triggers
     gp->brake    = (uint16_t)d[8]  | ((uint16_t)d[9]  << 8);   // LT
@@ -84,8 +88,16 @@ static void parse_generic(GamepadData *gp, const uint8_t *d, uint16_t len)
 {
     if (len < 8) return;
 
-    gp->axis_x = (int16_t)((int32_t)((int16_t)d[0] - 128) * 512 / 127);
-    gp->axis_y = (int16_t)((int32_t)((int16_t)d[1] - 128) * 512 / 127);
+    // Raw bytes logged at VERBOSE so you can capture them with
+    //   idf.py monitor | grep "GP raw"
+    // and verify the layout matches your gamepad.
+    ESP_LOGV(TAG, "GP raw[%d]: %02x %02x %02x %02x %02x %02x %02x %02x",
+             len, d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7]);
+
+    gp->axis_x  = (int16_t)((int32_t)((int16_t)d[0] - 128) * 512 / 127);
+    gp->axis_y  = (int16_t)((int32_t)((int16_t)d[1] - 128) * 512 / 127);
+    gp->axis_rx = (int16_t)((int32_t)((int16_t)d[2] - 128) * 512 / 127);
+    gp->axis_ry = (int16_t)((int32_t)((int16_t)d[3] - 128) * 512 / 127);
     gp->brake    = (int16_t)((uint16_t)d[4] * 4);  // 0-255 → 0-1020
     gp->throttle = (int16_t)((uint16_t)d[5] * 4);
 

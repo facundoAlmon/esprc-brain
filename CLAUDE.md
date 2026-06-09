@@ -51,6 +51,24 @@ Report ID 0x01, 16 bytes (report ID stripped por esp_hidh):
 | 14 | Botones extra | View=bit2 Menu=bit3 LS=bit5 RS=bit6 |
 | 15 | Botones extra | Capture=bit0 |
 
+## Camera Servos (Pan/Tilt)
+
+Two additional LEDC channels on `LEDC_TIMER_0` (same timer as steering servo — already configured at 50 Hz, 14-bit):
+
+| Channel | Function | ESP32-C6 pin | ESP32 pin |
+|---------|----------|-------------|-----------|
+| `LEDC_CHANNEL_3` | Pan (left/right) | GPIO 4 | GPIO 14 |
+| `LEDC_CHANNEL_4` | Tilt (up/down) | GPIO 5 | GPIO 27 |
+
+Key implementation details:
+- `setupCamServos()` is a no-op when `camServoEnabled == false` — channels are only configured on demand
+- `camServoController()` in `gamepadHandler.cpp` doubles the deadzone when any trigger is >20 to absorb trigger→right-stick crosstalk common in budget gamepads
+- WebSocket `/act` accepts `panAng` and `tiltAng` (integers, -512..512) for direct control from `joy3`
+- Config backup/restore includes all servo NVS keys; config GET/POST buffer enlarged to 768 bytes to fit them
+- `prevCamEnabled` guard in `post_config_handler`: calls `setupCamServos()` only on first enable; otherwise just `centerCamServos()`
+
+NVS keys (namespace `"bl-car"`): `camServoEn`, `camGamepadEn`, `panInvert`, `tiltInvert`, `camStickDZ`, `camStickSat`, `panCenterDeg`, `panLimitLDeg`, `panLimitRDeg`, `panMinUs`, `panMaxUs`, `tiltCenterDeg`, `tiltLimUpDeg`, `tiltLimDnDeg`, `tiltMinUs`, `tiltMaxUs`.
+
 ## Partition Table
 
 Uses a custom `Firmware/partitions.csv` with a **dual-OTA layout** for 8 MB flash:
@@ -145,8 +163,8 @@ Configuration is persisted to ESP32 NVS under the namespace `"bl-car"`. LED conf
 |------|---------------|
 | `main.c` | Entry point; calls `app_task_start()` which creates the main FreeRTOS task |
 | `src/sketch.cpp` | `main_task`: nvs_flash_init, initPreferences, WiFi, actuators, gamepad, web server, main loop (15 ms) |
-| `src/actuators.cpp` | DC motor (MCPWM via L298N) and steering servo (LEDC direct, LEDC_TIMER_0, 50 Hz, 14-bit) |
-| `src/gamepadHandler.cpp` | Gamepad callbacks; maps axes/buttons to motor/steer/lights |
+| `src/actuators.cpp` | DC motor (MCPWM via L298N), steering servo (LEDC_TIMER_0, CH2), and camera pan/tilt servos (LEDC_TIMER_0, CH3/CH4) |
+| `src/gamepadHandler.cpp` | Gamepad callbacks; maps axes/buttons to motor/steer/lights/cam servos |
 | `src/ledStripHandler.cpp` | WS2812B strip via RMT encoder; maps `LedFunction` groups to physical LEDs |
 | `src/webServerHandler.cpp` | `esp_http_server` REST API + WebSocket; serves the embedded `index.html` |
 | `src/ProgramManager.cpp` | Records/plays back movement sequences; persists programs to NVS |
@@ -176,8 +194,8 @@ Configuration is persisted to ESP32 NVS under the namespace `"bl-car"`. LED conf
 | `js/api.js` | `fetchAPI()` helper and WebSocket connect/send |
 | `js/state.js` | Shared `state` and `elements` objects |
 | `js/ui.js` | Tab navigation, event listeners, UI helpers |
-| `js/joystick.js` | Virtual joystick rendering and action loop |
-| `js/config.js` | Car config GET/POST |
+| `js/joystick.js` | Virtual joystick rendering and action loop; `joy3` sends `panAng`/`tiltAng` when cam servos enabled |
+| `js/config.js` | Car config GET/POST; `initCamServoUI()` wires toggle + servo-type presets |
 | `js/lights.js` | Headlight/turn-signal/hazard UI |
 | `js/leds.js` | LED group configuration UI |
 | `js/program.js` | Sequence editor and program execution |
@@ -186,7 +204,7 @@ Configuration is persisted to ESP32 NVS under the namespace `"bl-car"`. LED conf
 
 ### Communication
 
-- **WebSocket** (`/ws`) — real-time joystick/motor commands; payload: `{ "action": <value> }` (via `sendWsAction()`)
+- **WebSocket** (`/ws`) — real-time joystick/motor commands; payload includes `panAng` (-512..512) and `tiltAng` (-512..512) when cam servos are enabled (via `sendWsAction()`)
 - **REST API** — configuration reads/writes, program upload/download, system actions (restart, factory reset)
 - **NVS** — all configuration persisted across reboots
 

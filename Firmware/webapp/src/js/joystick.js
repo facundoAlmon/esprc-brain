@@ -318,8 +318,15 @@ class JoyStick {
 }
 
 
-let joy1, joy2A, joy2B;
+let joy1, joy2A, joy2B, joy3;
 let _resizeTimer = null;
+
+// Only updates CSS visibility — does NOT recreate joysticks (avoids state loss on config refresh)
+export function updateCamJoyVisibility() {
+    const container = document.getElementById('camJoyContainer');
+    if (!container) return;
+    container.style.display = state.camServoEnabled ? '' : 'none';
+}
 
 export function initJoysticks() {
     const styles   = getComputedStyle(document.documentElement);
@@ -340,10 +347,12 @@ export function initJoysticks() {
     if (joy1)  joy1.destroy();
     if (joy2A) joy2A.destroy();
     if (joy2B) joy2B.destroy();
+    if (joy3)  joy3.destroy();
 
     joy1  = new JoyStick('joy1Div',  { ...opts, title: 'joy1'  });
     joy2A = new JoyStick('joy2ADiv', { ...opts, title: 'joy2A' });
     joy2B = new JoyStick('joy2BDiv', { ...opts, title: 'joy2B' });
+    joy3  = new JoyStick('joy3Div',  { ...opts, title: 'joy3'  });
 
     elements.recordBtnA.onclick = () => handleRecord();
     elements.recordBtnB.onclick = () => handleRecord();
@@ -371,6 +380,10 @@ export function startActionLoop() {
                 steerAng:       Math.trunc(Math.min(100, Math.abs(xVal)) * 512 / 100),
                 ms: 500
             };
+            if (state.camServoEnabled && joy3) {
+                body.panAng  = Math.trunc(parseFloat(joy3.GetX()) * 512 / 100);
+                body.tiltAng = Math.trunc(parseFloat(joy3.GetY()) * 512 / 100);
+            }
         } else if (state.activeTab === 'joystick-b') {
             const acelIzq = document.getElementById('acelIzq').classList.contains('active');
             const joyX = parseFloat(acelIzq ? joy2B.GetX() : joy2A.GetX());

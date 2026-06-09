@@ -3,6 +3,48 @@ import { fetchAPI } from './api.js';
 import { updateForm, serializeForm } from './ui.js';
 import { translations } from './translations.js';
 import { renderLedGroups } from './leds.js';
+import { updateCamJoyVisibility } from './joystick.js';
+
+var SERVO_PRESETS = {
+    sg90:  { minUs: 500,  maxUs: 2400 },
+    s3003: { minUs: 600,  maxUs: 2400 },
+    custom: null
+};
+
+function applyServoPreset(typeSelectId, minId, maxId) {
+    var sel = document.getElementById(typeSelectId);
+    if (!sel) return;
+    var preset = SERVO_PRESETS[sel.value];
+    if (preset) {
+        document.getElementById(minId).value = preset.minUs;
+        document.getElementById(maxId).value = preset.maxUs;
+    }
+}
+
+export function initCamServoUI() {
+    var toggle = document.getElementById('camServoEnabled');
+    var options = document.getElementById('camServoOptions');
+    if (!toggle || !options) return;
+
+    toggle.addEventListener('change', function() {
+        options.style.display = toggle.checked ? '' : 'none';
+        state.camServoEnabled = toggle.checked;
+        updateCamJoyVisibility();
+    });
+
+    var panTypeEl = document.getElementById('panServoType');
+    var tiltTypeEl = document.getElementById('tiltServoType');
+    if (panTypeEl) {
+        panTypeEl.addEventListener('change', function() {
+            applyServoPreset('panServoType', 'panMinUs', 'panMaxUs');
+        });
+    }
+    if (tiltTypeEl) {
+        tiltTypeEl.addEventListener('change', function() {
+            applyServoPreset('tiltServoType', 'tiltMinUs', 'tiltMaxUs');
+        });
+    }
+}
 
 export async function getWifiConfig() {
     const json = await fetchAPI('wifi');
@@ -26,6 +68,10 @@ export async function getConfig() {
     if (!json) return;
     state.config = json;
     updateForm(json);
+    state.camServoEnabled = !!(json.camServoEnabled);
+    var opts = document.getElementById('camServoOptions');
+    if (opts) opts.style.display = state.camServoEnabled ? '' : 'none';
+    updateCamJoyVisibility();
 }
 
 export async function saveConfig() {

@@ -74,6 +74,8 @@ Este no es solo un coche a RC, es una plataforma abierta para que puedas experim
 
 -   **📷 Visión FPV integrada (con [esprc-cam](https://github.com/facundoAlmon/esprc-cam)):** Agregá un módulo AI-Thinker ESP32-CAM y disfrutá de una vista en primera persona directamente en la webapp. La cámara se descubre automáticamente en la red local vía **mDNS** cada 30 segundos — sin configuración manual de IP. El stream MJPEG aparece en la pestaña **Cámara** al instante, con soporte para pantalla completa y ajuste de imagen en tiempo real.
 
+-   **🎥 Servos de Cámara Pan/Tilt:** Montá servos para apuntar la cámara y controlarlos desde el joystick virtual de la webapp o con el **stick derecho del gamepad Bluetooth**. Configuración completa desde la webapp: tipo de servo (SG90, S3003, custom), posición central, límites de giro, pulsos mínimo/máximo, inversión de eje, deadzone y saturación del stick.
+
 ## 📂 Estructura del Proyecto
 
 Hemos organizado el repositorio de forma lógica para que encuentres todo fácilmente.
@@ -117,6 +119,7 @@ Todos los modelos 3D utilizados para imprimir el chasis y la carrocería del coc
     - Driver de motor DC. Probado con L298N
     - Motor/es DC (para la aceleracion)
     - Motor Servo (para la direccion)
+    - *(Opcional)* 2 × Servo SG90 o compatible para montura pan/tilt de cámara
     - Alimentacion:
       - Actualmente estoy usando 3 baterias 18650 conectadas a un protector de bateria. Y un regulador Step-Down para bajar la tension a 5v para el ESP32 y el Motor Servo.
 2.  **Software:**
@@ -401,6 +404,15 @@ En esta sección se ajustan los parámetros físicos del coche.
       <li><strong>¡Atención!</strong> El Bluetooth se deshabilita por defecto al iniciar en modo AP para evitar conflictos.</li>
     </ul>
   </li>
+  <li><strong>Servos de Cámara (Pan/Tilt):</strong>
+    <ul>
+      <li><strong>Habilitar servos:</strong> Activa los dos canales LEDC adicionales para la montura pan/tilt.</li>
+      <li><strong>Control con gamepad:</strong> Mapea el stick derecho del gamepad a los servos.</li>
+      <li><strong>Tipo de servo:</strong> Presets para SG90, S3003 o custom (pulso mínimo/máximo configurable).</li>
+      <li><strong>Calibración:</strong> Posición central, límites de giro por eje e inversión de cada eje.</li>
+      <li><strong>Deadzone / Saturación:</strong> Ajuste fino del comportamiento del stick.</li>
+    </ul>
+  </li>
 </ul>
 </td>
 </tr>
@@ -494,6 +506,7 @@ Configuraciones propias de la aplicación web.
 -   [ ] Agregar un esquema del circuito electrónico.
 -   [x] Función para exportar e importar la configuración completa del coche. (`/api/config/backup` y `/api/config/restore`)
 -   [x] Soporte para cámara FPV vía **[esprc-cam](https://github.com/facundoAlmon/esprc-cam)** con auto-descubrimiento mDNS y control de imagen desde la webapp.
+-   [x] Servos pan/tilt para apuntar la cámara, controlados desde el joystick virtual o el stick derecho del gamepad Bluetooth.
 
 
 
