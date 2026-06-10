@@ -159,8 +159,10 @@ static char* get_config_json() {
     doc["tiltLimDnDeg"]  = g_state->tiltLimitDownDeg;
     doc["tiltMinUs"]     = g_state->tiltMinUs;
     doc["tiltMaxUs"]     = g_state->tiltMaxUs;
-    char *json_string = (char*)malloc(768);
-    serializeJson(doc, json_string, 768);
+    doc["camHoldMode"]   = g_state->camHoldMode ? 1 : 0;
+    doc["camHoldSpeed"]  = g_state->camHoldSpeed;
+    char *json_string = (char*)malloc(1024);
+    serializeJson(doc, json_string, 1024);
     return json_string;
 }
 
@@ -318,6 +320,8 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     if (doc.containsKey("tiltMaxUs"))     state->tiltMaxUs          = doc["tiltMaxUs"];
     if (doc.containsKey("camStickDZ"))    state->camStickDZ         = doc["camStickDZ"];
     if (doc.containsKey("camStickSat"))   state->camStickSat        = doc["camStickSat"];
+    if (doc.containsKey("camHoldMode"))   state->camHoldMode        = (doc["camHoldMode"] != 0);
+    if (doc.containsKey("camHoldSpeed"))  state->camHoldSpeed       = doc["camHoldSpeed"];
 
     // Persist BEFORE applying hardware changes to guarantee NVS is written
     nvs_put_u32("servoCenterDeg", state->servoCenterDeg);
@@ -344,6 +348,8 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     nvs_put_u32("tiltMaxUs",      state->tiltMaxUs);
     nvs_put_u32("camStickDZ",     state->camStickDZ);
     nvs_put_u32("camStickSat",    state->camStickSat);
+    nvs_put_bool("camHoldMode",   state->camHoldMode);
+    nvs_put_u32("camHoldSpeed",   state->camHoldSpeed);
 
     // Apply hardware changes after NVS is safe
     if (!prevCamEnabled && state->camServoEnabled) {
@@ -473,27 +479,39 @@ static void act_from_json(JsonDocument& doc, VehicleState* state) {
                             doc.containsKey("steerAng") || doc.containsKey("steerDirection");
 
     if (has_actuator_cmd) {
-        state->apiActEnabled = true;
-        state->apiActMSStart = millis();
-        state->apiActMS = doc["ms"] | state->apiActMSTimeout;
-
         int motorSpeedRaw = doc["motorSpeed"] | 0;
         const char* motorDirectionStr = doc["motorDirection"] | "F";
         int motorSpeed = strcmp(motorDirectionStr, "F") == 0 ? motorSpeedRaw : -motorSpeedRaw;
-        setMotor(motorSpeed, strcmp(motorDirectionStr, "F") == 0, state);
 
         int steerAngRaw = doc["steerAng"] | 0;
         const char* steerDirectionStr = doc["steerDirection"] | "R";
         int steerAngle = strcmp(steerDirectionStr, "L") == 0 ? -steerAngRaw : steerAngRaw;
+
+        // Arbitraje WS vs gamepad BT: solo un comando no-neutro abre la ventana
+        // de prioridad WS (mientras está abierta, handleGamepadMotion cede).
+        // Una webapp idle mandando ceros no bloquea el gamepad.
+        if (motorSpeedRaw != 0 || steerAngRaw != 0) {
+            state->apiActEnabled = true;
+            state->apiActMSStart = millis();
+            state->apiActMS = doc["ms"] | state->apiActMSTimeout;
+        }
+
+        setMotor(motorSpeed, strcmp(motorDirectionStr, "F") == 0, state);
         setSteer(steerAngle, state);
 
         if (g_programManager->isRecording()) g_programManager->recordStep(motorSpeed, steerAngle);
     }
 
-    if (doc.containsKey("panAng") && state->camServoEnabled)
-        setCamPan(doc["panAng"] | 0, state);
-    if (doc.containsKey("tiltAng") && state->camServoEnabled)
-        setCamTilt(doc["tiltAng"] | 0, state);
+    if (doc.containsKey("panAng") && state->camServoEnabled) {
+        int panAng = doc["panAng"] | 0;
+        if (panAng != 0) state->apiCamActUntil = millis() + (doc["ms"] | state->apiActMSTimeout);
+        setCamPan(panAng, state);
+    }
+    if (doc.containsKey("tiltAng") && state->camServoEnabled) {
+        int tiltAng = doc["tiltAng"] | 0;
+        if (tiltAng != 0) state->apiCamActUntil = millis() + (doc["ms"] | state->apiActMSTimeout);
+        setCamTilt(tiltAng, state);
+    }
 
     if (doc.containsKey("action")) {
         const char* action = doc["action"];
@@ -505,6 +523,11 @@ static void act_from_json(JsonDocument& doc, VehicleState* state) {
             state->giroIzquierdo = !state->giroIzquierdo;
         } else if (strcmp(action, "hazards_toggle") == 0) {
             state->baliza = !state->baliza;
+        } else if (strcmp(action, "cam_hold_toggle") == 0) {
+            state->camHoldMode = !state->camHoldMode;
+            nvs_put_bool("camHoldMode", state->camHoldMode);
+        } else if (strcmp(action, "cam_center") == 0) {
+            centerCamServos(state);
         }
     }
 }
@@ -664,6 +687,8 @@ static esp_err_t get_config_backup_handler(httpd_req_t *req) {
     doc["tiltLimDnDeg"]  = nvs_get_u32_or("tiltLimDnDeg",  30);
     doc["tiltMinUs"]     = nvs_get_u32_or("tiltMinUs",     500);
     doc["tiltMaxUs"]     = nvs_get_u32_or("tiltMaxUs",     2400);
+    doc["camHoldMode"]   = nvs_get_bool_or("camHoldMode",  false) ? 1 : 0;
+    doc["camHoldSpeed"]  = nvs_get_u32_or("camHoldSpeed",  90);
     doc["program"]       = g_programManager->getProgramAsJson();
 
     std::string output;
@@ -711,6 +736,8 @@ static esp_err_t post_config_restore_handler(httpd_req_t *req) {
     if (doc.containsKey("tiltLimDnDeg"))  nvs_put_u32("tiltLimDnDeg",  doc["tiltLimDnDeg"]);
     if (doc.containsKey("tiltMinUs"))     nvs_put_u32("tiltMinUs",      doc["tiltMinUs"]);
     if (doc.containsKey("tiltMaxUs"))     nvs_put_u32("tiltMaxUs",      doc["tiltMaxUs"]);
+    if (doc.containsKey("camHoldMode"))   nvs_put_bool("camHoldMode",   (bool)(doc["camHoldMode"] != 0));
+    if (doc.containsKey("camHoldSpeed"))  nvs_put_u32("camHoldSpeed",   doc["camHoldSpeed"]);
 
     auto check_wifi = [&](const char* key) {
         if (!doc.containsKey(key)) return;

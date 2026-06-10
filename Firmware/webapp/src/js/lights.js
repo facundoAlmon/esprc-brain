@@ -2,8 +2,12 @@ import { state, elements, icons } from './state.js';
 import { updateButtonIcon } from './ui.js';
 import { sendWsAction } from './api.js';
 
+const LIGHT_BTN_SUFFIXES = ['A', 'B', 'Fpv'];
+const TAB_TO_SUFFIX = { 'joystick-a': 'A', 'joystick-b': 'B', 'fpv': 'Fpv' };
+
 export function initLights() {
-    ['A', 'B'].forEach(tab => {
+    LIGHT_BTN_SUFFIXES.forEach(tab => {
+        if (!elements[`turnLeftBtn${tab}`]) return;
         elements[`turnLeftBtn${tab}`].addEventListener('click', () => handleTurnSignal('left'));
         elements[`turnRightBtn${tab}`].addEventListener('click', () => handleTurnSignal('right'));
         elements[`hazardBtn${tab}`].addEventListener('click', () => handleHazard());
@@ -44,40 +48,24 @@ function handleHeadlights() {
 
 export function updateLightsUI() {
     const { turnLeft, turnRight, hazard, acelIzq } = state.lightsState;
-    elements.turnLeftBtnA.classList.toggle('active', turnLeft && !hazard);
-    elements.turnRightBtnA.classList.toggle('active', turnRight && !hazard);
-    elements.hazardBtnA.classList.toggle('active', hazard);
-    elements.turnLeftBtnB.classList.toggle('active', turnLeft && !hazard);
-    elements.turnRightBtnB.classList.toggle('active', turnRight && !hazard);
-    elements.hazardBtnB.classList.toggle('active', hazard);
+    const activeSuffix = TAB_TO_SUFFIX[state.activeTab];
+    LIGHT_BTN_SUFFIXES.forEach(tab => {
+        if (!elements[`turnLeftBtn${tab}`]) return;
+        elements[`turnLeftBtn${tab}`].classList.toggle('active', turnLeft && !hazard);
+        elements[`turnRightBtn${tab}`].classList.toggle('active', turnRight && !hazard);
+        elements[`hazardBtn${tab}`].classList.toggle('active', hazard);
+        if (tab === activeSuffix) {
+            elements[`turnLeftBtn${tab}`].innerHTML = icons.turn_left;
+            elements[`turnRightBtn${tab}`].innerHTML = icons.turn_right;
+            elements[`hazardBtn${tab}`].innerHTML = icons.hazard;
+            updateButtonIcon(elements[`headlightsBtn${tab}`], state.lightsState.headlights > 0, 'headlights');
+        } else {
+            elements[`turnLeftBtn${tab}`].innerHTML = '';
+            elements[`turnRightBtn${tab}`].innerHTML = '';
+            elements[`hazardBtn${tab}`].innerHTML = '';
+            elements[`headlightsBtn${tab}`].innerHTML = '';
+        }
+    });
     elements.acelIzq.classList.toggle('active', acelIzq);
-    if (state.activeTab === 'joystick-a') {
-        elements.turnLeftBtnA.innerHTML = icons.turn_left;
-        elements.turnRightBtnA.innerHTML = icons.turn_right;
-        elements.hazardBtnA.innerHTML = icons.hazard;
-        updateButtonIcon(elements.headlightsBtnA, state.lightsState.headlights > 0, 'headlights');
-        elements.turnLeftBtnB.innerHTML = '';
-        elements.turnRightBtnB.innerHTML = '';
-        elements.hazardBtnB.innerHTML = '';
-        elements.headlightsBtnB.innerHTML = '';
-    } else if (state.activeTab === 'joystick-b') {
-        elements.turnLeftBtnA.innerHTML = '';
-        elements.turnRightBtnA.innerHTML = '';
-        elements.hazardBtnA.innerHTML = '';
-        elements.headlightsBtnA.innerHTML = '';
-        elements.turnLeftBtnB.innerHTML = icons.turn_left;
-        elements.turnRightBtnB.innerHTML = icons.turn_right;
-        elements.hazardBtnB.innerHTML = icons.hazard;
-        updateButtonIcon(elements.headlightsBtnB, state.lightsState.headlights > 0, 'headlights');
-    } else {
-        elements.turnLeftBtnA.innerHTML = '';
-        elements.turnRightBtnA.innerHTML = '';
-        elements.hazardBtnA.innerHTML = '';
-        elements.headlightsBtnA.innerHTML = '';
-        elements.turnLeftBtnB.innerHTML = '';
-        elements.turnRightBtnB.innerHTML = '';
-        elements.hazardBtnB.innerHTML = '';
-        elements.headlightsBtnB.innerHTML = '';
-    }
     elements.swapLayoutBtnA.innerHTML = icons.swap;
 }

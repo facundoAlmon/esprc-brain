@@ -63,3 +63,10 @@ void setCamTilt(int angle, VehicleState* state);
  * @brief Centra ambos servos de cámara.
  */
 void centerCamServos(VehicleState* state);
+
+/**
+ * @brief Actualiza la posición física de los servos de cámara. Debe llamarse
+ *        cada tick del loop principal (~15 ms). Aplica integración en modo hold
+ *        o tracking directo en modo absoluto usando el último ángulo recibido.
+ */
+void updateCamServos(VehicleState* state);

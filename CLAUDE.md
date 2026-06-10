@@ -64,10 +64,18 @@ Key implementation details:
 - `setupCamServos()` is a no-op when `camServoEnabled == false` — channels are only configured on demand
 - `camServoController()` in `gamepadHandler.cpp` doubles the deadzone when any trigger is >20 to absorb trigger→right-stick crosstalk common in budget gamepads
 - WebSocket `/act` accepts `panAng` and `tiltAng` (integers, -512..512) for direct control from `joy3`
-- Config backup/restore includes all servo NVS keys; config GET/POST buffer enlarged to 768 bytes to fit them
+- Config backup/restore includes all servo NVS keys; config GET/POST buffer enlarged to 1024 bytes to fit them
 - `prevCamEnabled` guard in `post_config_handler`: calls `setupCamServos()` only on first enable; otherwise just `centerCamServos()`
 
-NVS keys (namespace `"bl-car"`): `camServoEn`, `camGamepadEn`, `panInvert`, `tiltInvert`, `camStickDZ`, `camStickSat`, `panCenterDeg`, `panLimitLDeg`, `panLimitRDeg`, `panMinUs`, `panMaxUs`, `tiltCenterDeg`, `tiltLimUpDeg`, `tiltLimDnDeg`, `tiltMinUs`, `tiltMaxUs`.
+**Smooth servo update loop**: `setCamPan()`/`setCamTilt()` only store the angle target in `lastPanAngle`/`lastTiltAngle` — they do **not** write to LEDC directly. `updateCamServos(state)` is called every 15 ms from `main_task` and does all the work: integrates velocity (hold mode) or computes absolute position, then calls `cam_servo_write()`. This decouples the physical servo update rate from the WS frame rate (100 ms), eliminating the advance/pause stepping that was visible when the stick is deflected.
+
+NVS keys (namespace `"bl-car"`): `camServoEn`, `camGamepadEn`, `panInvert`, `tiltInvert`, `camStickDZ`, `camStickSat`, `panCenterDeg`, `panLimitLDeg`, `panLimitRDeg`, `panMinUs`, `panMaxUs`, `tiltCenterDeg`, `tiltLimUpDeg`, `tiltLimDnDeg`, `tiltMinUs`, `tiltMaxUs`, `camHoldMode`, `camHoldSpeed`.
+
+Hold mode (`camHoldMode`): stick/pad input is treated as angular velocity (`camHoldSpeed` °/s at full deflection); `updateCamServos()` integrates it every 15 ms (dt clamped to 0.1 s) — the servo moves continuously and smoothly as long as the stick is deflected, and holds its position when input returns to 0. `panPosDeg`/`tiltPosDeg` are kept in sync during absolute mode so switching to hold starts from the current physical position. `stopMotors()` skips `centerCamServos()` in hold mode.
+
+WS/`/act` actions: `cam_hold_toggle` (flips `camHoldMode` and persists to NVS) and `cam_center` (calls `centerCamServos`). The webapp exposes hold/center buttons on all joystick views (`.cam-hold-btn`/`.cam-center-btn`, shown only when `camServoEnabled`).
+
+Webapp-only video recording (`webapp/src/js/recorder.js`): browsers do NOT refresh a multipart MJPEG `<img>` when drawn to a canvas (drawImage always yields the first frame), so the recorder takes over the camera's single MJPEG connection while recording: clears `img.src`, `fetch()`es the stream (CORS ok — the mjpeg server sends `Access-Control-Allow-Origin: *`), splits JPEG frames by FFD8/FFD9 markers, paints them onto a hidden canvas (recorded via `captureStream` + MediaRecorder → webm/mp4 download) and keeps the on-screen `<img>` live with per-frame blob URLs. On stop it reconnects the normal `<img>` stream. Stream fallback URL uses port 81 directly (the port-80 302 redirect may not carry CORS).
 
 ## Partition Table
 
@@ -180,10 +188,11 @@ Configuration is persisted to ESP32 NVS under the namespace `"bl-car"`. LED conf
 `main_task` runs a 15 ms non-blocking interval loop. Priority order each tick:
 
 1. `handleGamepadButtons()` — always processed (lights, recording, program control)
-2. `handleGamepadMotion()` — skipped when `ProgramManager::isRunning()`
-3. API action timeout check (`vehicleState.apiActEnabled`)
-4. `programManager.loop()` — advances the active sequence
-5. `handleLedStrip()` — updates the LED strip
+2. `handleGamepadMotion()` — skipped when `ProgramManager::isRunning()`. WS/BT arbitration ("last active input wins"): drive control is skipped while `apiActEnabled` (open only by non-neutral WS commands), cam servo control while `millis() < apiCamActUntil`. The webapp action loop only transmits while there is real input (plus one neutral frame on release; always transmits while recording a program), so an idle webapp never locks out the gamepad.
+3. `updateCamServos()` — always called; writes the physical servo position every tick (smooth interpolation regardless of WS/gamepad rate)
+4. API action timeout check (`vehicleState.apiActEnabled`)
+5. `programManager.loop()` — advances the active sequence
+6. `handleLedStrip()` — updates the LED strip
 
 ### WebApp JS Modules
 
@@ -193,10 +202,11 @@ Configuration is persisted to ESP32 NVS under the namespace `"bl-car"`. LED conf
 |--------|---------|
 | `js/api.js` | `fetchAPI()` helper and WebSocket connect/send |
 | `js/state.js` | Shared `state` and `elements` objects |
-| `js/ui.js` | Tab navigation, event listeners, UI helpers |
-| `js/joystick.js` | Virtual joystick rendering and action loop; `joy3` sends `panAng`/`tiltAng` when cam servos enabled |
-| `js/config.js` | Car config GET/POST; `initCamServoUI()` wires toggle + servo-type presets |
-| `js/lights.js` | Headlight/turn-signal/hazard UI |
+| `js/ui.js` | Tab navigation, event listeners, UI helpers; `enterFpv()`/`leaveFpv()` move `#camImg` in/out of FPV container; `handleCamHoldToggle()`/`handleCamCenter()` |
+| `js/joystick.js` | Virtual joystick rendering and action loop; `joy3` sends `panAng`/`tiltAng`; `CamPad` class for invisible FPV overlay touch control; `joyFpv` for FPV drive joystick |
+| `js/recorder.js` | Webapp-only MJPEG video recorder: takes over the camera's single connection via `fetch()`, parses FFD8/FFD9 markers, renders frames to a hidden canvas via `createImageBitmap`, records with MediaRecorder (webm/mp4), keeps on-screen `<img>` live with per-frame blob URLs |
+| `js/config.js` | Car config GET/POST; `initCamServoUI()` wires toggle + servo-type presets; reads `camHoldMode` and calls `updateCamHoldButtons()` |
+| `js/lights.js` | Headlight/turn-signal/hazard UI — generic loop covers Joy A, Joy B, and FPV tabs |
 | `js/leds.js` | LED group configuration UI |
 | `js/program.js` | Sequence editor and program execution |
 | `js/kidMode.js` | Kids block-programming UI |

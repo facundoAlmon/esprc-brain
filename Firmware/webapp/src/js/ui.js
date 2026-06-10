@@ -2,7 +2,8 @@ import { state, elements, icons } from './state.js';
 import { setLanguage } from './language.js';
 import { initJoysticks } from './joystick.js';
 import { getWifiConfig, saveWifiConfig, getConfig, saveConfig, exportConfig, importConfig, getLedConfig, saveLedConfig, exportLedConfig, importLedConfig, getCamConfig, setCamConfig } from './config.js';
-import { wsReconnect, fetchAPI, connectCamMjpeg } from './api.js';
+import { wsReconnect, fetchAPI, connectCamMjpeg, sendWsAction } from './api.js';
+import { toggleVideoRecording } from './recorder.js';
 import { addLedGroup } from './leds.js';
 import { uploadProgram, runProgram, stopProgram, clearProgram, showActionModal, loadProgramFromServer, exportProgram, importProgram } from './program.js';
 import { handleKidModeCommand, runKidSequence, stopKidSequence, clearKidSequence } from './kidMode.js';
@@ -49,11 +50,20 @@ export function setupEventListeners() {
     attachClick('setCamConfigBtn', setCamConfig);
     attachClick('camFullscreenBtn', enterCamFs);
     attachClick('camExitFsBtn', exitCamFs);
+    attachClick('fpvFullscreenBtn', toggleFpvFs);
+    attachClick('fpvStartStreamBtn', startCamStream);
+    attachClick('fpvStopStreamBtn', stopCamStream);
+    attachClick('camRecBtn', toggleVideoRecording);
+    attachClick('fpvRecBtn', toggleVideoRecording);
+    document.querySelectorAll('.cam-hold-btn').forEach(btn => btn.addEventListener('click', handleCamHoldToggle));
+    document.querySelectorAll('.cam-center-btn').forEach(btn => btn.addEventListener('click', handleCamCenter));
     document.addEventListener('fullscreenchange', function() {
         if (!document.fullscreenElement && camFsActive) exitCamFs();
+        if (!document.fullscreenElement) fpvFsActive = false;
     });
     document.addEventListener('webkitfullscreenchange', function() {
         if (!document.webkitFullscreenElement && camFsActive) exitCamFs();
+        if (!document.webkitFullscreenElement) fpvFsActive = false;
     });
     attachClick('uploadProgramBtn', uploadProgram);
     attachClick('runProgramBtn', runProgram);
@@ -116,7 +126,10 @@ function attachClick(id, handler) {
 }
 
 export function openTab(tabId) {
-    if (state.activeTab === 'cam' && tabId !== 'cam') stopCamStatsPolling();
+    const wasCamTab = (state.activeTab === 'cam' || state.activeTab === 'fpv');
+    const isCamTab = (tabId === 'cam' || tabId === 'fpv');
+    if (wasCamTab && !isCamTab) stopCamStatsPolling();
+    if (state.activeTab === 'fpv' && tabId !== 'fpv') leaveFpv();
     state.activeTab = tabId;
     elements.tabContents.forEach(content => content.classList.remove('active'));
     elements.menuLinks.forEach(link => link.classList.remove('active'));
@@ -133,6 +146,11 @@ export function openTab(tabId) {
         case 'conexion': getWifiConfig(); break;
         case 'cam': getCamConfig(); startCamStatsPolling(); break;
         case 'manage': refreshOtaInfo(); break;
+        case 'fpv':
+            enterFpv();
+            startCamStatsPolling();
+            requestAnimationFrame(initJoysticks);
+            break;
         case 'joystick-a':
         case 'joystick-b':
             requestAnimationFrame(initJoysticks);
@@ -247,7 +265,7 @@ function startCamStream() {
     }
     const ip = state.wifiConfig && state.wifiConfig.camIP;
     if (!ip) { console.warn('No camera IP configured'); return; }
-    connectCamMjpeg(`http://${ip}/mjpeg`);
+    connectCamMjpeg(`http://${ip}:81/mjpeg`);
 }
 
 function stopCamStream() {
@@ -288,6 +306,60 @@ function exitCamFs() {
     else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
 }
 
+// ── Camera servo quick controls ──────────────
+// Hold toggle persists on the firmware side (WS action writes NVS);
+// the webapp mirrors the state for button highlighting.
+function handleCamHoldToggle() {
+    if (!state.socketOnline) return;
+    state.camHoldMode = !state.camHoldMode;
+    sendWsAction('cam_hold_toggle');
+    updateCamHoldButtons();
+}
+
+function handleCamCenter() {
+    sendWsAction('cam_center');
+}
+
+export function updateCamHoldButtons() {
+    document.querySelectorAll('.cam-hold-btn').forEach(function(btn) {
+        btn.classList.toggle('active', state.camHoldMode);
+    });
+}
+
+// ── FPV view ─────────────────────────────────
+// The MJPEG <img> is moved (not duplicated) into the FPV container — the
+// camera only accepts one stream connection at a time.
+let fpvFsActive = false;
+
+function enterFpv() {
+    const img = document.getElementById('camImg');
+    const fpvStream = document.getElementById('fpvStream');
+    if (img && fpvStream) fpvStream.appendChild(img);
+    if (img && !img.getAttribute('src')) startCamStream();
+}
+
+function leaveFpv() {
+    if (fpvFsActive) exitFpvFs();
+    const img = document.getElementById('camImg');
+    const home = document.querySelector('#cam .cam-stream');
+    if (img && home && img.parentNode !== home) home.insertBefore(img, home.firstChild);
+}
+
+function toggleFpvFs() {
+    if (fpvFsActive) { exitFpvFs(); return; }
+    const cont = document.getElementById('fpvContainer');
+    if (!cont) return;
+    fpvFsActive = true;
+    if (cont.requestFullscreen) cont.requestFullscreen().catch(function() {});
+    else if (cont.webkitRequestFullscreen) cont.webkitRequestFullscreen();
+}
+
+function exitFpvFs() {
+    fpvFsActive = false;
+    if (document.fullscreenElement) document.exitFullscreen().catch(function() {});
+    else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+}
+
 // ── Camera stats polling ─────────────────────
 let camStatsTimer = null;
 
@@ -298,19 +370,20 @@ function startCamStatsPolling() {
 
 function stopCamStatsPolling() {
     if (camStatsTimer) { clearInterval(camStatsTimer); camStatsTimer = null; }
-    var fpsEl = document.getElementById('fps');
-    var fpsFull = document.getElementById('fpsFull');
-    if (fpsEl) fpsEl.textContent = '';
-    if (fpsFull) fpsFull.textContent = '';
+    setFpsBadges('');
+}
+
+function setFpsBadges(text) {
+    ['fps', 'fpsFull', 'fpsFpv'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = text;
+    });
 }
 
 function updateCamStats() {
     var statsEl = document.getElementById('statsEnabled');
     if (statsEl && !statsEl.checked) {
-        var fpsEl = document.getElementById('fps');
-        var fpsFull = document.getElementById('fpsFull');
-        if (fpsEl) fpsEl.textContent = '';
-        if (fpsFull) fpsFull.textContent = '';
+        setFpsBadges('');
         return;
     }
     var ip = (state.cameraInfo && state.cameraInfo.ip) || (state.wifiConfig && state.wifiConfig.camIP);
@@ -320,11 +393,7 @@ function updateCamStats() {
         return r.json();
     }).then(function(d) {
         if (!d) return;
-        var fpsEl = document.getElementById('fps');
-        var fpsFull = document.getElementById('fpsFull');
-        var text = (d.enabled && typeof d.fps === 'number') ? d.fps.toFixed(1) + ' FPS' : '';
-        if (fpsEl) fpsEl.textContent = text;
-        if (fpsFull) fpsFull.textContent = text;
+        setFpsBadges((d.enabled && typeof d.fps === 'number') ? d.fps.toFixed(1) + ' FPS' : '');
     }).catch(function() {});
 }
 

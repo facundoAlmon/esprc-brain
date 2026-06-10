@@ -44,6 +44,11 @@ function init() {
     elements.kidModeInfinite = document.getElementById('kidModeInfinite');
     elements.recordBtnA = document.getElementById('record-btn-a');
     elements.recordBtnB = document.getElementById('record-btn-b');
+    elements.turnLeftBtnFpv = document.getElementById('turn-left-btn-fpv');
+    elements.turnRightBtnFpv = document.getElementById('turn-right-btn-fpv');
+    elements.hazardBtnFpv = document.getElementById('hazard-btn-fpv');
+    elements.headlightsBtnFpv = document.getElementById('headlights-btn-fpv');
+    elements.recordBtnFpv = document.getElementById('record-btn-fpv');
 
     setupLanguage();
     setupUI();

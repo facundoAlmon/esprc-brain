@@ -241,6 +241,29 @@ main{flex:1;padding:1rem;overflow-y:auto}
 #camJoyContainer #joy3Div{width:140px;height:140px;margin:0 auto}
 .cam-joy-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-m);text-align:center;margin-bottom:.4rem}
 
+/* Quick hold/center buttons next to camera joystick */
+.cam-quick-controls{
+  display:flex;justify-content:center;gap:.65rem;
+  margin-top:.75rem;
+}
+.cam-quick-controls .icon-toggle{width:42px;height:42px}
+
+/* Video record button + REC badge */
+.cam-rec-btn{border-color:rgba(220,38,38,.55);color:var(--danger)}
+.cam-rec-btn:hover{background:var(--danger);border-color:var(--danger);color:#fff}
+.cam-rec-btn.active{
+  background:var(--danger) !important;
+  border-color:var(--danger) !important;
+  color:#fff !important;
+  animation:record-pulse-red 1s ease-in-out infinite;
+}
+@keyframes record-pulse-red{
+  0%,100%{box-shadow:0 0 0 3px rgba(220,38,38,.4),0 0 14px rgba(220,38,38,.55)}
+  50%{box-shadow:0 0 0 7px rgba(220,38,38,.12),0 0 30px rgba(220,38,38,.8)}
+}
+.rec-badge{color:#fff}
+.rec-badge:not(:empty){background:rgba(220,38,38,.85);margin-left:.5rem}
+
 /* ── Settings Sections ──────────────────────── */
 .settings-section{
   margin-top:1rem;
@@ -261,6 +284,104 @@ main{flex:1;padding:1rem;overflow-y:auto}
   width:3px;height:1em;flex-shrink:0;
   background:var(--accent);border-radius:2px;
 }
+/* ── Config Accordion ───────────────────────── */
+.cfg-group{
+  margin-top:.7rem;
+  background:var(--surf2);
+  border:1px solid var(--border-s);
+}
+.cfg-group:first-of-type{margin-top:0}
+.cfg-group>summary{
+  list-style:none;
+  padding:.85rem 1rem;
+  cursor:pointer;
+  font-size:.74rem;font-weight:800;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--txt-m);
+  display:flex;align-items:center;gap:.6rem;
+  user-select:none;
+  transition:color .2s,background .2s;
+}
+.cfg-group>summary::-webkit-details-marker{display:none}
+.cfg-group>summary::before{
+  content:'›';
+  font-size:1.15rem;line-height:1;
+  transition:transform .2s;
+  color:var(--accent);
+}
+.cfg-group[open]>summary::before{transform:rotate(90deg)}
+.cfg-group[open]>summary{color:var(--accent)}
+.cfg-group>summary:hover{color:var(--txt);background:var(--border-s)}
+.cfg-group-inner{
+  padding:1.15rem 1.35rem;
+  border-top:1px solid var(--border-s);
+  display:flex;flex-direction:column;gap:.85rem;
+}
+/* extra breathing room between slider columns and around the grid */
+.cfg-group-inner .form-grid{column-gap:2.25rem;row-gap:1rem;margin-bottom:.35rem}
+
+/* Pan/Tilt side-by-side cards */
+.servo-pair{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(270px,1fr));
+  gap:1rem;
+}
+.servo-card{
+  background:rgba(0,0,0,.18);
+  border:1px solid var(--border-s);
+  padding:1rem 1.15rem;
+  display:flex;flex-direction:column;gap:.65rem;
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+}
+.light-mode .servo-card{background:rgba(0,0,0,.04)}
+.servo-card h4{
+  font-size:.72rem;font-weight:800;
+  letter-spacing:.08em;text-transform:uppercase;
+  color:var(--amber);
+  padding-bottom:.4rem;
+  border-bottom:1px solid var(--border-s);
+}
+
+/* Nested advanced sub-section */
+.cfg-sub{border:1px dashed var(--border-s)}
+.cfg-sub>summary{
+  list-style:none;
+  padding:.5rem .75rem;
+  cursor:pointer;
+  font-size:.66rem;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;
+  color:var(--txt-m);
+  display:flex;align-items:center;gap:.45rem;
+  user-select:none;
+}
+.cfg-sub>summary::-webkit-details-marker{display:none}
+.cfg-sub>summary::before{
+  content:'›';font-size:1rem;line-height:1;
+  transition:transform .2s;color:var(--accent);
+}
+.cfg-sub[open]>summary::before{transform:rotate(90deg)}
+.cfg-sub>summary:hover{color:var(--txt)}
+.cfg-sub-inner{
+  padding:.75rem;
+  border-top:1px dashed var(--border-s);
+  display:flex;flex-direction:column;gap:.6rem;
+}
+
+/* Sticky action bar at the bottom of the config tab */
+.cfg-actions{
+  position:sticky;bottom:0;
+  margin-top:1rem;
+  padding:.7rem .25rem;
+  background:var(--surface);
+  border-top:1px solid var(--border-s);
+  z-index:20;
+}
+.cfg-actions #saveConfigBtn{
+  background:var(--accent);color:#fff;
+  box-shadow:0 0 16px var(--accent-gl);
+}
+.cfg-actions #saveConfigBtn:hover{background:#ff4a24}
+
 h2[data-i18n]{
   font-size:.9rem;font-weight:800;
   letter-spacing:.1em;text-transform:uppercase;
@@ -331,10 +452,11 @@ input[type=range]::-moz-range-thumb{
   background:var(--accent);border-radius:50%;
   border:2px solid var(--bg);
 }
-.slider-group label{display:flex;justify-content:space-between;align-items:center}
+.slider-group label{display:flex;justify-content:flex-start;align-items:center;gap:.3rem}
 .slider-group label span:last-child{
   font-family:var(--mono);color:var(--amber);
   min-width:2.5rem;text-align:right;font-size:.85rem;
+  margin-left:auto;
 }
 .radio-group{display:flex;gap:1rem;align-items:center;font-size:.9rem}
 .radio-group input[type=radio]{accent-color:var(--accent);cursor:pointer}
@@ -415,7 +537,7 @@ button.icon-toggle.active{
   animation:btn-active-pulse 2.5s ease-in-out infinite;
 }
 button.icon-toggle.active svg{fill:#fff}
-#record-btn-a.active,#record-btn-b.active{animation:record-pulse 1s ease-in-out infinite}
+#record-btn-a.active,#record-btn-b.active,#record-btn-fpv.active{animation:record-pulse 1s ease-in-out infinite}
 @keyframes btn-active-pulse{
   0%,100%{box-shadow:0 0 0 3px rgba(232,64,28,.3),0 0 18px rgba(232,64,28,.5),0 4px 12px rgba(232,64,28,.25)}
   50%{box-shadow:0 0 0 5px rgba(232,64,28,.15),0 0 32px rgba(232,64,28,.65),0 4px 18px rgba(232,64,28,.35)}
@@ -652,6 +774,99 @@ input:checked+.slider::before{transform:translateX(24px);background:#fff}
   color:#fff;
 }
 .cam-fs-exit-btn:hover{background:var(--danger);border-color:var(--danger);box-shadow:none}
+
+/* ── FPV View ───────────────────────────────── */
+#fpv.tab-content{padding:0;background:#000}
+.fpv-container{
+  position:relative;
+  width:100%;
+  height:calc(100vh - 120px);
+  background:#000;
+  overflow:hidden;
+}
+.fpv-container:fullscreen{height:100vh;width:100vw}
+.fpv-stream{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  min-height:0;
+}
+.fpv-stream img{
+  width:100%;height:100%;
+  object-fit:contain;
+  clip-path:none !important;
+  border:none !important;
+  display:block;
+}
+/* Invisible pan/tilt pad covering the stream */
+.fpv-cam-pad{
+  position:absolute;inset:0;
+  z-index:5;
+  touch-action:none;
+}
+.fpv-pad-ring{
+  display:none;
+  position:absolute;
+  width:88px;height:88px;
+  margin:-44px 0 0 -44px;
+  border:1.5px dashed rgba(255,255,255,.45);
+  border-radius:50%;
+  pointer-events:none;
+}
+.fpv-pad-dot{
+  display:none;
+  position:absolute;
+  width:26px;height:26px;
+  margin:-13px 0 0 -13px;
+  background:var(--accent);
+  border:2px solid rgba(255,255,255,.7);
+  border-radius:50%;
+  box-shadow:0 0 14px var(--accent-gl);
+  pointer-events:none;
+}
+.fpv-hud-top{
+  position:absolute;top:.5rem;left:.6rem;
+  z-index:10;pointer-events:none;
+}
+.fpv-hud-actions{
+  position:absolute;top:.5rem;right:.6rem;
+  display:flex;gap:.55rem;
+  z-index:10;
+}
+.fpv-hud-actions .icon-toggle{
+  width:52px;height:52px;
+  background:rgba(10,10,11,.55);
+}
+.fpv-hud-actions .icon-toggle svg{width:24px;height:24px}
+.fpv-joy-wrap{
+  position:absolute;left:.9rem;bottom:3rem;
+  z-index:10;
+}
+#joyFpvDiv{
+  width:clamp(130px,32vmin,240px);
+  aspect-ratio:1/1;
+  border-radius:50%;
+  border:1.5px solid var(--joy-ring);
+  opacity:.88;
+  box-shadow:0 0 24px rgba(0,0,0,.6);
+}
+.fpv-buttons{
+  position:absolute;right:.6rem;top:50%;
+  transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:.55rem;
+  z-index:10;
+}
+.fpv-buttons .icon-toggle{
+  width:56px;height:56px;
+  background:rgba(10,10,11,.55);
+}
+.fpv-buttons .icon-toggle svg{width:26px;height:26px}
+@media (max-width:991px){
+  .fpv-container{height:calc(100vh - 150px)}
+  .fpv-buttons{gap:.45rem}
+  .fpv-buttons .icon-toggle{width:48px;height:48px}
+  .fpv-buttons .icon-toggle svg{width:23px;height:23px}
+  .fpv-hud-actions .icon-toggle{width:46px;height:46px}
+}
 
 /* ── Program Editor ─────────────────────────── */
 .toolbar{

@@ -1,6 +1,6 @@
 import { state, elements } from './state.js';
 import { fetchAPI } from './api.js';
-import { updateForm, serializeForm } from './ui.js';
+import { updateForm, serializeForm, updateCamHoldButtons } from './ui.js';
 import { translations } from './translations.js';
 import { renderLedGroups } from './leds.js';
 import { updateCamJoyVisibility } from './joystick.js';
@@ -69,9 +69,11 @@ export async function getConfig() {
     state.config = json;
     updateForm(json);
     state.camServoEnabled = !!(json.camServoEnabled);
+    state.camHoldMode = !!(json.camHoldMode);
     var opts = document.getElementById('camServoOptions');
     if (opts) opts.style.display = state.camServoEnabled ? '' : 'none';
     updateCamJoyVisibility();
+    updateCamHoldButtons();
 }
 
 export async function saveConfig() {

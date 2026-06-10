@@ -94,9 +94,14 @@ struct VehicleState {
     unsigned int tiltMaxUs;             //< Pulso máximo del servo tilt (microsegundos).
     int          lastPanAngle;          //< Último ángulo de pan (-512..512).
     int          lastTiltAngle;         //< Último ángulo de tilt (-512..512).
+    bool         camHoldMode;           //< Modo hold: el stick mueve incrementalmente y el servo mantiene posición.
+    unsigned int camHoldSpeed;          //< Velocidad máxima en modo hold (grados/segundo).
+    float        panPosDeg;             //< Posición actual del pan en modo hold (grados).
+    float        tiltPosDeg;            //< Posición actual del tilt en modo hold (grados).
 
     // --- Estado de la API ---
     bool apiActEnabled;             //< Indica si una acción de la API está en curso.
+    unsigned long apiCamActUntil;   //< millis() hasta el cual la webapp/API tiene prioridad sobre los servos de cámara.
     unsigned long apiActMSStart;    //< Timestamp de inicio de la acción de la API.
     unsigned int apiActMS;          //< Duración de la acción de la API.
     unsigned int apiActMSTimeout;   //< Timeout por defecto para las acciones de la API.

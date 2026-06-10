@@ -196,6 +196,7 @@ void initPreferences() {
     }
 
     vehicleState.apiActMSTimeout = 30000;
+    vehicleState.apiCamActUntil = 0;
 
     // Camera servos
     vehicleState.camServoEnabled   = preferences.getBool("camServoEn",   false);
@@ -216,6 +217,10 @@ void initPreferences() {
     vehicleState.tiltMaxUs         = preferences.getUInt("tiltMaxUs",     2400);
     vehicleState.lastPanAngle      = 0;
     vehicleState.lastTiltAngle     = 0;
+    vehicleState.camHoldMode       = preferences.getBool("camHoldMode",  false);
+    vehicleState.camHoldSpeed      = preferences.getUInt("camHoldSpeed", 90);
+    vehicleState.panPosDeg         = (float)vehicleState.panCenterDeg;
+    vehicleState.tiltPosDeg        = (float)vehicleState.tiltCenterDeg;
 
     // LED config
     std::string ledConfigJson;
@@ -310,6 +315,8 @@ static void main_task(void* pvParameters) {
             if (!programManager.isRunning()) {
                 handleGamepadMotion(&vehicleState);
             }
+
+            updateCamServos(&vehicleState);
 
             if (vehicleState.apiActEnabled) {
                 if ((millis() - vehicleState.apiActMSStart) >= vehicleState.apiActMS) {

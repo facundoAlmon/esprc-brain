@@ -169,7 +169,21 @@ export const translations = {
         camJoyTitle: "Camera",
         invertAxis: "Invert Axis",
         camStickDZ: "Stick Deadzone",
-        camStickSat: "Stick Saturation"
+        camStickSat: "Stick Saturation",
+        fpv: "FPV",
+        fpvDrive: "FPV Drive",
+        fullscreen: "Fullscreen",
+        toggleRecording: "Record Program",
+        camHoldMode: "Hold position (incremental control)",
+        camHoldModeTip: "Camera keeps its position when the stick is released",
+        camHoldSpeed: "Hold Mode Speed (°/s)",
+        advancedSettings: "Advanced Settings",
+        camGeneralSettings: "General (speed & stick)",
+        camHoldBtn: "Hold camera position",
+        camCenterBtn: "Center camera",
+        recVideo: "Record video",
+        recNoStream: "Could not connect to the camera stream.",
+        recUnsupported: "Video recording is not supported by this browser."
     },
     es: {
         menu: "Menú",
@@ -341,6 +355,20 @@ export const translations = {
         camJoyTitle: "Cámara",
         invertAxis: "Invertir Eje",
         camStickDZ: "Zona Muerta del Stick",
-        camStickSat: "Saturación del Stick"
+        camStickSat: "Saturación del Stick",
+        fpv: "FPV",
+        fpvDrive: "Manejo FPV",
+        fullscreen: "Pantalla Completa",
+        toggleRecording: "Grabar Programa",
+        camHoldMode: "Mantener posición (control incremental)",
+        camHoldModeTip: "La cámara mantiene su posición al soltar el stick",
+        camHoldSpeed: "Velocidad en Modo Hold (°/s)",
+        advancedSettings: "Ajustes Avanzados",
+        camGeneralSettings: "General (velocidad y stick)",
+        camHoldBtn: "Mantener posición de cámara",
+        camCenterBtn: "Centrar cámara",
+        recVideo: "Grabar video",
+        recNoStream: "No se pudo conectar al stream de la cámara.",
+        recUnsupported: "Este navegador no soporta la grabación de video."
     }
 };

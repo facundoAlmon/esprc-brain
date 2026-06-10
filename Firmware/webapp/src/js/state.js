@@ -26,7 +26,8 @@ export const state = {
     draggedIndex: null,
     recordingProgram: false,
     cameraInfo: null,
-    camServoEnabled: false
+    camServoEnabled: false,
+    camHoldMode: false
 };
 
 export const icons = {

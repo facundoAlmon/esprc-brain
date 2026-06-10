@@ -4,6 +4,7 @@
  */
 #include "actuators.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "driver/mcpwm_prelude.h"
 #include "driver/gpio.h"
 #include "driver/ledc.h"
@@ -195,7 +196,8 @@ void stopMotors(VehicleState* state) {
     gpio_set_level((gpio_num_t)motor1Pin1, 0);
     gpio_set_level((gpio_num_t)motor1Pin2, 0);
     servo_write_angle(state->servoCenterDeg);
-    centerCamServos(state);
+    // En modo hold la cámara mantiene su posición cuando el vehículo se detiene.
+    if (!state->camHoldMode) centerCamServos(state);
 }
 
 // ── Camera servo helpers ───────────────────────────────────────────────────
@@ -236,36 +238,76 @@ void setupCamServos(VehicleState* state) {
     centerCamServos(state);
 }
 
+// Timestamp of last updateCamServos call; 0 = not yet called (dt treated as 0).
+static int64_t s_cam_last_us = 0;
+
+// setCamPan / setCamTilt only store the angle target.
+// The actual LEDC write happens in updateCamServos(), called every 15 ms from
+// the main loop. This decouples the physical servo update rate from the WS/gamepad
+// command rate, eliminating the advance/pause stepping visible at 100 ms WS intervals.
+
 void setCamPan(int angle, VehicleState* state) {
     if (!state->camServoEnabled) return;
     if (state->panInvert) angle = -angle;
     state->lastPanAngle = angle;
-    float porc = (float)angle / 512.0f;
-    int posDegrees = state->panCenterDeg;
-    if (angle < 0) {
-        posDegrees = state->panCenterDeg + (int)(state->panLimitLDeg * porc);
-    } else if (angle > 0) {
-        posDegrees = state->panCenterDeg + (int)(state->panLimitRDeg * porc);
-    }
-    if (posDegrees < 0) posDegrees = 0;
-    if (posDegrees > SERVO_MAX_ANGLE) posDegrees = SERVO_MAX_ANGLE;
-    cam_servo_write(panServoChannel, (unsigned int)posDegrees, state->panMinUs, state->panMaxUs);
 }
 
 void setCamTilt(int angle, VehicleState* state) {
     if (!state->camServoEnabled) return;
     if (state->tiltInvert) angle = -angle;
     state->lastTiltAngle = angle;
-    float porc = (float)angle / 512.0f;
-    int posDegrees = state->tiltCenterDeg;
-    if (angle < 0) {
-        posDegrees = state->tiltCenterDeg - (int)(state->tiltLimitUpDeg * porc);
-    } else if (angle > 0) {
-        posDegrees = state->tiltCenterDeg - (int)(state->tiltLimitDownDeg * porc);
+}
+
+void updateCamServos(VehicleState* state) {
+    if (!state->camServoEnabled) return;
+
+    int64_t now = esp_timer_get_time();
+    float dt = (s_cam_last_us == 0) ? 0.0f : (float)(now - s_cam_last_us) / 1000000.0f;
+    s_cam_last_us = now;
+    if (dt > 0.1f) dt = 0.1f;
+
+    int panDeg, tiltDeg;
+
+    if (state->camHoldMode) {
+        state->panPosDeg += (float)state->camHoldSpeed * ((float)state->lastPanAngle / 512.0f) * dt;
+        float panMin = (float)state->panCenterDeg - (float)state->panLimitLDeg;
+        float panMax = (float)state->panCenterDeg + (float)state->panLimitRDeg;
+        if (state->panPosDeg < panMin) state->panPosDeg = panMin;
+        if (state->panPosDeg > panMax) state->panPosDeg = panMax;
+        panDeg = (int)(state->panPosDeg + 0.5f);
+
+        // Negative angle = tilt up = increasing degrees (sign inversion matches absolute mode)
+        state->tiltPosDeg += (float)state->camHoldSpeed * (-(float)state->lastTiltAngle / 512.0f) * dt;
+        float tiltMin = (float)state->tiltCenterDeg - (float)state->tiltLimitDownDeg;
+        float tiltMax = (float)state->tiltCenterDeg + (float)state->tiltLimitUpDeg;
+        if (state->tiltPosDeg < tiltMin) state->tiltPosDeg = tiltMin;
+        if (state->tiltPosDeg > tiltMax) state->tiltPosDeg = tiltMax;
+        tiltDeg = (int)(state->tiltPosDeg + 0.5f);
+    } else {
+        float panPorc = (float)state->lastPanAngle / 512.0f;
+        panDeg = (int)state->panCenterDeg;
+        if (state->lastPanAngle < 0)
+            panDeg = (int)state->panCenterDeg + (int)((float)state->panLimitLDeg * panPorc);
+        else if (state->lastPanAngle > 0)
+            panDeg = (int)state->panCenterDeg + (int)((float)state->panLimitRDeg * panPorc);
+        state->panPosDeg = (float)panDeg;  // keep in sync for seamless switch to hold mode
+
+        float tiltPorc = (float)state->lastTiltAngle / 512.0f;
+        tiltDeg = (int)state->tiltCenterDeg;
+        if (state->lastTiltAngle < 0)
+            tiltDeg = (int)state->tiltCenterDeg - (int)((float)state->tiltLimitUpDeg * tiltPorc);
+        else if (state->lastTiltAngle > 0)
+            tiltDeg = (int)state->tiltCenterDeg - (int)((float)state->tiltLimitDownDeg * tiltPorc);
+        state->tiltPosDeg = (float)tiltDeg;  // keep in sync for seamless switch to hold mode
     }
-    if (posDegrees < 0) posDegrees = 0;
-    if (posDegrees > SERVO_MAX_ANGLE) posDegrees = SERVO_MAX_ANGLE;
-    cam_servo_write(tiltServoChannel, (unsigned int)posDegrees, state->tiltMinUs, state->tiltMaxUs);
+
+    if (panDeg < 0) panDeg = 0;
+    if (panDeg > SERVO_MAX_ANGLE) panDeg = SERVO_MAX_ANGLE;
+    if (tiltDeg < 0) tiltDeg = 0;
+    if (tiltDeg > SERVO_MAX_ANGLE) tiltDeg = SERVO_MAX_ANGLE;
+
+    cam_servo_write(panServoChannel,  (unsigned int)panDeg,  state->panMinUs,  state->panMaxUs);
+    cam_servo_write(tiltServoChannel, (unsigned int)tiltDeg, state->tiltMinUs, state->tiltMaxUs);
 }
 
 void centerCamServos(VehicleState* state) {
@@ -274,4 +316,7 @@ void centerCamServos(VehicleState* state) {
     cam_servo_write(tiltServoChannel, state->tiltCenterDeg, state->tiltMinUs, state->tiltMaxUs);
     state->lastPanAngle  = 0;
     state->lastTiltAngle = 0;
+    state->panPosDeg  = (float)state->panCenterDeg;
+    state->tiltPosDeg = (float)state->tiltCenterDeg;
+    s_cam_last_us = 0;  // reset dt so next updateCamServos starts fresh from center
 }

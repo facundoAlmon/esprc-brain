@@ -318,14 +318,98 @@ class JoyStick {
 }
 
 
-let joy1, joy2A, joy2B, joy3;
+// Invisible pan/tilt pad over the FPV stream. Drag anywhere on it: the offset
+// from the touch origin maps to -100..100 per axis; returns to 0 on release.
+class CamPad {
+    constructor(containerId) {
+        this.el = document.getElementById(containerId);
+        this.ring = document.getElementById('fpvPadRing');
+        this.dot = document.getElementById('fpvPadDot');
+        this.x = 0;
+        this.y = 0;
+        this._pointerId = null;
+        this._originX = 0;
+        this._originY = 0;
+        this.el.style.touchAction = 'none';
+
+        this._onDown = this._onDown.bind(this);
+        this._onMove = this._onMove.bind(this);
+        this._onUp   = this._onUp.bind(this);
+        this.el.addEventListener('pointerdown',   this._onDown);
+        this.el.addEventListener('pointermove',   this._onMove);
+        this.el.addEventListener('pointerup',     this._onUp);
+        this.el.addEventListener('pointercancel', this._onUp);
+    }
+
+    _onDown(e) {
+        if (this._pointerId !== null) return;
+        if (!state.camServoEnabled) return;
+        e.preventDefault();
+        this._pointerId = e.pointerId;
+        this.el.setPointerCapture(e.pointerId);
+        this._originX = e.clientX;
+        this._originY = e.clientY;
+        this.x = 0;
+        this.y = 0;
+        const rect = this.el.getBoundingClientRect();
+        if (this.ring) {
+            this.ring.style.display = 'block';
+            this.ring.style.left = (e.clientX - rect.left) + 'px';
+            this.ring.style.top  = (e.clientY - rect.top)  + 'px';
+        }
+        this._moveDot(e.clientX, e.clientY, rect);
+    }
+
+    _onMove(e) {
+        if (e.pointerId !== this._pointerId) return;
+        e.preventDefault();
+        const rect = this.el.getBoundingClientRect();
+        const radius = Math.min(140, Math.min(rect.width, rect.height) * 0.3);
+        let dx = e.clientX - this._originX;
+        let dy = e.clientY - this._originY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > radius) {
+            dx = dx / dist * radius;
+            dy = dy / dist * radius;
+        }
+        this.x = Math.round(dx / radius * 100);
+        this.y = Math.round(dy / radius * 100);
+        this._moveDot(this._originX + dx, this._originY + dy, rect);
+    }
+
+    _onUp(e) {
+        if (e.pointerId !== this._pointerId) return;
+        this._pointerId = null;
+        this.x = 0;
+        this.y = 0;
+        if (this.ring) this.ring.style.display = 'none';
+        if (this.dot)  this.dot.style.display  = 'none';
+    }
+
+    _moveDot(clientX, clientY, rect) {
+        if (!this.dot) return;
+        this.dot.style.display = 'block';
+        this.dot.style.left = (clientX - rect.left) + 'px';
+        this.dot.style.top  = (clientY - rect.top)  + 'px';
+    }
+
+    GetX() { return this.x; }
+    GetY() { return this.y; }
+}
+
+
+let joy1, joy2A, joy2B, joy3, joyFpv;
+let fpvPad = null;
 let _resizeTimer = null;
 
 // Only updates CSS visibility — does NOT recreate joysticks (avoids state loss on config refresh)
 export function updateCamJoyVisibility() {
+    const display = state.camServoEnabled ? '' : 'none';
     const container = document.getElementById('camJoyContainer');
-    if (!container) return;
-    container.style.display = state.camServoEnabled ? '' : 'none';
+    if (container) container.style.display = display;
+    document.querySelectorAll('.cam-ctl-wrap').forEach(function(el) {
+        el.style.display = display;
+    });
 }
 
 export function initJoysticks() {
@@ -344,20 +428,28 @@ export function initJoysticks() {
         callback: () => {}
     };
 
-    if (joy1)  joy1.destroy();
-    if (joy2A) joy2A.destroy();
-    if (joy2B) joy2B.destroy();
-    if (joy3)  joy3.destroy();
+    if (joy1)   joy1.destroy();
+    if (joy2A)  joy2A.destroy();
+    if (joy2B)  joy2B.destroy();
+    if (joy3)   joy3.destroy();
+    if (joyFpv) joyFpv.destroy();
 
-    joy1  = new JoyStick('joy1Div',  { ...opts, title: 'joy1'  });
-    joy2A = new JoyStick('joy2ADiv', { ...opts, title: 'joy2A' });
-    joy2B = new JoyStick('joy2BDiv', { ...opts, title: 'joy2B' });
-    joy3  = new JoyStick('joy3Div',  { ...opts, title: 'joy3'  });
+    joy1   = new JoyStick('joy1Div',   { ...opts, title: 'joy1'   });
+    joy2A  = new JoyStick('joy2ADiv',  { ...opts, title: 'joy2A'  });
+    joy2B  = new JoyStick('joy2BDiv',  { ...opts, title: 'joy2B'  });
+    joy3   = new JoyStick('joy3Div',   { ...opts, title: 'joy3'   });
+    joyFpv = new JoyStick('joyFpvDiv', { ...opts, title: 'joyFpv' });
+
+    if (!fpvPad && document.getElementById('fpvCamPad')) fpvPad = new CamPad('fpvCamPad');
 
     elements.recordBtnA.onclick = () => handleRecord();
     elements.recordBtnB.onclick = () => handleRecord();
     elements.recordBtnA.innerHTML = icons.recordOff;
     elements.recordBtnB.innerHTML = icons.recordOff;
+    if (elements.recordBtnFpv) {
+        elements.recordBtnFpv.onclick = () => handleRecord();
+        elements.recordBtnFpv.innerHTML = icons.recordOff;
+    }
 }
 
 // Rebuild joysticks on window resize (debounced)
@@ -367,6 +459,11 @@ window.addEventListener('resize', () => {
 });
 
 export function startActionLoop() {
+    // "Last active input wins": only transmit while there is real input, plus
+    // one neutral frame on release (stops the car and lets the BT gamepad take
+    // over). While recording a program we always transmit so idle stretches
+    // are recorded with their real duration.
+    let wasActive = false;
     setInterval(() => {
         if (!state.socketOnline) return;
         let body = {};
@@ -384,6 +481,20 @@ export function startActionLoop() {
                 body.panAng  = Math.trunc(parseFloat(joy3.GetX()) * 512 / 100);
                 body.tiltAng = Math.trunc(parseFloat(joy3.GetY()) * 512 / 100);
             }
+        } else if (state.activeTab === 'fpv') {
+            const yVal = parseFloat(joyFpv.GetY());
+            const xVal = parseFloat(joyFpv.GetX());
+            body = {
+                motorSpeed:     Math.trunc(Math.min(100, Math.abs(yVal)) * 1024 / 100),
+                motorDirection: yVal < 0 ? 'F' : 'B',
+                steerDirection: xVal < 0 ? 'L' : 'R',
+                steerAng:       Math.trunc(Math.min(100, Math.abs(xVal)) * 512 / 100),
+                ms: 500
+            };
+            if (state.camServoEnabled && fpvPad) {
+                body.panAng  = Math.trunc(fpvPad.GetX() * 512 / 100);
+                body.tiltAng = Math.trunc(fpvPad.GetY() * 512 / 100);
+            }
         } else if (state.activeTab === 'joystick-b') {
             const acelIzq = document.getElementById('acelIzq').classList.contains('active');
             const joyX = parseFloat(acelIzq ? joy2B.GetX() : joy2A.GetX());
@@ -396,7 +507,12 @@ export function startActionLoop() {
                 ms: 500
             };
         } else { return; }
-        state.wsSocket.send(JSON.stringify(body));
+        const isActive = body.motorSpeed > 0 || body.steerAng > 0 ||
+                         !!(body.panAng) || !!(body.tiltAng);
+        if (isActive || wasActive || state.recordingProgram) {
+            state.wsSocket.send(JSON.stringify(body));
+        }
+        wasActive = isActive;
     }, 100);
 }
 
@@ -404,6 +520,7 @@ export async function handleRecord() {
     state.recordingProgram = !state.recordingProgram;
     elements.recordBtnA.classList.toggle('active', state.recordingProgram);
     elements.recordBtnB.classList.toggle('active', state.recordingProgram);
+    if (elements.recordBtnFpv) elements.recordBtnFpv.classList.toggle('active', state.recordingProgram);
     const path = state.recordingProgram ? 'api/recording/start' : 'api/recording/stop';
     await fetchAPI(path);
 }

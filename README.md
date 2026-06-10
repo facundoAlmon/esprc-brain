@@ -74,7 +74,11 @@ Este no es solo un coche a RC, es una plataforma abierta para que puedas experim
 
 -   **📷 Visión FPV integrada (con [esprc-cam](https://github.com/facundoAlmon/esprc-cam)):** Agregá un módulo AI-Thinker ESP32-CAM y disfrutá de una vista en primera persona directamente en la webapp. La cámara se descubre automáticamente en la red local vía **mDNS** cada 30 segundos — sin configuración manual de IP. El stream MJPEG aparece en la pestaña **Cámara** al instante, con soporte para pantalla completa y ajuste de imagen en tiempo real.
 
--   **🎥 Servos de Cámara Pan/Tilt:** Montá servos para apuntar la cámara y controlarlos desde el joystick virtual de la webapp o con el **stick derecho del gamepad Bluetooth**. Configuración completa desde la webapp: tipo de servo (SG90, S3003, custom), posición central, límites de giro, pulsos mínimo/máximo, inversión de eje, deadzone y saturación del stick.
+-   **🎮 Vista FPV con control integrado:** La pestaña **FPV** combina el stream de la cámara, el joystick de conducción y el pad invisible de control pan/tilt en una sola pantalla optimizada para mobile landscape — ideal para conducir mirando lo que ve el coche. Incluye todos los controles de luces, grabación y servos en la misma vista.
+
+-   **🎥 Grabación de video desde la webapp:** Grabá el stream de la cámara directamente desde el navegador sin necesidad de firmware adicional. El sistema toma el control de la conexión MJPEG mientras graba, renderiza los frames en un canvas oculto y exporta un archivo `.webm` / `.mp4` al dispositivo.
+
+-   **🎥 Servos de Cámara Pan/Tilt con movimiento suave:** Montá servos para apuntar la cámara y controlarlos desde el joystick virtual de la webapp o con el **stick derecho del gamepad Bluetooth**. El firmware actualiza los servos cada **15 ms** de forma continua (en lugar de solo al recibir un comando), eliminando el movimiento entrecortado. Dos modos de control: **Absoluto** (el stick mapea a una posición) y **Hold** (el stick controla la velocidad de movimiento y el servo mantiene la posición al soltar). Configuración completa desde la webapp: tipo de servo (SG90, S3003, custom), posición central, límites de giro, pulsos mínimo/máximo, inversión de eje, deadzone y saturación del stick.
 
 ## 📂 Estructura del Proyecto
 
@@ -276,6 +280,17 @@ Esta pestaña muestra el video en vivo del módulo <strong><a href="https://gith
 </tr>
 </table>
 
+### 🎮 FPV
+
+Vista inmersiva que combina el stream de la cámara con todos los controles en una sola pantalla, pensada para conducción en primera persona desde el celular en landscape.
+
+- **Stream + control unificado:** El video de la cámara ocupa toda la pantalla y el joystick de conducción se superpone sobre él. Si los servos pan/tilt están habilitados, un pad táctil invisible sobre la imagen permite apuntar la cámara sin ocultar la vista.
+- **Controles de luces y servos:** Botones de faros, intermitentes, balizas, mantener posición de cámara y centrar cámara accesibles lateralmente.
+- **Grabación de video:** Botón de grabación que captura el stream MJPEG y descarga un archivo `.webm`/`.mp4` al dispositivo, sin ningún cambio en el firmware de la cámara.
+- **Pantalla completa:** Botón para entrar en modo fullscreen.
+
+> La pestaña FPV comparte la misma conexión MJPEG que la pestaña Cámara — el elemento `<img>` se mueve en el DOM sin abrir una segunda conexión al stream.
+
 ### 👨‍💻 Programa
 <table width="100%">
 <tr>
@@ -408,6 +423,7 @@ En esta sección se ajustan los parámetros físicos del coche.
     <ul>
       <li><strong>Habilitar servos:</strong> Activa los dos canales LEDC adicionales para la montura pan/tilt.</li>
       <li><strong>Control con gamepad:</strong> Mapea el stick derecho del gamepad a los servos.</li>
+      <li><strong>Modo Hold:</strong> El stick controla la velocidad de giro en lugar de la posición directa — el servo mantiene su posición al soltar el stick. Velocidad configurable en °/s.</li>
       <li><strong>Tipo de servo:</strong> Presets para SG90, S3003 o custom (pulso mínimo/máximo configurable).</li>
       <li><strong>Calibración:</strong> Posición central, límites de giro por eje e inversión de cada eje.</li>
       <li><strong>Deadzone / Saturación:</strong> Ajuste fino del comportamiento del stick.</li>
@@ -507,7 +523,14 @@ Configuraciones propias de la aplicación web.
 -   [x] Función para exportar e importar la configuración completa del coche. (`/api/config/backup` y `/api/config/restore`)
 -   [x] Soporte para cámara FPV vía **[esprc-cam](https://github.com/facundoAlmon/esprc-cam)** con auto-descubrimiento mDNS y control de imagen desde la webapp.
 -   [x] Servos pan/tilt para apuntar la cámara, controlados desde el joystick virtual o el stick derecho del gamepad Bluetooth.
-
+-   [x] Vista FPV con stream, joystick de conducción y pad pan/tilt superpuesto en una sola pantalla.
+-   [x] Modo Hold para los servos de cámara (control de velocidad angular continua, movimiento suave cada 15 ms).
+-   [x] Grabación de video MJPEG desde la webapp (sin firmware adicional), descarga como `.webm`/`.mp4`.
+-   [x] Arbitraje BT/WS "el último input activo gana" — webapp y gamepad pueden coexistir sin conflictos.
+-   [ ] Conflicto webapp / joystick aun tiene bugs
+-   [ ] Limites de movimiento de servos de camara en diferentes vistas y modos (no son los mismos)
+-   [ ] Mejorar delay de websocket con servos de camara
+-   [ ] Mejorar delay de movimiento en servos de camara en webapp (tarda mucho en ir a la posicion deseada)
 
 
 ## 🙏 Agradecimientos

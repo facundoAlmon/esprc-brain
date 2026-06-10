@@ -5,6 +5,9 @@
 #include "ledStripHandler.h"
 #include "hid_gamepad.h"
 #include "esp_log.h"
+#include "esp_timer.h"
+
+static inline uint32_t millis() { return (uint32_t)(esp_timer_get_time() / 1000ULL); }
 
 static const char* TAG = "Gamepad";
 
@@ -140,13 +143,22 @@ void handleGamepadButtons(VehicleState* state, ProgramManager* programManager) {
 
 void handleGamepadMotion(VehicleState* state) {
     const GamepadData* gp = &state->myGamepads[0];
-    if (gp->connected) {
+    if (!gp->connected) return;
+
+    // Arbitraje "el último input activo gana": mientras la webapp/API tiene una
+    // ventana de comando abierta, el gamepad cede el control. Conducción y
+    // cámara se arbitran por separado (se puede manejar con el gamepad mientras
+    // la webapp mueve la cámara, y viceversa).
+    if (!state->apiActEnabled) {
         servoController(gp, state);
         motorController(gp, state);
-        camServoController(gp, state);
 
         if (isRecording) {
             g_programManager->recordStep(lastMotor, lastSteer);
         }
+    }
+
+    if ((int32_t)(millis() - (uint32_t)state->apiCamActUntil) >= 0) {
+        camServoController(gp, state);
     }
 }
