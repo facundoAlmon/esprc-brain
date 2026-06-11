@@ -1,34 +1,32 @@
 #pragma once
 #include "driver/gpio.h"
 #include "driver/ledc.h"
-#include "sdkconfig.h" // Needed for the target macros
+#include "sdkconfig.h"
 
+// LEDC channel assignments are fixed (only GPIO numbers are runtime-configurable).
+#define STEER_SERVO_CHANNEL  LEDC_CHANNEL_2
+#define PAN_SERVO_CHANNEL    LEDC_CHANNEL_3
+#define TILT_SERVO_CHANNEL   LEDC_CHANNEL_4
+
+// Compile-time defaults — used as NVS fallback and for "reset to defaults".
 #if defined(CONFIG_IDF_TARGET_ESP32C6)
-// Pins for ESP32-C6
-const int LED_STRIP_GPIO_PIN = 8;
-const ledc_channel_t servoChannel     = LEDC_CHANNEL_2;
-const gpio_num_t     servoPin         = (gpio_num_t)7;
-const int enable1Pin = 19;
-const int motor1Pin1 = 20;
-const int motor1Pin2 = 21;
-const ledc_channel_t panServoChannel  = LEDC_CHANNEL_3;
-const gpio_num_t     panServoPin      = (gpio_num_t)4;
-const ledc_channel_t tiltServoChannel = LEDC_CHANNEL_4;
-const gpio_num_t     tiltServoPin     = (gpio_num_t)5;
-
+  #define PIN_CHIP_TYPE        "esp32c6"
+  #define PIN_LED_STRIP_DEFAULT   8
+  #define PIN_MOTOR_EN_DEFAULT   19
+  #define PIN_MOTOR_DIR1_DEFAULT 20
+  #define PIN_MOTOR_DIR2_DEFAULT 21
+  #define PIN_STEER_DEFAULT       7
+  #define PIN_PAN_DEFAULT         4
+  #define PIN_TILT_DEFAULT        5
 #elif defined(CONFIG_IDF_TARGET_ESP32)
-// Pins for ESP32 - Please define the correct pins here!
-const int LED_STRIP_GPIO_PIN = 16;
-const ledc_channel_t servoChannel     = LEDC_CHANNEL_2;
-const gpio_num_t     servoPin         = (gpio_num_t)13;
-const int enable1Pin = 25;
-const int motor1Pin1 = 32;
-const int motor1Pin2 = 33;
-const ledc_channel_t panServoChannel  = LEDC_CHANNEL_3;
-const gpio_num_t     panServoPin      = (gpio_num_t)14;
-const ledc_channel_t tiltServoChannel = LEDC_CHANNEL_4;
-const gpio_num_t     tiltServoPin     = (gpio_num_t)27;
-
+  #define PIN_CHIP_TYPE        "esp32"
+  #define PIN_LED_STRIP_DEFAULT  16
+  #define PIN_MOTOR_EN_DEFAULT   25
+  #define PIN_MOTOR_DIR1_DEFAULT 32
+  #define PIN_MOTOR_DIR2_DEFAULT 33
+  #define PIN_STEER_DEFAULT      13
+  #define PIN_PAN_DEFAULT        14
+  #define PIN_TILT_DEFAULT       27
 #else
-#error "Unsupported target. Please define the pins for your board in pins.h"
+  #error "Unsupported target. Please define pin defaults for your board in pins.h"
 #endif

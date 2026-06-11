@@ -688,6 +688,53 @@
                 </div>
 
                 <div class="settings-section">
+                    <h3>GPIO Pin Configuration</h3>
+                    <p class="ota-warning">Changes take effect after reboot. <span id="pins-chip-type"></span></p>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="pin-led-strip">LED Strip</label>
+                            <input type="number" id="pin-led-strip" min="0" max="48" value="8">
+                            <small id="pin-led-strip-default" class="pin-default"></small>
+                        </div>
+                        <div class="form-group">
+                            <label for="pin-motor-en">Motor EN (PWM)</label>
+                            <input type="number" id="pin-motor-en" min="0" max="48" value="19">
+                            <small id="pin-motor-en-default" class="pin-default"></small>
+                        </div>
+                        <div class="form-group">
+                            <label for="pin-motor-dir1">Motor DIR1</label>
+                            <input type="number" id="pin-motor-dir1" min="0" max="48" value="20">
+                            <small id="pin-motor-dir1-default" class="pin-default"></small>
+                        </div>
+                        <div class="form-group">
+                            <label for="pin-motor-dir2">Motor DIR2</label>
+                            <input type="number" id="pin-motor-dir2" min="0" max="48" value="21">
+                            <small id="pin-motor-dir2-default" class="pin-default"></small>
+                        </div>
+                        <div class="form-group">
+                            <label for="pin-steer-servo">Steering Servo</label>
+                            <input type="number" id="pin-steer-servo" min="0" max="48" value="7">
+                            <small id="pin-steer-servo-default" class="pin-default"></small>
+                        </div>
+                        <div class="form-group">
+                            <label for="pin-pan-servo">Pan Servo</label>
+                            <input type="number" id="pin-pan-servo" min="0" max="48" value="4">
+                            <small id="pin-pan-servo-default" class="pin-default"></small>
+                        </div>
+                        <div class="form-group">
+                            <label for="pin-tilt-servo">Tilt Servo</label>
+                            <input type="number" id="pin-tilt-servo" min="0" max="48" value="5">
+                            <small id="pin-tilt-servo-default" class="pin-default"></small>
+                        </div>
+                    </div>
+                    <div id="pins-status" class="pins-status"></div>
+                    <div class="button-group">
+                        <button id="pins-save-btn" class="primary">Save &amp; Reboot</button>
+                        <button id="pins-reset-btn" class="secondary">Reset to Defaults</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
                     <h3 data-i18n="otaUpdate">Firmware Update (OTA)</h3>
                     <div id="ota-info" class="ota-info">
                         <em data-i18n="otaInfoLoading">Loading firmware info...</em>

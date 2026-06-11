@@ -115,4 +115,13 @@ struct VehicleState {
 
     // --- Escaneo Bluetooth ---
     unsigned int enableScan;    //< Habilitar/deshabilitar el escaneo de nuevos mandos.
+
+    // --- Pines GPIO (configurables por NVS, defaults en pins.h) ---
+    int pinLedStrip;
+    int pinMotorEn;
+    int pinMotorDir1;
+    int pinMotorDir2;
+    int pinSteerServo;
+    int pinPanServo;
+    int pinTiltServo;
 };

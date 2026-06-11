@@ -24,7 +24,7 @@ static void parse_and_set_leds_to_buffer(const char* led_str, uint8_t r, uint8_t
 
 void setupLedStrip(VehicleState* state) {
     led_strip_config_t strip_config = {
-        .strip_gpio_num = (gpio_num_t)LED_STRIP_GPIO_PIN,
+        .strip_gpio_num = (gpio_num_t)state->pinLedStrip,
         .max_leds = MAX_LEDS_SUPPORTED,
         .led_model = LED_MODEL_WS2812,
         .color_component_format = LED_STRIP_COLOR_COMPONENT_FMT_GRB,

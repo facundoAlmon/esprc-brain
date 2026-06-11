@@ -15,6 +15,7 @@
 #define GAMEPAD_BTN_TRIGGER_R  (1u << 7)
 #define GAMEPAD_BTN_THUMB_L    (1u << 8)
 #define GAMEPAD_BTN_THUMB_R    (1u << 9)
+#define GAMEPAD_BTN_SELECT     (1u << 10)  // View/Back/Select según el mando
 
 typedef struct {
     bool     connected;

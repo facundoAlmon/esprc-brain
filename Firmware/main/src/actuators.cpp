@@ -28,14 +28,14 @@ static void servo_write_angle(int degrees) {
     uint32_t pulse_us = SERVO_MIN_US +
         (uint32_t)((uint32_t)degrees * (SERVO_MAX_US - SERVO_MIN_US) / SERVO_MAX_ANGLE);
     uint32_t duty = (uint32_t)((uint64_t)pulse_us * SERVO_RES_MAX / SERVO_PERIOD_US);
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, servoChannel, duty);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, servoChannel);
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, STEER_SERVO_CHANNEL, duty);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, STEER_SERVO_CHANNEL);
 }
 
 /**
  * @brief Configura e inicializa los pines y periféricos para los actuadores.
  */
-void setupActuators() {
+void setupActuators(VehicleState* state) {
     // MCPWM: motor ESC 20 kHz (API handle-based IDF v6.0+)
     mcpwm_timer_config_t timer_cfg = {
         .group_id      = 0,
@@ -55,7 +55,7 @@ void setupActuators() {
     mcpwm_new_comparator(s_motor_oper, &cmpr_cfg, &s_motor_cmpr);
     mcpwm_comparator_set_compare_value(s_motor_cmpr, 0);
 
-    mcpwm_generator_config_t gen_cfg = { .gen_gpio_num = enable1Pin };
+    mcpwm_generator_config_t gen_cfg = { .gen_gpio_num = state->pinMotorEn };
     mcpwm_new_generator(s_motor_oper, &gen_cfg, &s_motor_gen);
     mcpwm_generator_set_action_on_timer_event(s_motor_gen,
         MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,
@@ -69,8 +69,8 @@ void setupActuators() {
     mcpwm_timer_start_stop(s_motor_timer, MCPWM_TIMER_START_NO_STOP);
 
     // Configura los pines de dirección del motor.
-    gpio_set_direction((gpio_num_t)motor1Pin1, GPIO_MODE_OUTPUT);
-    gpio_set_direction((gpio_num_t)motor1Pin2, GPIO_MODE_OUTPUT);
+    gpio_set_direction((gpio_num_t)state->pinMotorDir1, GPIO_MODE_OUTPUT);
+    gpio_set_direction((gpio_num_t)state->pinMotorDir2, GPIO_MODE_OUTPUT);
 
     // Configura el servo de dirección vía LEDC directo.
     ledc_timer_config_t servo_timer = {
@@ -82,9 +82,9 @@ void setupActuators() {
     };
     ledc_timer_config(&servo_timer);
     ledc_channel_config_t servo_ch = {
-        .gpio_num   = servoPin,
+        .gpio_num   = (gpio_num_t)state->pinSteerServo,
         .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel    = servoChannel,
+        .channel    = STEER_SERVO_CHANNEL,
         .intr_type  = LEDC_INTR_DISABLE,
         .timer_sel  = LEDC_TIMER_0,
         .duty       = 0,
@@ -121,11 +121,11 @@ void setMotor(int speed, bool forward, VehicleState* state) {
     if (speed != 0) {
         // Establece la dirección del motor.
         if (forward) {
-            gpio_set_level((gpio_num_t)motor1Pin1, 0);
-            gpio_set_level((gpio_num_t)motor1Pin2, 1);
+            gpio_set_level((gpio_num_t)state->pinMotorDir1, 0);
+            gpio_set_level((gpio_num_t)state->pinMotorDir2, 1);
         } else {
-            gpio_set_level((gpio_num_t)motor1Pin1, 1);
-            gpio_set_level((gpio_num_t)motor1Pin2, 0);
+            gpio_set_level((gpio_num_t)state->pinMotorDir1, 1);
+            gpio_set_level((gpio_num_t)state->pinMotorDir2, 0);
         }
         // Mapea la velocidad (0-1023) al rango de PWM configurado.
         dutyCycle = ((abs(speed) * motorMult) / 1024.0) + state->motorMinSpeed;
@@ -134,8 +134,8 @@ void setMotor(int speed, bool forward, VehicleState* state) {
             (uint32_t)(dutyCycle * MOTOR_PERIOD_TICKS / 1024.0f));
     } else {
         // Detiene el motor.
-        gpio_set_level((gpio_num_t)motor1Pin1, 0);
-        gpio_set_level((gpio_num_t)motor1Pin2, 0);
+        gpio_set_level((gpio_num_t)state->pinMotorDir1, 0);
+        gpio_set_level((gpio_num_t)state->pinMotorDir2, 0);
     }
 }
 
@@ -193,8 +193,8 @@ void setSteer(int angle, VehicleState* state) {
  * @brief Detiene todos los actuadores.
  */
 void stopMotors(VehicleState* state) {
-    gpio_set_level((gpio_num_t)motor1Pin1, 0);
-    gpio_set_level((gpio_num_t)motor1Pin2, 0);
+    gpio_set_level((gpio_num_t)state->pinMotorDir1, 0);
+    gpio_set_level((gpio_num_t)state->pinMotorDir2, 0);
     servo_write_angle(state->servoCenterDeg);
     // En modo hold la cámara mantiene su posición cuando el vehículo se detiene.
     if (!state->camHoldMode) centerCamServos(state);
@@ -214,9 +214,9 @@ void setupCamServos(VehicleState* state) {
     if (!state->camServoEnabled) return;
 
     ledc_channel_config_t pan_ch = {
-        .gpio_num   = panServoPin,
+        .gpio_num   = (gpio_num_t)state->pinPanServo,
         .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel    = panServoChannel,
+        .channel    = PAN_SERVO_CHANNEL,
         .intr_type  = LEDC_INTR_DISABLE,
         .timer_sel  = LEDC_TIMER_0,
         .duty       = 0,
@@ -225,9 +225,9 @@ void setupCamServos(VehicleState* state) {
     ledc_channel_config(&pan_ch);
 
     ledc_channel_config_t tilt_ch = {
-        .gpio_num   = tiltServoPin,
+        .gpio_num   = (gpio_num_t)state->pinTiltServo,
         .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel    = tiltServoChannel,
+        .channel    = TILT_SERVO_CHANNEL,
         .intr_type  = LEDC_INTR_DISABLE,
         .timer_sel  = LEDC_TIMER_0,
         .duty       = 0,
@@ -248,12 +248,16 @@ static int64_t s_cam_last_us = 0;
 
 void setCamPan(int angle, VehicleState* state) {
     if (!state->camServoEnabled) return;
+    if (angle >  512) angle =  512;
+    if (angle < -512) angle = -512;
     if (state->panInvert) angle = -angle;
     state->lastPanAngle = angle;
 }
 
 void setCamTilt(int angle, VehicleState* state) {
     if (!state->camServoEnabled) return;
+    if (angle >  512) angle =  512;
+    if (angle < -512) angle = -512;
     if (state->tiltInvert) angle = -angle;
     state->lastTiltAngle = angle;
 }
@@ -306,14 +310,14 @@ void updateCamServos(VehicleState* state) {
     if (tiltDeg < 0) tiltDeg = 0;
     if (tiltDeg > SERVO_MAX_ANGLE) tiltDeg = SERVO_MAX_ANGLE;
 
-    cam_servo_write(panServoChannel,  (unsigned int)panDeg,  state->panMinUs,  state->panMaxUs);
-    cam_servo_write(tiltServoChannel, (unsigned int)tiltDeg, state->tiltMinUs, state->tiltMaxUs);
+    cam_servo_write(PAN_SERVO_CHANNEL,  (unsigned int)panDeg,  state->panMinUs,  state->panMaxUs);
+    cam_servo_write(TILT_SERVO_CHANNEL, (unsigned int)tiltDeg, state->tiltMinUs, state->tiltMaxUs);
 }
 
 void centerCamServos(VehicleState* state) {
     if (!state->camServoEnabled) return;
-    cam_servo_write(panServoChannel,  state->panCenterDeg,  state->panMinUs,  state->panMaxUs);
-    cam_servo_write(tiltServoChannel, state->tiltCenterDeg, state->tiltMinUs, state->tiltMaxUs);
+    cam_servo_write(PAN_SERVO_CHANNEL,  state->panCenterDeg,  state->panMinUs,  state->panMaxUs);
+    cam_servo_write(TILT_SERVO_CHANNEL, state->tiltCenterDeg, state->tiltMinUs, state->tiltMaxUs);
     state->lastPanAngle  = 0;
     state->lastTiltAngle = 0;
     state->panPosDeg  = (float)state->panCenterDeg;

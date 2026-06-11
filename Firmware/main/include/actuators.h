@@ -15,7 +15,7 @@
  * Inicializa el hardware MCPWM para el control de velocidad del motor y el
  * servo para la dirección.
  */
-void setupActuators();
+void setupActuators(VehicleState* state);
 
 /**
  * @brief Establece la velocidad y dirección del motor.

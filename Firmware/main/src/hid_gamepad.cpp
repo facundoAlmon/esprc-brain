@@ -68,7 +68,7 @@ static void parse_xbox(GamepadData *gp, const uint8_t *d, uint16_t len)
     // Botones en byte 14 (confirmados con datos capturados)
     if (len > 14) {
         uint8_t b14 = d[14];
-        // bit 2 = View (⧉)   bit 3 = Menu (≡)  — no usados en gamepadHandler
+        if (b14 & (1u << 2)) gp->buttons |= GAMEPAD_BTN_SELECT;   // View (⧉)
         if (b14 & (1u << 5)) gp->buttons |= GAMEPAD_BTN_THUMB_L;  // LS
         if (b14 & (1u << 6)) gp->buttons |= GAMEPAD_BTN_THUMB_R;  // RS
     }
@@ -111,6 +111,7 @@ static void parse_generic(GamepadData *gp, const uint8_t *d, uint16_t len)
     if (btn & (1u << 5)) gp->buttons |= GAMEPAD_BTN_R1;
     if (btn & (1u << 6)) gp->buttons |= GAMEPAD_BTN_THUMB_L;
     if (btn & (1u << 7)) gp->buttons |= GAMEPAD_BTN_THUMB_R;
+    if (btn & (1u << 8)) gp->buttons |= GAMEPAD_BTN_SELECT;   // Select/Back
 }
 
 // ---- Device slot helpers ----

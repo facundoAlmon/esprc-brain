@@ -1,4 +1,5 @@
 #include "webServerHandler.h"
+#include "pins.h"
 #include "esp_log.h"
 #include "esp_http_server.h"
 #include "esp_ota_ops.h"
@@ -121,6 +122,9 @@ static esp_err_t get_sequence_stop_handler(httpd_req_t *req);
 static esp_err_t get_ota_info_handler(httpd_req_t *req);
 static esp_err_t post_ota_handler(httpd_req_t *req);
 static esp_err_t get_camera_handler(httpd_req_t *req);
+static esp_err_t get_pins_handler(httpd_req_t *req);
+static esp_err_t post_pins_handler(httpd_req_t *req);
+static esp_err_t post_pins_reset_handler(httpd_req_t *req);
 static void discover_camera_task(void*);
 
 static TaskHandle_t sequenceTaskHandle = NULL;
@@ -174,7 +178,7 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 26;
+    config.max_uri_handlers = 30;
     config.recv_wait_timeout = 30;
     config.send_wait_timeout = 30;
     config.lru_purge_enable = true;
@@ -244,6 +248,12 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
         httpd_register_uri_handler(server_httpd, &post_ota_uri);
         httpd_uri_t get_camera_uri = {.uri = "/api/camera", .method = HTTP_GET, .handler = get_camera_handler};
         httpd_register_uri_handler(server_httpd, &get_camera_uri);
+        httpd_uri_t get_pins_uri = {.uri = "/api/pins", .method = HTTP_GET, .handler = get_pins_handler};
+        httpd_register_uri_handler(server_httpd, &get_pins_uri);
+        httpd_uri_t post_pins_uri = {.uri = "/api/pins", .method = HTTP_POST, .handler = post_pins_handler};
+        httpd_register_uri_handler(server_httpd, &post_pins_uri);
+        httpd_uri_t post_pins_reset_uri = {.uri = "/api/pins/reset", .method = HTTP_POST, .handler = post_pins_reset_handler};
+        httpd_register_uri_handler(server_httpd, &post_pins_reset_uri);
     }
 
     // Load persisted camera IP and start discovery task
@@ -481,23 +491,32 @@ static void act_from_json(JsonDocument& doc, VehicleState* state) {
     if (has_actuator_cmd) {
         int motorSpeedRaw = doc["motorSpeed"] | 0;
         const char* motorDirectionStr = doc["motorDirection"] | "F";
-        int motorSpeed = strcmp(motorDirectionStr, "F") == 0 ? motorSpeedRaw : -motorSpeedRaw;
+        bool forward = strcmp(motorDirectionStr, "F") == 0;
+        int motorSpeed = forward ? motorSpeedRaw : -motorSpeedRaw;
 
         int steerAngRaw = doc["steerAng"] | 0;
         const char* steerDirectionStr = doc["steerDirection"] | "R";
         int steerAngle = strcmp(steerDirectionStr, "L") == 0 ? -steerAngRaw : steerAngRaw;
 
-        // Arbitraje WS vs gamepad BT: solo un comando no-neutro abre la ventana
-        // de prioridad WS (mientras está abierta, handleGamepadMotion cede).
-        // Una webapp idle mandando ceros no bloquea el gamepad.
-        if (motorSpeedRaw != 0 || steerAngRaw != 0) {
+        bool is_active = motorSpeedRaw != 0 || steerAngRaw != 0;
+        if (is_active) {
+            // Comando activo: abrir/renovar la ventana de prioridad WS.
             state->apiActEnabled = true;
             state->apiActMSStart = millis();
             state->apiActMS = doc["ms"] | state->apiActMSTimeout;
         }
 
-        setMotor(motorSpeed, strcmp(motorDirectionStr, "F") == 0, state);
-        setSteer(steerAngle, state);
+        // Solo ejecutar los actuadores si la webapp tiene la ventana de prioridad.
+        // Un frame neutro fuera de la ventana no interfiere con el gamepad BT.
+        if (state->apiActEnabled) {
+            setMotor(motorSpeed, forward, state);
+            setSteer(steerAngle, state);
+            // Frame neutro dentro de ventana activa: parar y ceder el control inmediatamente
+            // (sin esperar el timeout de apiActMS, que puede ser hasta 500 ms).
+            if (!is_active) {
+                state->apiActEnabled = false;
+            }
+        }
 
         if (g_programManager->isRecording()) g_programManager->recordStep(motorSpeed, steerAngle);
     }
@@ -689,6 +708,13 @@ static esp_err_t get_config_backup_handler(httpd_req_t *req) {
     doc["tiltMaxUs"]     = nvs_get_u32_or("tiltMaxUs",     2400);
     doc["camHoldMode"]   = nvs_get_bool_or("camHoldMode",  false) ? 1 : 0;
     doc["camHoldSpeed"]  = nvs_get_u32_or("camHoldSpeed",  90);
+    doc["pinLedStrip"]   = nvs_get_u32_or("pinLedStrip",  PIN_LED_STRIP_DEFAULT);
+    doc["pinMotorEn"]    = nvs_get_u32_or("pinMotorEn",   PIN_MOTOR_EN_DEFAULT);
+    doc["pinMotorDir1"]  = nvs_get_u32_or("pinMotorDir1", PIN_MOTOR_DIR1_DEFAULT);
+    doc["pinMotorDir2"]  = nvs_get_u32_or("pinMotorDir2", PIN_MOTOR_DIR2_DEFAULT);
+    doc["pinSteerServo"] = nvs_get_u32_or("pinSteer",     PIN_STEER_DEFAULT);
+    doc["pinPanServo"]   = nvs_get_u32_or("pinPan",       PIN_PAN_DEFAULT);
+    doc["pinTiltServo"]  = nvs_get_u32_or("pinTilt",      PIN_TILT_DEFAULT);
     doc["program"]       = g_programManager->getProgramAsJson();
 
     std::string output;
@@ -738,6 +764,13 @@ static esp_err_t post_config_restore_handler(httpd_req_t *req) {
     if (doc.containsKey("tiltMaxUs"))     nvs_put_u32("tiltMaxUs",      doc["tiltMaxUs"]);
     if (doc.containsKey("camHoldMode"))   nvs_put_bool("camHoldMode",   (bool)(doc["camHoldMode"] != 0));
     if (doc.containsKey("camHoldSpeed"))  nvs_put_u32("camHoldSpeed",   doc["camHoldSpeed"]);
+    if (doc.containsKey("pinLedStrip"))   nvs_put_u32("pinLedStrip",  doc["pinLedStrip"]);
+    if (doc.containsKey("pinMotorEn"))    nvs_put_u32("pinMotorEn",   doc["pinMotorEn"]);
+    if (doc.containsKey("pinMotorDir1"))  nvs_put_u32("pinMotorDir1", doc["pinMotorDir1"]);
+    if (doc.containsKey("pinMotorDir2"))  nvs_put_u32("pinMotorDir2", doc["pinMotorDir2"]);
+    if (doc.containsKey("pinSteerServo")) nvs_put_u32("pinSteer",     doc["pinSteerServo"]);
+    if (doc.containsKey("pinPanServo"))   nvs_put_u32("pinPan",       doc["pinPanServo"]);
+    if (doc.containsKey("pinTiltServo"))  nvs_put_u32("pinTilt",      doc["pinTiltServo"]);
 
     auto check_wifi = [&](const char* key) {
         if (!doc.containsKey(key)) return;
@@ -940,5 +973,95 @@ static esp_err_t get_camera_handler(httpd_req_t* req) {
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_send(req, out.c_str(), out.length());
+    return ESP_OK;
+}
+
+// ---- Pin configuration ----
+
+static esp_err_t get_pins_handler(httpd_req_t *req) {
+    VehicleState* state = (VehicleState*)httpd_get_global_user_ctx(req->handle);
+    JsonDocument doc;
+    doc["pinLedStrip"]   = state->pinLedStrip;
+    doc["pinMotorEn"]    = state->pinMotorEn;
+    doc["pinMotorDir1"]  = state->pinMotorDir1;
+    doc["pinMotorDir2"]  = state->pinMotorDir2;
+    doc["pinSteerServo"] = state->pinSteerServo;
+    doc["pinPanServo"]   = state->pinPanServo;
+    doc["pinTiltServo"]  = state->pinTiltServo;
+    doc["chipType"]      = PIN_CHIP_TYPE;
+    JsonObject defs = doc["defaults"].to<JsonObject>();
+    defs["pinLedStrip"]   = PIN_LED_STRIP_DEFAULT;
+    defs["pinMotorEn"]    = PIN_MOTOR_EN_DEFAULT;
+    defs["pinMotorDir1"]  = PIN_MOTOR_DIR1_DEFAULT;
+    defs["pinMotorDir2"]  = PIN_MOTOR_DIR2_DEFAULT;
+    defs["pinSteerServo"] = PIN_STEER_DEFAULT;
+    defs["pinPanServo"]   = PIN_PAN_DEFAULT;
+    defs["pinTiltServo"]  = PIN_TILT_DEFAULT;
+    std::string out;
+    serializeJson(doc, out);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, out.c_str(), out.length());
+    return ESP_OK;
+}
+
+static void apply_pin_values(VehicleState* state, JsonDocument& doc) {
+    if (doc.containsKey("pinLedStrip"))   { state->pinLedStrip   = doc["pinLedStrip"];   nvs_put_u32("pinLedStrip",  state->pinLedStrip); }
+    if (doc.containsKey("pinMotorEn"))    { state->pinMotorEn    = doc["pinMotorEn"];    nvs_put_u32("pinMotorEn",   state->pinMotorEn); }
+    if (doc.containsKey("pinMotorDir1"))  { state->pinMotorDir1  = doc["pinMotorDir1"];  nvs_put_u32("pinMotorDir1", state->pinMotorDir1); }
+    if (doc.containsKey("pinMotorDir2"))  { state->pinMotorDir2  = doc["pinMotorDir2"];  nvs_put_u32("pinMotorDir2", state->pinMotorDir2); }
+    if (doc.containsKey("pinSteerServo")) { state->pinSteerServo = doc["pinSteerServo"]; nvs_put_u32("pinSteer",     state->pinSteerServo); }
+    if (doc.containsKey("pinPanServo"))   { state->pinPanServo   = doc["pinPanServo"];   nvs_put_u32("pinPan",       state->pinPanServo); }
+    if (doc.containsKey("pinTiltServo"))  { state->pinTiltServo  = doc["pinTiltServo"];  nvs_put_u32("pinTilt",      state->pinTiltServo); }
+}
+
+static esp_err_t post_pins_handler(httpd_req_t *req) {
+    char content[256];
+    size_t recv_size = MIN(req->content_len, sizeof(content) - 1);
+    int ret = httpd_req_recv(req, content, recv_size);
+    if (ret <= 0) return ESP_FAIL;
+    content[ret] = '\0';
+    JsonDocument doc;
+    if (deserializeJson(doc, content)) { httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON"); return ESP_FAIL; }
+    VehicleState* state = (VehicleState*)httpd_get_global_user_ctx(req->handle);
+    apply_pin_values(state, doc);
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+    esp_restart();
+    return ESP_OK;
+}
+
+static void erase_pin_keys() {
+    nvs_handle_t h;
+    if (nvs_open("bl-car", NVS_READWRITE, &h) != ESP_OK) return;
+    nvs_erase_key(h, "pinLedStrip");
+    nvs_erase_key(h, "pinMotorEn");
+    nvs_erase_key(h, "pinMotorDir1");
+    nvs_erase_key(h, "pinMotorDir2");
+    nvs_erase_key(h, "pinSteer");
+    nvs_erase_key(h, "pinPan");
+    nvs_erase_key(h, "pinTilt");
+    nvs_commit(h);
+    nvs_close(h);
+}
+
+static esp_err_t post_pins_reset_handler(httpd_req_t *req) {
+    erase_pin_keys();
+    // Restore compile-time defaults to VehicleState so the JSON response reflects them
+    VehicleState* state = (VehicleState*)httpd_get_global_user_ctx(req->handle);
+    state->pinLedStrip   = PIN_LED_STRIP_DEFAULT;
+    state->pinMotorEn    = PIN_MOTOR_EN_DEFAULT;
+    state->pinMotorDir1  = PIN_MOTOR_DIR1_DEFAULT;
+    state->pinMotorDir2  = PIN_MOTOR_DIR2_DEFAULT;
+    state->pinSteerServo = PIN_STEER_DEFAULT;
+    state->pinPanServo   = PIN_PAN_DEFAULT;
+    state->pinTiltServo  = PIN_TILT_DEFAULT;
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+    esp_restart();
     return ESP_OK;
 }

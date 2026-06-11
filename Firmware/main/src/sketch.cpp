@@ -222,6 +222,15 @@ void initPreferences() {
     vehicleState.panPosDeg         = (float)vehicleState.panCenterDeg;
     vehicleState.tiltPosDeg        = (float)vehicleState.tiltCenterDeg;
 
+    // Pins (NVS-backed; fall back to compile-time defaults on first boot / OTA update)
+    vehicleState.pinLedStrip   = preferences.getUInt("pinLedStrip",  PIN_LED_STRIP_DEFAULT);
+    vehicleState.pinMotorEn    = preferences.getUInt("pinMotorEn",   PIN_MOTOR_EN_DEFAULT);
+    vehicleState.pinMotorDir1  = preferences.getUInt("pinMotorDir1", PIN_MOTOR_DIR1_DEFAULT);
+    vehicleState.pinMotorDir2  = preferences.getUInt("pinMotorDir2", PIN_MOTOR_DIR2_DEFAULT);
+    vehicleState.pinSteerServo = preferences.getUInt("pinSteer",     PIN_STEER_DEFAULT);
+    vehicleState.pinPanServo   = preferences.getUInt("pinPan",       PIN_PAN_DEFAULT);
+    vehicleState.pinTiltServo  = preferences.getUInt("pinTilt",      PIN_TILT_DEFAULT);
+
     // LED config
     std::string ledConfigJson;
     if (preferences.isKey("ledConfig")) {
@@ -275,7 +284,7 @@ static void main_task(void* pvParameters) {
     wifi_interface_t espnow_iface = (strcmp(vehicleState.wifiMode, "AP") == 0) ? WIFI_IF_AP : WIFI_IF_STA;
     espnow_init(&vehicleState, espnow_iface);
 
-    setupActuators();
+    setupActuators(&vehicleState);
     setupCamServos(&vehicleState);
 
     led_strip_set_pixel(led_strip, 0, 0, 0, 255);

@@ -70,6 +70,8 @@ Este no es solo un coche a RC, es una plataforma abierta para que puedas experim
     -   **Control Avanzado de Luces LED:** Personaliza las luces de tu coche (WS2812B). Crea grupos de LEDs y asígnales funciones como luz de posición, freno, marcha atrás, intermitentes, luz de interior o neón (Underglow). La configuración se puede importar y exportar.
     -   **Gestión del Sistema:** Reinicia el ESP32 o restaura la configuración de fábrica con un solo clic.
 
+-   **🔌 Pines GPIO configurables:** Todos los pines del hardware (motor, servos de dirección y cámara, tira LED) se pueden cambiar desde la webapp sin recompilar. La configuración se guarda en NVS y se aplica tras un reboot automático. El botón "Reset to Defaults" restaura los valores de fábrica según el chip compilado (ESP32 / ESP32-C6).
+
 -   **Firmware Robusto y Abierto:** Escrito en C++ sobre el framework oficial de Espressif (ESP-IDF) **puro** — sin dependencias de Arduino, Bluepad32 ni BTstack. Binario de ~1.4 MB, 66% de la partición libre.
 
 -   **📷 Visión FPV integrada (con [esprc-cam](https://github.com/facundoAlmon/esprc-cam)):** Agregá un módulo AI-Thinker ESP32-CAM y disfrutá de una vista en primera persona directamente en la webapp. La cámara se descubre automáticamente en la red local vía **mDNS** cada 30 segundos — sin configuración manual de IP. El stream MJPEG aparece en la pestaña **Cámara** al instante, con soporte para pantalla completa y ajuste de imagen en tiempo real.
@@ -423,6 +425,7 @@ En esta sección se ajustan los parámetros físicos del coche.
     <ul>
       <li><strong>Habilitar servos:</strong> Activa los dos canales LEDC adicionales para la montura pan/tilt.</li>
       <li><strong>Control con gamepad:</strong> Mapea el stick derecho del gamepad a los servos.</li>
+      <li><strong>Botones de gamepad:</strong> <strong>RS click</strong> (stick derecho) centra la cámara al instante. <strong>Select/View</strong> alterna el Modo Hold desde el mando (persiste entre reinicios).</li>
       <li><strong>Modo Hold:</strong> El stick controla la velocidad de giro en lugar de la posición directa — el servo mantiene su posición al soltar el stick. Velocidad configurable en °/s.</li>
       <li><strong>Tipo de servo:</strong> Presets para SG90, S3003 o custom (pulso mínimo/máximo configurable).</li>
       <li><strong>Calibración:</strong> Posición central, límites de giro por eje e inversión de cada eje.</li>
@@ -486,6 +489,8 @@ Tareas de mantenimiento del microcontrolador.
 <ul>
   <li><strong>Reiniciar ESP32:</strong> Realiza un reinicio por software.</li>
   <li><strong>Limpiar Configuración (Hard Reset):</strong> Borra toda la configuración guardada y la restaura a los valores por defecto.</li>
+  <li><strong>Configuración de Pines GPIO:</strong> Cambia los pines del motor, servos y tira LED desde el navegador sin recompilar. Los cambios se guardan en NVS y se aplican con un reboot automático. El botón <strong>Reset to Defaults</strong> restaura los pines de fábrica según el chip compilado (ESP32 / ESP32-C6).</li>
+  <li><strong>Actualización de Firmware (OTA):</strong> Flasheá un nuevo <code>.bin</code> directamente desde el navegador sin cable USB.</li>
 </ul>
 </td>
 </tr>
@@ -526,11 +531,12 @@ Configuraciones propias de la aplicación web.
 -   [x] Vista FPV con stream, joystick de conducción y pad pan/tilt superpuesto en una sola pantalla.
 -   [x] Modo Hold para los servos de cámara (control de velocidad angular continua, movimiento suave cada 15 ms).
 -   [x] Grabación de video MJPEG desde la webapp (sin firmware adicional), descarga como `.webm`/`.mp4`.
--   [x] Arbitraje BT/WS "el último input activo gana" — webapp y gamepad pueden coexistir sin conflictos.
--   [ ] Conflicto webapp / joystick aun tiene bugs
--   [ ] Limites de movimiento de servos de camara en diferentes vistas y modos (no son los mismos)
--   [ ] Mejorar delay de websocket con servos de camara
--   [ ] Mejorar delay de movimiento en servos de camara en webapp (tarda mucho en ir a la posicion deseada)
+-   [x] Arbitraje BT/WS "el último input activo gana" — webapp y gamepad pueden coexistir sin conflictos. Frame neutro de webapp ya no pisa al gamepad BT; ventana de prioridad se cierra de inmediato al soltar el joystick virtual.
+-   [x] Límites de cámara consistentes entre fuentes: joystick virtual, pad FPV y gamepad BT aplican los mismos límites configurados.
+-   [x] Latencia FPV reducida: el pad táctil envía actualizaciones inmediatas (throttled a 30 ms) en lugar de esperar el ciclo de 100 ms.
+-   [x] Botones de cámara en gamepad BT: **RS click** centra la cámara, **Select/View** alterna el modo hold (persiste entre reinicios).
+-   [X] Pines configurables
+-   [ ] Crear script de CICD
 
 
 ## 🙏 Agradecimientos

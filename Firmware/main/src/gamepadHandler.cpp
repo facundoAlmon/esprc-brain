@@ -6,6 +6,8 @@
 #include "hid_gamepad.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "nvs_flash.h"
+#include "nvs.h"
 
 static inline uint32_t millis() { return (uint32_t)(esp_timer_get_time() / 1000ULL); }
 
@@ -31,7 +33,19 @@ struct ButtonState {
     bool aPressed = false;
     bool bLastState = false;
     bool bPressed = false;
+    bool thumbRLastState = false;
+    bool thumbRPressed = false;
+    bool selectLastState = false;
+    bool selectPressed = false;
 };
+
+static void nvs_persist_bool(const char* key, bool v) {
+    nvs_handle_t h;
+    if (nvs_open("bl-car", NVS_READWRITE, &h) != ESP_OK) return;
+    nvs_set_u8(h, key, v ? 1 : 0);
+    nvs_commit(h);
+    nvs_close(h);
+}
 
 static ButtonState btnState;
 
@@ -130,6 +144,25 @@ static void buttonController(const GamepadData* gp, VehicleState* state, Program
         isRecording = !isRecording;
         if (isRecording) pm->startRecording();
         else pm->stopRecording();
+    }
+
+    // RS click → centrar servos de cámara
+    bool thumbR = (gp->buttons & GAMEPAD_BTN_THUMB_R) != 0;
+    if (thumbR != btnState.thumbRLastState) btnState.thumbRPressed = true;
+    else btnState.thumbRPressed = false;
+    btnState.thumbRLastState = thumbR;
+    if (btnState.thumbRPressed && btnState.thumbRLastState) {
+        centerCamServos(state);
+    }
+
+    // Select/View → alternar modo hold de cámara y persistir
+    bool sel = (gp->buttons & GAMEPAD_BTN_SELECT) != 0;
+    if (sel != btnState.selectLastState) btnState.selectPressed = true;
+    else btnState.selectPressed = false;
+    btnState.selectLastState = sel;
+    if (btnState.selectPressed && btnState.selectLastState) {
+        state->camHoldMode = !state->camHoldMode;
+        nvs_persist_bool("camHoldMode", state->camHoldMode);
     }
 }
 

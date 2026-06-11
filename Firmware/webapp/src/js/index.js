@@ -6,6 +6,7 @@ import { connectWebSockets, autoConnectCamera } from './api.js';
 import { getWifiConfig, getConfig, initCamServoUI } from './config.js';
 import { initLights } from './lights.js';
 import { initOta } from './ota.js';
+import { initPins, loadPins } from './pins.js';
 
 function init() {
     elements.menuLinks = document.querySelectorAll('.menu-link');
@@ -60,11 +61,13 @@ function init() {
     initLights();
     initOta();
     initCamServoUI();
+    initPins();
 }
 
 function loadInitialData() {
     getWifiConfig();
     getConfig();
+    loadPins();
     // Try to auto-connect camera via mDNS discovery
     setTimeout(autoConnectCamera, 1500);
 }

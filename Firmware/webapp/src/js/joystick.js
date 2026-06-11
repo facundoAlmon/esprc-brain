@@ -330,6 +330,8 @@ class CamPad {
         this._pointerId = null;
         this._originX = 0;
         this._originY = 0;
+        this._sendCb = null;
+        this._lastSendMs = 0;
         this.el.style.touchAction = 'none';
 
         this._onDown = this._onDown.bind(this);
@@ -340,6 +342,10 @@ class CamPad {
         this.el.addEventListener('pointerup',     this._onUp);
         this.el.addEventListener('pointercancel', this._onUp);
     }
+
+    // Callback invocado en cada movimiento (throttled a 30 ms) y al soltar.
+    // cb(x, y) donde x/y están en -100..100.
+    setSendCallback(cb) { this._sendCb = cb; }
 
     _onDown(e) {
         if (this._pointerId !== null) return;
@@ -375,6 +381,13 @@ class CamPad {
         this.x = Math.round(dx / radius * 100);
         this.y = Math.round(dy / radius * 100);
         this._moveDot(this._originX + dx, this._originY + dy, rect);
+
+        // Envío inmediato throttled a 30 ms para reducir latencia vs. el loop de 100 ms.
+        var now = Date.now();
+        if (this._sendCb && now - this._lastSendMs >= 30) {
+            this._lastSendMs = now;
+            this._sendCb(this.x, this.y);
+        }
     }
 
     _onUp(e) {
@@ -384,6 +397,8 @@ class CamPad {
         this.y = 0;
         if (this.ring) this.ring.style.display = 'none';
         if (this.dot)  this.dot.style.display  = 'none';
+        // Enviar 0,0 inmediatamente al soltar para que el servo se centre sin esperar el loop.
+        if (this._sendCb) this._sendCb(0, 0);
     }
 
     _moveDot(clientX, clientY, rect) {
@@ -464,12 +479,12 @@ export function startActionLoop() {
     // over). While recording a program we always transmit so idle stretches
     // are recorded with their real duration.
     let wasActive = false;
-    setInterval(() => {
+    setInterval(function() {
         if (!state.socketOnline) return;
-        let body = {};
+        var body = {};
         if (state.activeTab === 'joystick-a') {
-            const yVal = parseFloat(joy1.GetY());
-            const xVal = parseFloat(joy1.GetX());
+            var yVal = parseFloat(joy1.GetY());
+            var xVal = parseFloat(joy1.GetX());
             body = {
                 motorSpeed:     Math.trunc(Math.min(100, Math.abs(yVal)) * 1024 / 100),
                 motorDirection: yVal < 0 ? 'F' : 'B',
@@ -478,27 +493,29 @@ export function startActionLoop() {
                 ms: 500
             };
             if (state.camServoEnabled && joy3) {
-                body.panAng  = Math.trunc(parseFloat(joy3.GetX()) * 512 / 100);
-                body.tiltAng = Math.trunc(parseFloat(joy3.GetY()) * 512 / 100);
+                // Clamp a -512..512: GetX/Y pueden superar 100 cuando el handle
+                // está entre el radio interno y el externo (ratio ~1.89).
+                body.panAng  = Math.min(512, Math.max(-512, Math.trunc(parseFloat(joy3.GetX()) * 512 / 100)));
+                body.tiltAng = Math.min(512, Math.max(-512, Math.trunc(parseFloat(joy3.GetY()) * 512 / 100)));
             }
         } else if (state.activeTab === 'fpv') {
-            const yVal = parseFloat(joyFpv.GetY());
-            const xVal = parseFloat(joyFpv.GetX());
+            var yValF = parseFloat(joyFpv.GetY());
+            var xValF = parseFloat(joyFpv.GetX());
             body = {
-                motorSpeed:     Math.trunc(Math.min(100, Math.abs(yVal)) * 1024 / 100),
-                motorDirection: yVal < 0 ? 'F' : 'B',
-                steerDirection: xVal < 0 ? 'L' : 'R',
-                steerAng:       Math.trunc(Math.min(100, Math.abs(xVal)) * 512 / 100),
+                motorSpeed:     Math.trunc(Math.min(100, Math.abs(yValF)) * 1024 / 100),
+                motorDirection: yValF < 0 ? 'F' : 'B',
+                steerDirection: xValF < 0 ? 'L' : 'R',
+                steerAng:       Math.trunc(Math.min(100, Math.abs(xValF)) * 512 / 100),
                 ms: 500
             };
             if (state.camServoEnabled && fpvPad) {
-                body.panAng  = Math.trunc(fpvPad.GetX() * 512 / 100);
-                body.tiltAng = Math.trunc(fpvPad.GetY() * 512 / 100);
+                body.panAng  = Math.min(512, Math.max(-512, Math.trunc(fpvPad.GetX() * 512 / 100)));
+                body.tiltAng = Math.min(512, Math.max(-512, Math.trunc(fpvPad.GetY() * 512 / 100)));
             }
         } else if (state.activeTab === 'joystick-b') {
-            const acelIzq = document.getElementById('acelIzq').classList.contains('active');
-            const joyX = parseFloat(acelIzq ? joy2B.GetX() : joy2A.GetX());
-            const joyY = parseFloat(acelIzq ? joy2A.GetY() : joy2B.GetY());
+            var acelIzq = document.getElementById('acelIzq').classList.contains('active');
+            var joyX = parseFloat(acelIzq ? joy2B.GetX() : joy2A.GetX());
+            var joyY = parseFloat(acelIzq ? joy2A.GetY() : joy2B.GetY());
             body = {
                 motorSpeed:     Math.trunc(Math.min(100, Math.abs(joyY)) * 1024 / 100),
                 motorDirection: joyY < 0 ? 'F' : 'B',
@@ -507,13 +524,26 @@ export function startActionLoop() {
                 ms: 500
             };
         } else { return; }
-        const isActive = body.motorSpeed > 0 || body.steerAng > 0 ||
-                         !!(body.panAng) || !!(body.tiltAng);
+        var isActive = body.motorSpeed > 0 || body.steerAng > 0 ||
+                       !!(body.panAng) || !!(body.tiltAng);
         if (isActive || wasActive || state.recordingProgram) {
             state.wsSocket.send(JSON.stringify(body));
         }
         wasActive = isActive;
     }, 100);
+
+    // Loop de cámara de alta frecuencia para la vista FPV (30 ms).
+    // El CamPad también envía inmediatamente en cada pointermove (throttled a 30 ms),
+    // pero este callback cubre el caso en que el socket se reconecte o el pad
+    // esté estático con input activo.
+    if (fpvPad) {
+        fpvPad.setSendCallback(function(px, py) {
+            if (!state.socketOnline || state.activeTab !== 'fpv') return;
+            var panAng  = Math.min(512, Math.max(-512, Math.trunc(px * 512 / 100)));
+            var tiltAng = Math.min(512, Math.max(-512, Math.trunc(py * 512 / 100)));
+            state.wsSocket.send(JSON.stringify({ panAng: panAng, tiltAng: tiltAng, ms: 150 }));
+        });
+    }
 }
 
 export async function handleRecord() {

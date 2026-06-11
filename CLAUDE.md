@@ -75,6 +75,14 @@ Hold mode (`camHoldMode`): stick/pad input is treated as angular velocity (`camH
 
 WS/`/act` actions: `cam_hold_toggle` (flips `camHoldMode` and persists to NVS) and `cam_center` (calls `centerCamServos`). The webapp exposes hold/center buttons on all joystick views (`.cam-hold-btn`/`.cam-center-btn`, shown only when `camServoEnabled`).
 
+**BT gamepad camera buttons**: RS click (`GAMEPAD_BTN_THUMB_R`) → `centerCamServos()`; Select/View (`GAMEPAD_BTN_SELECT`) → toggle `camHoldMode` + persist to NVS. Xbox: View = byte 14 bit 2 → `GAMEPAD_BTN_SELECT`. Generic HID: Select = bit 8 of the 16-bit button word (bit 0 of `d[7]`). NVS writes from `gamepadHandler.cpp` use a local `nvs_persist_bool()` helper (same open/set/commit/close pattern as `webServerHandler.cpp`).
+
+`joy3.GetX/Y()` returns values relative to `internalRadius` (36% of canvas). At full deflection (handle at `externalRadius` = 68%), the value reaches ≈±189, not ±100 — always clamp `panAng`/`tiltAng` to ±512 before sending or processing. `CamPad.GetX/Y()` is correctly bounded to ±100.
+
+**WS arbitration invariant**: `act_from_json` guards `setMotor`/`setSteer` behind `apiActEnabled` — neutral frames (speed=0, steer=0) must NOT execute when the priority window is closed or they override the BT gamepad. A neutral frame arriving inside an open window closes it immediately (no need to wait for the full `apiActMS` timeout).
+
+**CamPad send callback**: `CamPad.setSendCallback(cb)` fires `cb(x, y)` on every `pointermove` (throttled to 30 ms) and on `pointerup` with (0,0). Used in `startActionLoop` to send camera-only WS frames `{ panAng, tiltAng, ms:150 }` for low-latency FPV control without touching motor/steer fields.
+
 Webapp-only video recording (`webapp/src/js/recorder.js`): browsers do NOT refresh a multipart MJPEG `<img>` when drawn to a canvas (drawImage always yields the first frame), so the recorder takes over the camera's single MJPEG connection while recording: clears `img.src`, `fetch()`es the stream (CORS ok — the mjpeg server sends `Access-Control-Allow-Origin: *`), splits JPEG frames by FFD8/FFD9 markers, paints them onto a hidden canvas (recorded via `captureStream` + MediaRecorder → webm/mp4 download) and keeps the on-screen `<img>` live with per-frame blob URLs. On stop it reconnects the normal `<img>` stream. Stream fallback URL uses port 81 directly (the port-80 302 redirect may not carry CORS).
 
 ## Partition Table
@@ -255,6 +263,38 @@ New features that cross the webapp/firmware boundary always require changes in b
 3. Add any new state fields to `VehicleState` in `include/state.h`
 4. Persist new config keys in `initPreferences()` / the save handler in `webServerHandler.cpp`
 5. Run `npm run build` then `idf.py build` and flash
+
+## GPIO Pins (configurables en runtime)
+
+Los GPIO viven en `VehicleState.pin*` y se cargan desde NVS en `initPreferences()` con defaults compile-time de `pins.h`:
+
+| Campo state      | NVS key       | Default macro           |
+|------------------|---------------|-------------------------|
+| `pinLedStrip`    | `pinLedStrip` | `PIN_LED_STRIP_DEFAULT` |
+| `pinMotorEn`     | `pinMotorEn`  | `PIN_MOTOR_EN_DEFAULT`  |
+| `pinMotorDir1`   | `pinMotorDir1`| `PIN_MOTOR_DIR1_DEFAULT`|
+| `pinMotorDir2`   | `pinMotorDir2`| `PIN_MOTOR_DIR2_DEFAULT`|
+| `pinSteerServo`  | `pinSteer`    | `PIN_STEER_DEFAULT`     |
+| `pinPanServo`    | `pinPan`      | `PIN_PAN_DEFAULT`       |
+| `pinTiltServo`   | `pinTilt`     | `PIN_TILT_DEFAULT`      |
+
+`pins.h` solo define macros `PIN_*_DEFAULT` y `PIN_CHIP_TYPE` — **no declara variables runtime**. Canales LEDC son fijos: `STEER_SERVO_CHANNEL`=CH2, `PAN_SERVO_CHANNEL`=CH3, `TILT_SERVO_CHANNEL`=CH4.
+
+`setupActuators(VehicleState*)` — recibe state pointer (firma cambiada; versiones anteriores no tenían argumento).
+
+REST: `GET /api/pins` (current+defaults+chipType) · `POST /api/pins` (save+reboot) · `POST /api/pins/reset` (erase NVS keys+reboot → next boot usa compile-time defaults).
+
+OTA safety: si las NVS keys no existen (primer boot post-OTA), `getUInt(key, DEFAULT)` retorna el default compile-time — sin pérdida de config.
+
+### Patrón para agregar endpoints en webServerHandler.cpp
+
+1. Incrementar `max_uri_handlers` en `startServer()`
+2. Agregar forward declaration junto a las existentes
+3. Implementar handler
+4. Registrar URI con `httpd_register_uri_handler`
+5. Agregar keys en `get_config_backup_handler` + `post_config_restore_handler`
+
+NVS keys: máximo 15 caracteres — usar abreviaturas (`pinSteer` no `pinSteerServo`).
 
 ## Code Style
 
