@@ -71,6 +71,22 @@ struct VehicleState {
     unsigned int servoLimitRDeg;    //< Límite de giro a la derecha (grados desde el centro).
     unsigned int motorMinSpeed;     //< Velocidad mínima del motor (valor PWM).
     unsigned int motorMaxSpeed;     //< Velocidad máxima del motor (valor PWM).
+    unsigned int motorType;         //< Tipo de motor: 0 = DC (L298N), 1 = Brushless (ESC).
+    unsigned int escMinUs;          //< Pulso de reversa máxima del ESC (microsegundos).
+    unsigned int escCenterUs;       //< Pulso neutral del ESC (microsegundos).
+    unsigned int escMaxUs;          //< Pulso de avance máximo del ESC (microsegundos).
+    unsigned int escMinSpeed;       //< Throttle mínimo del ESC (0-1023) para vencer la zona muerta.
+    unsigned int escMaxSpeed;       //< Throttle máximo del ESC (0-1023): limita la velocidad tope de avance.
+    unsigned int escMaxSpeedRev;    //< Throttle máximo de reversa del ESC (0-1023), independiente del avance.
+    unsigned int escBrakeMs;        //< Duración del freno inicial antes de rearmar reversa (ms).
+    unsigned int escRearmMs;        //< Duración del neutral de rearme antes de aplicar reversa (ms).
+    bool motorInvert;               //< Invierte el sentido de marcha (DC y ESC).
+    bool escCalibrating;            //< Runtime-only: bloquea setMotor durante la calibración del ESC (no se persiste).
+    int  escTargetSpeed;            //< Runtime-only: magnitud de throttle ESC deseada (0-1023); la escribe updateEsc.
+    bool escTargetForward;          //< Runtime-only: dirección deseada del ESC (true=adelante).
+    bool brakeActive;               //< Runtime-only: freno mantenido activo (botón de freno).
+    unsigned int gpThrottleDZ;      //< Zona muerta del gatillo de acelerador/freno del gamepad BT.
+    unsigned int gpSteerDZ;         //< Zona muerta del stick de dirección del gamepad BT.
     int lastSteerDirection;     //< Última dirección de giro: -1 izq, 0 centro, 1 der.
     int lastMotorSpeed;         //< Última velocidad del motor.
     bool lastMotorForward;      //< Última dirección del motor.

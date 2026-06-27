@@ -57,6 +57,15 @@ export function setupEventListeners() {
     attachClick('fpvRecBtn', toggleVideoRecording);
     document.querySelectorAll('.cam-hold-btn').forEach(btn => btn.addEventListener('click', handleCamHoldToggle));
     document.querySelectorAll('.cam-center-btn').forEach(btn => btn.addEventListener('click', handleCamCenter));
+    // Botón de freno: mantener presionado = frena; soltar = libera.
+    document.querySelectorAll('.brake-btn').forEach(function(btn) {
+        var press = function(e) { e.preventDefault(); btn.classList.add('active'); sendWsAction('brake_on'); };
+        var release = function() { if (!btn.classList.contains('active')) return; btn.classList.remove('active'); sendWsAction('brake_off'); };
+        btn.addEventListener('pointerdown', press);
+        btn.addEventListener('pointerup', release);
+        btn.addEventListener('pointerleave', release);
+        btn.addEventListener('pointercancel', release);
+    });
     document.addEventListener('fullscreenchange', function() {
         if (!document.fullscreenElement && camFsActive) exitCamFs();
         if (!document.fullscreenElement) fpvFsActive = false;

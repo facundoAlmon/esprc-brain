@@ -7,6 +7,7 @@
 #define STEER_SERVO_CHANNEL  LEDC_CHANNEL_2
 #define PAN_SERVO_CHANNEL    LEDC_CHANNEL_3
 #define TILT_SERVO_CHANNEL   LEDC_CHANNEL_4
+#define ESC_CHANNEL          LEDC_CHANNEL_5  // Señal del ESC brushless (reusa pinMotorEn)
 
 // Compile-time defaults — used as NVS fallback and for "reset to defaults".
 #if defined(CONFIG_IDF_TARGET_ESP32C6)

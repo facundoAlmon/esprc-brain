@@ -58,7 +58,7 @@ void setupGamepad(VehicleState* state, ProgramManager* programManager) {
 
 static void servoController(const GamepadData* gp, VehicleState* state) {
     int mov = gp->axis_x;
-    if (abs(mov) < 20) mov = 0;
+    if (abs(mov) < (int)state->gpSteerDZ) mov = 0;
     setSteer(mov, state);
     lastSteer = mov;
 }
@@ -82,7 +82,7 @@ static void camServoController(const GamepadData* gp, VehicleState* state) {
     // axis_ry by a small amount (~30-60 units). When the motor is running,
     // double the deadzone to absorb that drift without the user needing to
     // retune camStickDZ. At rest, full sensitivity is restored.
-    if (gp->brake > 20 || gp->throttle > 20) dz *= 2;
+    if (gp->brake > (int)state->gpThrottleDZ || gp->throttle > (int)state->gpThrottleDZ) dz *= 2;
 
     setCamPan (scale_cam_stick(gp->axis_rx, dz, sat), state);
     setCamTilt(scale_cam_stick(gp->axis_ry, dz, sat), state);
@@ -90,9 +90,9 @@ static void camServoController(const GamepadData* gp, VehicleState* state) {
 
 static void motorController(const GamepadData* gp, VehicleState* state) {
     int motorSpeed = 0;
-    if (gp->brake > 20) {
+    if (gp->brake > (int)state->gpThrottleDZ) {
         motorSpeed = -gp->brake;
-    } else if (gp->throttle > 20) {
+    } else if (gp->throttle > (int)state->gpThrottleDZ) {
         motorSpeed = gp->throttle;
     }
     setMotor(abs(motorSpeed), motorSpeed >= 0, state);

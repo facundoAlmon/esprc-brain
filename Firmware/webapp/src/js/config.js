@@ -46,6 +46,40 @@ export function initCamServoUI() {
     }
 }
 
+function updateMotorTypeVisibility() {
+    var sel = document.getElementById('motorType');
+    var dc = document.getElementById('dcMotorOptions');
+    var esc = document.getElementById('escOptions');
+    if (!sel) return;
+    var isEsc = sel.value == '1';
+    if (dc) dc.style.display = isEsc ? 'none' : '';
+    if (esc) esc.style.display = isEsc ? '' : 'none';
+}
+
+export function initMotorUI() {
+    var sel = document.getElementById('motorType');
+    if (sel) sel.addEventListener('change', updateMotorTypeVisibility);
+
+    var phases = [
+        ['escCalHigh', 'high'],
+        ['escCalNeutral', 'neutral'],
+        ['escCalLow', 'low'],
+        ['escCalEnd', 'end']
+    ];
+    phases.forEach(function(p) {
+        var btn = document.getElementById(p[0]);
+        if (btn) btn.addEventListener('click', function() { escCalibrate(p[1]); });
+    });
+}
+
+export async function escCalibrate(phase) {
+    await fetchAPI('api/esc/calibrate', {
+        method: 'POST',
+        body: JSON.stringify({ phase: phase }),
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+
 export async function getWifiConfig() {
     const json = await fetchAPI('wifi');
     if (!json) return;
@@ -72,13 +106,21 @@ export async function getConfig() {
     state.camHoldMode = !!(json.camHoldMode);
     var opts = document.getElementById('camServoOptions');
     if (opts) opts.style.display = state.camServoEnabled ? '' : 'none';
+    updateMotorTypeVisibility();
     updateCamJoyVisibility();
     updateCamHoldButtons();
 }
 
 export async function saveConfig() {
     const configBody = serializeForm('#config');
+    // El <select> serializa como string; ArduinoJson no convierte string→int.
+    if (configBody.motorType !== undefined) configBody.motorType = parseInt(configBody.motorType, 10);
+    const prevType = state.config && state.config.motorType;
     await fetchAPI('config', { method: 'POST', body: JSON.stringify(configBody), headers: { 'Content-Type': 'application/json' } });
+    if (prevType !== undefined && prevType != configBody.motorType) {
+        alert(translations[state.currentLanguage].motorTypeRebootAlert);
+        return; // el ESP se reinicia; evitar re-leer config mientras tanto
+    }
     getConfig();
 }
 

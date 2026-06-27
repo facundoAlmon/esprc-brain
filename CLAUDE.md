@@ -85,6 +85,35 @@ WS/`/act` actions: `cam_hold_toggle` (flips `camHoldMode` and persists to NVS) a
 
 Webapp-only video recording (`webapp/src/js/recorder.js`): browsers do NOT refresh a multipart MJPEG `<img>` when drawn to a canvas (drawImage always yields the first frame), so the recorder takes over the camera's single MJPEG connection while recording: clears `img.src`, `fetch()`es the stream (CORS ok — the mjpeg server sends `Access-Control-Allow-Origin: *`), splits JPEG frames by FFD8/FFD9 markers, paints them onto a hidden canvas (recorded via `captureStream` + MediaRecorder → webm/mp4 download) and keeps the on-screen `<img>` live with per-frame blob URLs. On stop it reconnects the normal `<img>` stream. Stream fallback URL uses port 81 directly (the port-80 302 redirect may not carry CORS).
 
+## Motor de Tracción: DC (L298N) o Brushless (ESC)
+
+El tipo de motor se elige en runtime con `motorType` (NVS key `motorType`, namespace `"bl-car"`): `0` = motor DC vía L298N (MCPWM 20 kHz + 2 pines de dirección), `1` = brushless con ESC (señal PWM tipo servo).
+
+`setMotor(speed 0-1023, forward, state)` sigue siendo la **API única** — gamepad, WS `/act`, ProgramManager y Kids mode no cambian. El despacho por `motorType` es interno a `actuators.cpp`:
+
+- **DC**: lógica original (duty MCPWM en `pinMotorEn` + `pinMotorDir1/2`).
+- **ESC**: `esc_write_us()` (espejo de `cam_servo_write`) emite un pulso en `ESC_CHANNEL` (`LEDC_CHANNEL_5`, mismo `LEDC_TIMER_0` de 50 Hz/14-bit que los servos). La señal **reusa `pinMotorEn`** (GPIO 19 en C6 / 25 en ESP32); los pines de dirección quedan sin uso. Mapeo: `speed=0`→`escCenterUs`; adelante→`escCenterUs..escMaxUs`; reversa→`escCenterUs..escMinUs`.
+
+NVS keys: u32 `motorType`, `escMinUs` (1000), `escCenterUs` (1500), `escMaxUs` (2000), `escMinSpeed` (100, piso de throttle = umbral de arranque del brushless), `escMaxSpeed` (1023), `escMaxSpeedRev` (1023, límite de reversa separado del avance), `escBrakeMs` (200), `escRearmMs` (120), `gpThrottleDZ` (20), `gpSteerDZ` (20); bool `motorInvert` (false, invierte el sentido en DC y ESC). El ESC se arma en neutral al boot (`setupActuators`) y `stopMotors()` saca neutral en modo ESC.
+
+**Salida diferida (`updateEsc`)**: en modo ESC, `setMotor()` solo guarda el target (`escTargetSpeed`/`escTargetForward`, runtime-only); la salida física la escribe `updateEsc(state)` **cada tick del main loop** (15 ms), igual patrón que `updateCamServos`. `updateEsc` aplica el escalado: avance `escMinSpeed..escMaxSpeed`, reversa `escMinSpeed..escMaxSpeedRev` (límite de reversa independiente; también capa el tirón de la fase de freno para que la reversa nunca supere ese límite). El escalado vale por igual para joystick virtual y BT (ambos pasan por `setMotor`).
+
+**Inversión de sentido (`motorInvert`)**: invierte adelante/reversa por software en DC (flip de `forward` en `setMotor`) y ESC (flip de `fwd` en `updateEsc`). Ojo: por la asimetría del ESC (avance inmediato, reversa con secuencia freno→neutral), invertir mueve esa secuencia al lado que quede como reversa; el arreglo "limpio" del sentido físico es intercambiar 2 de los 3 cables del brushless o el *Motor Rotation* del ESC (ítem #5).
+
+**Reversa automática**: los ESC de auto interpretan el primer pulso de reversa como FRENO; recién tras pasar por neutral el siguiente es reversa real. `updateEsc` reproduce esa secuencia con una máquina de estados (`EscPhase`: NEUTRAL→FORWARD→BRAKE→REARM→REVERSE) usando timestamps configurables (`escBrakeMs` def 200 ms, `escRearmMs` def 120 ms, ajustables desde la webapp), así "tirar atrás" termina en reversa sin soltar/reapretar. Aplica tanto al joystick virtual como al BT (ambos pasan por `setMotor`). **Cebado de reversa** (`s_esc_rev_primed`): tras reversar el ESC queda cebado; mientras no se aplique avance, reversa→neutral→reversa entra **directo** (sin repetir el baile freno→neutral, que causaba un stutter "para y continúa"). Sólo el avance (fase FORWARD) resetea el cebado.
+
+**Freno mantenido**: `brakeMotor(state, on)` + flag runtime `brakeActive`. En ESC saca pulso de freno (`escMinUs`) vía `updateEsc`; en DC frena activo el L298N (ambos pines de dirección en alto, EN a tope). WS actions `brake_on`/`brake_off` (botón `.brake-btn` por vista en la webapp, mantener-presionado). Un comando real de acelerador libera el freno.
+
+**Umbrales del gamepad BT**: `gpThrottleDZ` (gatillo acelerador/freno) y `gpSteerDZ` (stick de dirección) reemplazan los `20` antes hardcodeados en `gamepadHandler.cpp` (`motorController`/`servoController`/`camServoController`).
+
+**Cambiar `motorType` reinicia el ESP** (reconfigura el periférico de `pinMotorEn` entre MCPWM y LEDC) — `post_config_handler` reinicia tras responder, igual que `/api/pins`. Los `esc*Us` se aplican en caliente.
+
+**Calibración** (`POST /api/esc/calibrate`, body `{"phase":"high|neutral|low|end"}`): `escCalibrateOutput()` mantiene un pulso de tope mientras `escCalibrating=true` (flag runtime, NO en NVS); ese flag hace que `updateEsc()` ceda la salida (no escribe el throttle normal). `"end"` vuelve a neutral y libera. Salvaguarda: si se olvidó "Finalizar", `updateEsc` auto-libera el flag a los 60 s (`ESC_CAL_TIMEOUT_US`) para no dejar el motor bloqueado. El ESC Spektrum SPMXSE1085 (Firma 85A) se calibra con su **botón SET**, orden **Neutral → Acelerador máx → Freno máx**. El asistente de la webapp vive en la pestaña config (`#escOptions`/`#escCalibrate`, wireado en `initMotorUI()` de `config.js`).
+
+**Webapp config (modo ESC)**: al elegir Brushless se ocultan los sliders DC (`#dcMotorOptions`) y se muestran (`#escOptions`): Velocidad Máx/Mín (`escMaxSpeed`/`escMinSpeed`), sub-panel *Tiempos de reversa* (`escBrakeMs`/`escRearmMs`) y *Calibración de pulsos* avanzado (`esc*Us`). El `<select id="motorType">` serializa como string — `saveConfig()` hace `parseInt` antes de enviar (ArduinoJson no coacciona string→int).
+
+> **Comportamiento del ESC (no es firmware)**: el SPMXSE1085 viene de fábrica en *Forward/Reverse w/Brake* (reversa habilitada). Los ESC de auto exigen el "doble toque" (1er pulso atrás = freno → neutral → 2º atrás = reversa); la máquina de estados de `updateEsc` lo automatiza. Si el motor "solo va adelante y frena", o el Running Mode quedó en *Forward w/Brake* (reprogramar con el botón SET: ítem #4 → opción 1, o reset de fábrica manteniendo SET 5 s), o faltó hacer el doble toque. `escBrakeMs`/`escRearmMs` en 0 hacen la reversa casi instantánea.
+
 ## Partition Table
 
 Uses a custom `Firmware/partitions.csv` with a **dual-OTA layout** for 8 MB flash:
@@ -179,7 +208,7 @@ Configuration is persisted to ESP32 NVS under the namespace `"bl-car"`. LED conf
 |------|---------------|
 | `main.c` | Entry point; calls `app_task_start()` which creates the main FreeRTOS task |
 | `src/sketch.cpp` | `main_task`: nvs_flash_init, initPreferences, WiFi, actuators, gamepad, web server, main loop (15 ms) |
-| `src/actuators.cpp` | DC motor (MCPWM via L298N), steering servo (LEDC_TIMER_0, CH2), and camera pan/tilt servos (LEDC_TIMER_0, CH3/CH4) |
+| `src/actuators.cpp` | Motor de tracción — DC (MCPWM via L298N) o brushless ESC (LEDC CH5, señal en `pinMotorEn`), según `motorType`; steering servo (LEDC_TIMER_0, CH2); camera pan/tilt servos (LEDC_TIMER_0, CH3/CH4); calibración ESC |
 | `src/gamepadHandler.cpp` | Gamepad callbacks; maps axes/buttons to motor/steer/lights/cam servos |
 | `src/ledStripHandler.cpp` | WS2812B strip via RMT encoder; maps `LedFunction` groups to physical LEDs |
 | `src/webServerHandler.cpp` | `esp_http_server` REST API + WebSocket; serves the embedded `index.html` |
@@ -249,6 +278,7 @@ Configuration is persisted to ESP32 NVS under the namespace `"bl-car"`. LED conf
 | GET | `/api/sequence/stop` | Stop ad-hoc sequence |
 | GET | `/api/ota/info` | Running/boot/next partition + app description |
 | POST | `/api/ota` | Upload `esprc_brain.bin` (binary body); reboots on success |
+| POST | `/api/esc/calibrate` | Calibración del ESC brushless: `{"phase":"high\|neutral\|low\|end"}` (solo si `motorType==1`) |
 
 ### Wi-Fi
 
@@ -278,7 +308,7 @@ Los GPIO viven en `VehicleState.pin*` y se cargan desde NVS en `initPreferences(
 | `pinPanServo`    | `pinPan`      | `PIN_PAN_DEFAULT`       |
 | `pinTiltServo`   | `pinTilt`     | `PIN_TILT_DEFAULT`      |
 
-`pins.h` solo define macros `PIN_*_DEFAULT` y `PIN_CHIP_TYPE` — **no declara variables runtime**. Canales LEDC son fijos: `STEER_SERVO_CHANNEL`=CH2, `PAN_SERVO_CHANNEL`=CH3, `TILT_SERVO_CHANNEL`=CH4.
+`pins.h` solo define macros `PIN_*_DEFAULT` y `PIN_CHIP_TYPE` — **no declara variables runtime**. Canales LEDC son fijos: `STEER_SERVO_CHANNEL`=CH2, `PAN_SERVO_CHANNEL`=CH3, `TILT_SERVO_CHANNEL`=CH4, `ESC_CHANNEL`=CH5 (señal del ESC brushless sobre `pinMotorEn`).
 
 `setupActuators(VehicleState*)` — recibe state pointer (firma cambiada; versiones anteriores no tenían argumento).
 

@@ -3,7 +3,7 @@ import { setupLanguage } from './language.js';
 import { setupUI, setupEventListeners } from './ui.js';
 import { initJoysticks, startActionLoop } from './joystick.js';
 import { connectWebSockets, autoConnectCamera } from './api.js';
-import { getWifiConfig, getConfig, initCamServoUI } from './config.js';
+import { getWifiConfig, getConfig, initCamServoUI, initMotorUI } from './config.js';
 import { initLights } from './lights.js';
 import { initOta } from './ota.js';
 import { initPins, loadPins } from './pins.js';
@@ -61,6 +61,7 @@ function init() {
     initLights();
     initOta();
     initCamServoUI();
+    initMotorUI();
     initPins();
 }
 

@@ -162,6 +162,22 @@ void initPreferences() {
     vehicleState.servoLimitRDeg  = preferences.getUInt("servoLimitRDeg", 45);
     vehicleState.motorMinSpeed   = preferences.getUInt("motorMinSpeed", 150);
     vehicleState.motorMaxSpeed   = preferences.getUInt("motorMaxSpeed", 255);
+    vehicleState.motorType       = preferences.getUInt("motorType", 0);
+    vehicleState.escMinUs        = preferences.getUInt("escMinUs", 1000);
+    vehicleState.escCenterUs     = preferences.getUInt("escCenterUs", 1500);
+    vehicleState.escMaxUs        = preferences.getUInt("escMaxUs", 2000);
+    vehicleState.escMinSpeed     = preferences.getUInt("escMinSpeed", 100);
+    vehicleState.escMaxSpeed     = preferences.getUInt("escMaxSpeed", 1023);
+    vehicleState.escMaxSpeedRev  = preferences.getUInt("escMaxSpeedRev", 1023);
+    vehicleState.escBrakeMs      = preferences.getUInt("escBrakeMs", 200);
+    vehicleState.escRearmMs      = preferences.getUInt("escRearmMs", 120);
+    vehicleState.motorInvert     = preferences.getBool("motorInvert", false);
+    vehicleState.escCalibrating  = false;
+    vehicleState.escTargetSpeed  = 0;
+    vehicleState.escTargetForward = true;
+    vehicleState.brakeActive     = false;
+    vehicleState.gpThrottleDZ    = preferences.getUInt("gpThrottleDZ", 20);
+    vehicleState.gpSteerDZ       = preferences.getUInt("gpSteerDZ", 20);
     vehicleState.autoTurnSignals = preferences.getBool("autoTurnSignals", true);
     vehicleState.autoTurnTol     = preferences.getUInt("autoTurnTol", 10);
     vehicleState.lastSteerDirection = 0;
@@ -326,6 +342,7 @@ static void main_task(void* pvParameters) {
             }
 
             updateCamServos(&vehicleState);
+            updateEsc(&vehicleState);
 
             if (vehicleState.apiActEnabled) {
                 if ((millis() - vehicleState.apiActMSStart) >= vehicleState.apiActMS) {

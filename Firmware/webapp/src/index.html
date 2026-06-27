@@ -172,6 +172,7 @@
                             <button class="icon-toggle control-btn-up-left" id="swap-layout-btn-a" data-tooltip-key="swapLayout"></button>
                             <button class="icon-toggle control-btn-up-right" id="record-btn-a" data-tooltip-key="toggleRecording"></button>
                         </div>
+                        <button type="button" class="brake-btn" id="brake-btn-a" data-i18n="brake">BRAKE</button>
                         <div id="camJoyContainer" style="display:none">
                             <p class="cam-joy-label" data-i18n="camJoyTitle">Camera</p>
                             <div id="joy3Div"></div>
@@ -209,6 +210,7 @@
                                 data-tooltip-key="turnRight"></button>
                             <button class="icon-toggle control-btn-up-right" id="record-btn-b" data-tooltip-key="toggleRecording"></button>
                         </div>
+                        <button type="button" class="brake-btn" id="brake-btn-b" data-i18n="brake">BRAKE</button>
                         <div class="cam-quick-controls cam-ctl-wrap" style="display:none">
                             <button class="icon-toggle cam-hold-btn" id="cam-hold-btn-b" data-tooltip-key="camHoldBtn">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>
@@ -258,6 +260,9 @@
                         <button class="icon-toggle" id="hazard-btn-fpv" data-tooltip-key="hazardLights"></button>
                         <button class="icon-toggle" id="turn-right-btn-fpv" data-tooltip-key="turnRight"></button>
                         <button class="icon-toggle" id="record-btn-fpv" data-tooltip-key="toggleRecording"></button>
+                        <button class="icon-toggle brake-btn brake-btn-icon" id="brake-btn-fpv" data-tooltip-key="brake">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14a4 4 0 110-8 4 4 0 010 8z"/></svg>
+                        </button>
                         <button class="icon-toggle cam-hold-btn cam-ctl-wrap" id="cam-hold-btn-fpv" data-tooltip-key="camHoldBtn" style="display:none">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>
                         </button>
@@ -464,17 +469,99 @@
                 <details class="cfg-group" open>
                     <summary><span data-i18n="throttleSettings">Throttle Settings</span></summary>
                     <div class="cfg-group-inner">
-                        <div class="form-grid">
-                            <div class="form-group slider-group">
-                                <label for="motorMaxSpeed"><span data-i18n="maxSpeed">Max Speed</span>: <span
-                                        id="motorMaxSpeedValue">200</span></label>
-                                <input type="range" value="200" min="0" max="1024" id="motorMaxSpeed">
+                        <div class="form-group">
+                            <label data-i18n="motorType">Motor Type</label>
+                            <select id="motorType">
+                                <option value="0" data-i18n="motorTypeDc">DC Motor (L298N)</option>
+                                <option value="1" data-i18n="motorTypeEsc">Brushless + ESC</option>
+                            </select>
+                        </div>
+                        <div id="dcMotorOptions">
+                            <div class="form-grid">
+                                <div class="form-group slider-group">
+                                    <label for="motorMaxSpeed"><span data-i18n="maxSpeed">Max Speed</span>: <span
+                                            id="motorMaxSpeedValue">200</span></label>
+                                    <input type="range" value="200" min="0" max="1024" id="motorMaxSpeed">
+                                </div>
+                                <div class="form-group slider-group">
+                                    <label for="motorMinSpeed"><span data-i18n="minSpeed">Min Speed</span>: <span
+                                            id="motorMinSpeedValue">55</span></label>
+                                    <input type="range" value="55" min="0" max="1024" id="motorMinSpeed">
+                                </div>
                             </div>
-                            <div class="form-group slider-group">
-                                <label for="motorMinSpeed"><span data-i18n="minSpeed">Min Speed</span>: <span
-                                        id="motorMinSpeedValue">55</span></label>
-                                <input type="range" value="55" min="0" max="1024" id="motorMinSpeed">
+                        </div>
+                        <div id="escOptions" style="display:none">
+                            <p class="cfg-note" data-i18n="escTypeChangeNote">Changing the motor type reboots the ESP.</p>
+                            <div class="control-group">
+                                <span data-i18n="motorInvert">Invert direction (forward/reverse)</span>
+                                <input class="toggle" id="motorInvert" type="checkbox" />
                             </div>
+                            <div class="form-grid">
+                                <div class="form-group slider-group">
+                                    <label for="escMaxSpeed"><span data-i18n="escMaxSpeed">Max Speed</span>: <span
+                                            id="escMaxSpeedValue">1023</span></label>
+                                    <input type="range" value="1023" min="0" max="1023" id="escMaxSpeed">
+                                </div>
+                                <div class="form-group slider-group">
+                                    <label for="escMaxSpeedRev"><span data-i18n="escMaxSpeedRev">Max Reverse Speed</span>: <span
+                                            id="escMaxSpeedRevValue">1023</span></label>
+                                    <input type="range" value="1023" min="0" max="1023" id="escMaxSpeedRev">
+                                </div>
+                                <div class="form-group slider-group">
+                                    <label for="escMinSpeed"><span data-i18n="escMinSpeed">Min Speed (start threshold)</span>: <span
+                                            id="escMinSpeedValue">100</span></label>
+                                    <input type="range" value="100" min="0" max="1023" id="escMinSpeed">
+                                </div>
+                            </div>
+                            <details class="cfg-sub">
+                                <summary><span data-i18n="escReverseSettings">Reverse Timing</span></summary>
+                                <div class="cfg-sub-inner">
+                                    <p class="cfg-note" data-i18n="escReverseHelp">Auto brake→neutral→reverse sequence. Brake = initial braking time; Rearm = neutral gap before reverse engages.</p>
+                                    <div class="form-grid">
+                                        <div class="form-group slider-group">
+                                            <label for="escBrakeMs"><span data-i18n="escBrakeMs">Brake time (ms)</span>: <span
+                                                    id="escBrakeMsValue">200</span></label>
+                                            <input type="range" value="200" min="0" max="800" step="10" id="escBrakeMs">
+                                        </div>
+                                        <div class="form-group slider-group">
+                                            <label for="escRearmMs"><span data-i18n="escRearmMs">Rearm time (ms)</span>: <span
+                                                    id="escRearmMsValue">120</span></label>
+                                            <input type="range" value="120" min="0" max="500" step="10" id="escRearmMs">
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                            <details class="cfg-sub">
+                                <summary><span data-i18n="escPulseSettings">Pulse Calibration (advanced)</span></summary>
+                                <div class="cfg-sub-inner">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="escMinUs" data-i18n="escMinUs">Reverse Pulse (µs)</label>
+                                            <input type="number" id="escMinUs" value="1000" min="800" max="1500">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="escCenterUs" data-i18n="escCenterUs">Neutral Pulse (µs)</label>
+                                            <input type="number" id="escCenterUs" value="1500" min="1300" max="1700">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="escMaxUs" data-i18n="escMaxUs">Forward Pulse (µs)</label>
+                                            <input type="number" id="escMaxUs" value="2000" min="1500" max="2200">
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                            <details class="cfg-sub" id="escCalibrate">
+                                <summary><span data-i18n="escCalibration">ESC Calibration</span></summary>
+                                <div class="cfg-sub-inner">
+                                    <p class="cfg-note" data-i18n="escCalibrationHelp">Save the ESC motor type first. Hold the ESC's SET button while powering it ON; release when the red LED flashes (calibration mode). Then for each step press this button, then tap the ESC's SET button: "Neutral", "Full Throttle", "Full Brake". Press "Finish" when done.</p>
+                                    <div class="btn-row">
+                                        <button type="button" id="escCalNeutral" data-i18n="escCalNeutral">Neutral</button>
+                                        <button type="button" id="escCalHigh" data-i18n="escCalHigh">Full Throttle</button>
+                                        <button type="button" id="escCalLow" data-i18n="escCalLow">Full Brake</button>
+                                        <button type="button" id="escCalEnd" data-i18n="escCalEnd">Finish</button>
+                                    </div>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </details>
@@ -520,6 +607,24 @@
                         <div class="control-group">
                             <span data-i18n="enableBluetooth">Enable Bluetooth</span>
                             <input class="toggle" id="enableScan" type="checkbox" data-tooltip-key="enableBluetooth" />
+                        </div>
+                    </div>
+                </details>
+                <details class="cfg-group">
+                    <summary><span data-i18n="btGamepadSettings">Bluetooth Gamepad</span></summary>
+                    <div class="cfg-group-inner">
+                        <p class="cfg-note" data-i18n="btThresholdHelp">Threshold from which the gamepad starts acting (deadzone).</p>
+                        <div class="form-grid">
+                            <div class="form-group slider-group">
+                                <label for="gpThrottleDZ"><span data-i18n="gpThrottleDZ">Throttle/Brake Deadzone</span>: <span
+                                        id="gpThrottleDZValue">20</span></label>
+                                <input type="range" value="20" min="0" max="300" id="gpThrottleDZ">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="gpSteerDZ"><span data-i18n="gpSteerDZ">Steering Deadzone</span>: <span
+                                        id="gpSteerDZValue">20</span></label>
+                                <input type="range" value="20" min="0" max="200" id="gpSteerDZ">
+                            </div>
                         </div>
                     </div>
                 </details>

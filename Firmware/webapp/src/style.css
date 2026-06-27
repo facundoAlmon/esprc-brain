@@ -367,6 +367,25 @@ main{flex:1;padding:1rem;overflow-y:auto}
   display:flex;flex-direction:column;gap:.6rem;
 }
 
+.cfg-note{font-size:.82rem;opacity:.75;margin:.25rem 0}
+.btn-row{display:flex;flex-wrap:wrap;gap:.5rem}
+.btn-row>button{flex:1 1 auto}
+
+/* Botón de freno mantenido (hold-to-brake) */
+.brake-btn{
+  margin-top:.6rem;
+  padding:.6rem 1.2rem;
+  border:2px solid #c0392b;
+  border-radius:10px;
+  background:rgba(192,57,43,.15);
+  color:#e74c3c;
+  font-weight:700;letter-spacing:.05em;
+  cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;
+}
+.brake-btn.active,.brake-btn:active{background:#c0392b;color:#fff}
+.brake-btn-icon{margin-top:0;padding:0}
+.brake-btn-icon.active,.brake-btn-icon:active{background:#c0392b;color:#fff}
+
 /* Sticky action bar at the bottom of the config tab */
 .cfg-actions{
   position:sticky;bottom:0;

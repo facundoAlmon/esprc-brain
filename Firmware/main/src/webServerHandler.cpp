@@ -125,6 +125,7 @@ static esp_err_t get_camera_handler(httpd_req_t *req);
 static esp_err_t get_pins_handler(httpd_req_t *req);
 static esp_err_t post_pins_handler(httpd_req_t *req);
 static esp_err_t post_pins_reset_handler(httpd_req_t *req);
+static esp_err_t post_esc_calibrate_handler(httpd_req_t *req);
 static void discover_camera_task(void*);
 
 static TaskHandle_t sequenceTaskHandle = NULL;
@@ -143,6 +144,18 @@ static char* get_config_json() {
     doc["servoLimitRDeg"] = g_state->servoLimitRDeg;
     doc["motorMaxSpeed"]  = g_state->motorMaxSpeed;
     doc["motorMinSpeed"]  = g_state->motorMinSpeed;
+    doc["motorType"]      = g_state->motorType;
+    doc["escMinUs"]       = g_state->escMinUs;
+    doc["escCenterUs"]    = g_state->escCenterUs;
+    doc["escMaxUs"]       = g_state->escMaxUs;
+    doc["escMinSpeed"]    = g_state->escMinSpeed;
+    doc["escMaxSpeed"]    = g_state->escMaxSpeed;
+    doc["escMaxSpeedRev"] = g_state->escMaxSpeedRev;
+    doc["escBrakeMs"]     = g_state->escBrakeMs;
+    doc["escRearmMs"]     = g_state->escRearmMs;
+    doc["motorInvert"]    = g_state->motorInvert ? 1 : 0;
+    doc["gpThrottleDZ"]   = g_state->gpThrottleDZ;
+    doc["gpSteerDZ"]      = g_state->gpSteerDZ;
     doc["enableScan"]     = g_state->enableScan;
     doc["autoTurnSignals"] = g_state->autoTurnSignals;
     doc["autoTurnTol"]    = g_state->autoTurnTol;
@@ -178,7 +191,7 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 30;
+    config.max_uri_handlers = 32;
     config.recv_wait_timeout = 30;
     config.send_wait_timeout = 30;
     config.lru_purge_enable = true;
@@ -254,6 +267,8 @@ void startServer(VehicleState* state, ProgramManager* programManager) {
         httpd_register_uri_handler(server_httpd, &post_pins_uri);
         httpd_uri_t post_pins_reset_uri = {.uri = "/api/pins/reset", .method = HTTP_POST, .handler = post_pins_reset_handler};
         httpd_register_uri_handler(server_httpd, &post_pins_reset_uri);
+        httpd_uri_t post_esc_cal_uri = {.uri = "/api/esc/calibrate", .method = HTTP_POST, .handler = post_esc_calibrate_handler};
+        httpd_register_uri_handler(server_httpd, &post_esc_cal_uri);
     }
 
     // Load persisted camera IP and start discovery task
@@ -300,11 +315,24 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     deserializeJson(doc, content);
 
     VehicleState* state = (VehicleState*)httpd_get_global_user_ctx(req->handle);
+    unsigned int prevMotorType = state->motorType;
     state->servoCenterDeg = doc["servoCenterDeg"];
     state->servoLimitLDeg = doc["servoLimitLDeg"];
     state->servoLimitRDeg = doc["servoLimitRDeg"];
     state->motorMaxSpeed  = doc["motorMaxSpeed"];
     state->motorMinSpeed  = doc["motorMinSpeed"];
+    if (doc.containsKey("motorType"))   state->motorType   = doc["motorType"];
+    if (doc.containsKey("escMinUs"))    state->escMinUs    = doc["escMinUs"];
+    if (doc.containsKey("escCenterUs")) state->escCenterUs = doc["escCenterUs"];
+    if (doc.containsKey("escMaxUs"))    state->escMaxUs    = doc["escMaxUs"];
+    if (doc.containsKey("escMinSpeed")) state->escMinSpeed = doc["escMinSpeed"];
+    if (doc.containsKey("escMaxSpeed")) state->escMaxSpeed = doc["escMaxSpeed"];
+    if (doc.containsKey("escMaxSpeedRev")) state->escMaxSpeedRev = doc["escMaxSpeedRev"];
+    if (doc.containsKey("escBrakeMs"))  state->escBrakeMs  = doc["escBrakeMs"];
+    if (doc.containsKey("escRearmMs"))  state->escRearmMs  = doc["escRearmMs"];
+    if (doc.containsKey("motorInvert")) state->motorInvert = (doc["motorInvert"] != 0);
+    if (doc.containsKey("gpThrottleDZ")) state->gpThrottleDZ = doc["gpThrottleDZ"];
+    if (doc.containsKey("gpSteerDZ"))    state->gpSteerDZ    = doc["gpSteerDZ"];
     state->enableScan     = doc["enableScan"];
     if (doc["autoTurnSignals"] == 1) state->autoTurnSignals = true;
     else if (doc["autoTurnSignals"] == 0) state->autoTurnSignals = false;
@@ -339,6 +367,18 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     nvs_put_u32("servoLimitRDeg", state->servoLimitRDeg);
     nvs_put_u32("motorMaxSpeed",  state->motorMaxSpeed);
     nvs_put_u32("motorMinSpeed",  state->motorMinSpeed);
+    nvs_put_u32("motorType",      state->motorType);
+    nvs_put_u32("escMinUs",       state->escMinUs);
+    nvs_put_u32("escCenterUs",    state->escCenterUs);
+    nvs_put_u32("escMaxUs",       state->escMaxUs);
+    nvs_put_u32("escMinSpeed",    state->escMinSpeed);
+    nvs_put_u32("escMaxSpeed",    state->escMaxSpeed);
+    nvs_put_u32("escMaxSpeedRev", state->escMaxSpeedRev);
+    nvs_put_u32("escBrakeMs",     state->escBrakeMs);
+    nvs_put_u32("escRearmMs",     state->escRearmMs);
+    nvs_put_bool("motorInvert",   state->motorInvert);
+    nvs_put_u32("gpThrottleDZ",   state->gpThrottleDZ);
+    nvs_put_u32("gpSteerDZ",      state->gpSteerDZ);
     nvs_put_u32("enableScan",     state->enableScan);
     nvs_put_bool("autoTurnSignals", state->autoTurnSignals);
     nvs_put_u32("autoTurnTol",    state->autoTurnTol);
@@ -373,6 +413,13 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "text/plain");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_send(req, "OK", 2);
+
+    // Cambiar de tipo de motor reconfigura el periférico de pinMotorEn (MCPWM <-> LEDC),
+    // así que requiere reinicio (mismo patrón que cambiar pines).
+    if (state->motorType != prevMotorType) {
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        esp_restart();
+    }
     return ESP_OK;
 }
 
@@ -498,6 +545,9 @@ static void act_from_json(JsonDocument& doc, VehicleState* state) {
         const char* steerDirectionStr = doc["steerDirection"] | "R";
         int steerAngle = strcmp(steerDirectionStr, "L") == 0 ? -steerAngRaw : steerAngRaw;
 
+        // Un comando real de acelerador libera el freno mantenido.
+        if (motorSpeedRaw != 0 && state->brakeActive) brakeMotor(state, false);
+
         bool is_active = motorSpeedRaw != 0 || steerAngRaw != 0;
         if (is_active) {
             // Comando activo: abrir/renovar la ventana de prioridad WS.
@@ -547,6 +597,10 @@ static void act_from_json(JsonDocument& doc, VehicleState* state) {
             nvs_put_bool("camHoldMode", state->camHoldMode);
         } else if (strcmp(action, "cam_center") == 0) {
             centerCamServos(state);
+        } else if (strcmp(action, "brake_on") == 0) {
+            brakeMotor(state, true);
+        } else if (strcmp(action, "brake_off") == 0) {
+            brakeMotor(state, false);
         }
     }
 }
@@ -682,6 +736,18 @@ static esp_err_t get_config_backup_handler(httpd_req_t *req) {
     doc["servoLimitRDeg"]  = nvs_get_u32_or("servoLimitRDeg", 0);
     doc["motorMaxSpeed"]   = nvs_get_u32_or("motorMaxSpeed", 0);
     doc["motorMinSpeed"]   = nvs_get_u32_or("motorMinSpeed", 0);
+    doc["motorType"]       = nvs_get_u32_or("motorType",   0);
+    doc["escMinUs"]        = nvs_get_u32_or("escMinUs",    1000);
+    doc["escCenterUs"]     = nvs_get_u32_or("escCenterUs", 1500);
+    doc["escMaxUs"]        = nvs_get_u32_or("escMaxUs",    2000);
+    doc["escMinSpeed"]     = nvs_get_u32_or("escMinSpeed", 100);
+    doc["escMaxSpeed"]     = nvs_get_u32_or("escMaxSpeed", 1023);
+    doc["escMaxSpeedRev"]  = nvs_get_u32_or("escMaxSpeedRev", 1023);
+    doc["escBrakeMs"]      = nvs_get_u32_or("escBrakeMs", 200);
+    doc["escRearmMs"]      = nvs_get_u32_or("escRearmMs", 120);
+    doc["motorInvert"]     = nvs_get_bool_or("motorInvert", false) ? 1 : 0;
+    doc["gpThrottleDZ"]    = nvs_get_u32_or("gpThrottleDZ", 20);
+    doc["gpSteerDZ"]       = nvs_get_u32_or("gpSteerDZ",    20);
     doc["enableScan"]      = nvs_get_u32_or("enableScan", 0);
     doc["autoTurnSignals"] = nvs_get_bool_or("autoTurnSignals", false);
     doc["autoTurnTol"]     = nvs_get_u32_or("autoTurnTol", 0);
@@ -741,6 +807,18 @@ static esp_err_t post_config_restore_handler(httpd_req_t *req) {
     if (doc.containsKey("servoLimitRDeg")) nvs_put_u32("servoLimitRDeg", doc["servoLimitRDeg"]);
     if (doc.containsKey("motorMaxSpeed"))  nvs_put_u32("motorMaxSpeed",  doc["motorMaxSpeed"]);
     if (doc.containsKey("motorMinSpeed"))  nvs_put_u32("motorMinSpeed",  doc["motorMinSpeed"]);
+    if (doc.containsKey("motorType"))      nvs_put_u32("motorType",      doc["motorType"]);
+    if (doc.containsKey("escMinUs"))       nvs_put_u32("escMinUs",       doc["escMinUs"]);
+    if (doc.containsKey("escCenterUs"))    nvs_put_u32("escCenterUs",    doc["escCenterUs"]);
+    if (doc.containsKey("escMaxUs"))       nvs_put_u32("escMaxUs",       doc["escMaxUs"]);
+    if (doc.containsKey("escMinSpeed"))    nvs_put_u32("escMinSpeed",    doc["escMinSpeed"]);
+    if (doc.containsKey("escMaxSpeed"))    nvs_put_u32("escMaxSpeed",    doc["escMaxSpeed"]);
+    if (doc.containsKey("escMaxSpeedRev")) nvs_put_u32("escMaxSpeedRev", doc["escMaxSpeedRev"]);
+    if (doc.containsKey("escBrakeMs"))     nvs_put_u32("escBrakeMs",     doc["escBrakeMs"]);
+    if (doc.containsKey("escRearmMs"))     nvs_put_u32("escRearmMs",     doc["escRearmMs"]);
+    if (doc.containsKey("motorInvert"))    nvs_put_bool("motorInvert",   (bool)(doc["motorInvert"] != 0));
+    if (doc.containsKey("gpThrottleDZ"))   nvs_put_u32("gpThrottleDZ",   doc["gpThrottleDZ"]);
+    if (doc.containsKey("gpSteerDZ"))      nvs_put_u32("gpSteerDZ",      doc["gpSteerDZ"]);
     if (doc.containsKey("enableScan"))     nvs_put_u32("enableScan",     doc["enableScan"]);
     if (doc.containsKey("autoTurnSignals"))nvs_put_bool("autoTurnSignals", (bool)doc["autoTurnSignals"]);
     if (doc.containsKey("autoTurnTol"))    nvs_put_u32("autoTurnTol",    doc["autoTurnTol"]);
@@ -1030,6 +1108,29 @@ static esp_err_t post_pins_handler(httpd_req_t *req) {
     httpd_resp_send(req, "OK", 2);
     vTaskDelay(500 / portTICK_PERIOD_MS);
     esp_restart();
+    return ESP_OK;
+}
+
+// Calibración del ESC: el firmware mantiene un pulso de tope (high/neutral/low) mientras
+// el usuario realiza la secuencia física del ESC; "end" vuelve a neutral y libera el control.
+static esp_err_t post_esc_calibrate_handler(httpd_req_t *req) {
+    char content[128];
+    size_t recv_size = MIN(req->content_len, sizeof(content) - 1);
+    int ret = httpd_req_recv(req, content, recv_size);
+    if (ret <= 0) return ESP_FAIL;
+    content[ret] = '\0';
+    JsonDocument doc;
+    if (deserializeJson(doc, content)) { httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON"); return ESP_FAIL; }
+
+    VehicleState* state = (VehicleState*)httpd_get_global_user_ctx(req->handle);
+    if (state->motorType != 1) { httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "ESC mode not active"); return ESP_FAIL; }
+
+    const char* phase = doc["phase"] | "";
+    escCalibrateOutput(state, phase);
+
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_send(req, "OK", 2);
     return ESP_OK;
 }
 
