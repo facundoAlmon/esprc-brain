@@ -532,6 +532,28 @@
                                 </div>
                             </details>
                             <details class="cfg-sub">
+                                <summary><span data-i18n="escCrawlSettings">Crawl Mode (low speed)</span></summary>
+                                <div class="cfg-sub-inner">
+                                    <p class="cfg-note" data-i18n="escCrawlHelp">Pulses the throttle to crawl slower than the motor's minimum. Jerky by nature (sensorless). "Min Speed (start)" sets each kick's strength.</p>
+                                    <div class="control-group">
+                                        <span data-i18n="escCrawlEnabled">Enable Crawl Mode</span>
+                                        <input class="toggle" id="escCrawlEnabled" type="checkbox" />
+                                    </div>
+                                    <div class="form-grid">
+                                        <div class="form-group slider-group">
+                                            <label for="escCrawlOnMs"><span data-i18n="escCrawlOnMs">Kick time (ms)</span>: <span
+                                                    id="escCrawlOnMsValue">80</span></label>
+                                            <input type="range" value="80" min="40" max="200" step="5" id="escCrawlOnMs">
+                                        </div>
+                                        <div class="form-group slider-group">
+                                            <label for="escCrawlMaxOffMs"><span data-i18n="escCrawlMaxOffMs">Max gap (ms)</span>: <span
+                                                    id="escCrawlMaxOffMsValue">400</span></label>
+                                            <input type="range" value="400" min="100" max="800" step="10" id="escCrawlMaxOffMs">
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                            <details class="cfg-sub">
                                 <summary><span data-i18n="escPulseSettings">Pulse Calibration (advanced)</span></summary>
                                 <div class="cfg-sub-inner">
                                     <div class="form-grid">

@@ -154,6 +154,9 @@ static char* get_config_json() {
     doc["escBrakeMs"]     = g_state->escBrakeMs;
     doc["escRearmMs"]     = g_state->escRearmMs;
     doc["motorInvert"]    = g_state->motorInvert ? 1 : 0;
+    doc["escCrawlEnabled"] = g_state->escCrawlEnabled ? 1 : 0;
+    doc["escCrawlOnMs"]   = g_state->escCrawlOnMs;
+    doc["escCrawlMaxOffMs"] = g_state->escCrawlMaxOffMs;
     doc["gpThrottleDZ"]   = g_state->gpThrottleDZ;
     doc["gpSteerDZ"]      = g_state->gpSteerDZ;
     doc["enableScan"]     = g_state->enableScan;
@@ -331,6 +334,9 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     if (doc.containsKey("escBrakeMs"))  state->escBrakeMs  = doc["escBrakeMs"];
     if (doc.containsKey("escRearmMs"))  state->escRearmMs  = doc["escRearmMs"];
     if (doc.containsKey("motorInvert")) state->motorInvert = (doc["motorInvert"] != 0);
+    if (doc.containsKey("escCrawlEnabled")) state->escCrawlEnabled = (doc["escCrawlEnabled"] != 0);
+    if (doc.containsKey("escCrawlOnMs")) state->escCrawlOnMs = doc["escCrawlOnMs"];
+    if (doc.containsKey("escCrawlMaxOffMs")) state->escCrawlMaxOffMs = doc["escCrawlMaxOffMs"];
     if (doc.containsKey("gpThrottleDZ")) state->gpThrottleDZ = doc["gpThrottleDZ"];
     if (doc.containsKey("gpSteerDZ"))    state->gpSteerDZ    = doc["gpSteerDZ"];
     state->enableScan     = doc["enableScan"];
@@ -377,6 +383,9 @@ static esp_err_t post_config_handler(httpd_req_t *req) {
     nvs_put_u32("escBrakeMs",     state->escBrakeMs);
     nvs_put_u32("escRearmMs",     state->escRearmMs);
     nvs_put_bool("motorInvert",   state->motorInvert);
+    nvs_put_bool("escCrawlEn",    state->escCrawlEnabled);
+    nvs_put_u32("escCrawlOnMs",   state->escCrawlOnMs);
+    nvs_put_u32("escCrawlOffMs",  state->escCrawlMaxOffMs);
     nvs_put_u32("gpThrottleDZ",   state->gpThrottleDZ);
     nvs_put_u32("gpSteerDZ",      state->gpSteerDZ);
     nvs_put_u32("enableScan",     state->enableScan);
@@ -746,6 +755,9 @@ static esp_err_t get_config_backup_handler(httpd_req_t *req) {
     doc["escBrakeMs"]      = nvs_get_u32_or("escBrakeMs", 200);
     doc["escRearmMs"]      = nvs_get_u32_or("escRearmMs", 120);
     doc["motorInvert"]     = nvs_get_bool_or("motorInvert", false) ? 1 : 0;
+    doc["escCrawlEnabled"] = nvs_get_bool_or("escCrawlEn", false) ? 1 : 0;
+    doc["escCrawlOnMs"]    = nvs_get_u32_or("escCrawlOnMs", 80);
+    doc["escCrawlMaxOffMs"] = nvs_get_u32_or("escCrawlOffMs", 400);
     doc["gpThrottleDZ"]    = nvs_get_u32_or("gpThrottleDZ", 20);
     doc["gpSteerDZ"]       = nvs_get_u32_or("gpSteerDZ",    20);
     doc["enableScan"]      = nvs_get_u32_or("enableScan", 0);
@@ -817,6 +829,9 @@ static esp_err_t post_config_restore_handler(httpd_req_t *req) {
     if (doc.containsKey("escBrakeMs"))     nvs_put_u32("escBrakeMs",     doc["escBrakeMs"]);
     if (doc.containsKey("escRearmMs"))     nvs_put_u32("escRearmMs",     doc["escRearmMs"]);
     if (doc.containsKey("motorInvert"))    nvs_put_bool("motorInvert",   (bool)(doc["motorInvert"] != 0));
+    if (doc.containsKey("escCrawlEnabled")) nvs_put_bool("escCrawlEn",   (bool)(doc["escCrawlEnabled"] != 0));
+    if (doc.containsKey("escCrawlOnMs"))   nvs_put_u32("escCrawlOnMs",   doc["escCrawlOnMs"]);
+    if (doc.containsKey("escCrawlMaxOffMs")) nvs_put_u32("escCrawlOffMs", doc["escCrawlMaxOffMs"]);
     if (doc.containsKey("gpThrottleDZ"))   nvs_put_u32("gpThrottleDZ",   doc["gpThrottleDZ"]);
     if (doc.containsKey("gpSteerDZ"))      nvs_put_u32("gpSteerDZ",      doc["gpSteerDZ"]);
     if (doc.containsKey("enableScan"))     nvs_put_u32("enableScan",     doc["enableScan"]);

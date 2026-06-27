@@ -172,6 +172,9 @@ void initPreferences() {
     vehicleState.escBrakeMs      = preferences.getUInt("escBrakeMs", 200);
     vehicleState.escRearmMs      = preferences.getUInt("escRearmMs", 120);
     vehicleState.motorInvert     = preferences.getBool("motorInvert", false);
+    vehicleState.escCrawlEnabled  = preferences.getBool("escCrawlEn", false);
+    vehicleState.escCrawlOnMs     = preferences.getUInt("escCrawlOnMs", 80);
+    vehicleState.escCrawlMaxOffMs = preferences.getUInt("escCrawlOffMs", 400);
     vehicleState.escCalibrating  = false;
     vehicleState.escTargetSpeed  = 0;
     vehicleState.escTargetForward = true;

@@ -43,6 +43,26 @@ static int64_t  s_esc_phase_us = 0;
 // volver a pedir reversa (reversa→neutral→reversa) entra directo SIN repetir el baile
 // freno→neutral. Sólo el avance resetea el cebado.
 static bool s_esc_rev_primed = false;
+
+// Modo crawl: pulsa el throttle (patada al umbral de arranque + gap en neutral) para
+// promediar velocidades por debajo del mínimo continuo del motor.
+static bool    s_crawl_on = false;
+static int64_t s_crawl_us = 0;
+
+// Togglea kick/gap según los tiempos. true = sacar la patada; false = neutral.
+static bool crawl_kick_now(int64_t now, int64_t onUs, int64_t offUs) {
+    if (s_crawl_on) { if (now - s_crawl_us >= onUs)  { s_crawl_on = false; s_crawl_us = now; } }
+    else            { if (now - s_crawl_us >= offUs) { s_crawl_on = true;  s_crawl_us = now; } }
+    return s_crawl_on;
+}
+
+// Gap (µs) para una velocidad pedida d en (0, escMinSpeed): más lento → más gap, capado.
+static int64_t crawl_off_us(VehicleState* st, uint32_t d) {
+    if (d == 0) return (int64_t)st->escCrawlMaxOffMs * 1000LL;
+    int64_t off = (int64_t)st->escCrawlOnMs * (int64_t)(st->escMinSpeed - d) / (int64_t)d;
+    int64_t cap = (int64_t)st->escCrawlMaxOffMs;
+    return (off > cap ? cap : off) * 1000LL;
+}
 // Tiempos de freno/rearme configurables (state->escBrakeMs / escRearmMs, en ms).
 
 static void servo_write_angle(int degrees) {
@@ -262,6 +282,7 @@ void stopMotors(VehicleState* state) {
         state->escTargetSpeed = 0;
         state->brakeActive = false;
         s_esc_phase = ESC_PHASE_NEUTRAL;
+        s_crawl_on = false;
         if (!state->escCalibrating) esc_write_us(state->escCenterUs);
     } else {
         gpio_set_level((gpio_num_t)state->pinMotorDir1, 0);
@@ -335,10 +356,12 @@ void updateEsc(VehicleState* state) {
     }
 
     int s = state->escTargetSpeed;
+    int64_t now = esp_timer_get_time();
 
     if (s == 0) {
         esc_write_us(state->escCenterUs);
         s_esc_phase = ESC_PHASE_NEUTRAL;
+        s_crawl_on = false;
         return;
     }
 
@@ -348,18 +371,37 @@ void updateEsc(VehicleState* state) {
     if (state->motorInvert) fwd = !fwd;
 
     if (fwd) {
+        s_esc_phase = ESC_PHASE_FORWARD;
+        s_esc_rev_primed = false;  // el avance resetea el cebado de reversa del ESC
+
+        // Modo crawl: por debajo del umbral de arranque, pulsar el throttle (patada + gap).
+        if (state->escCrawlEnabled) {
+            uint32_t d = (uint32_t)((uint64_t)s * state->escMaxSpeed / 1023);  // sin piso
+            if (d > 0 && d < state->escMinSpeed) {
+                uint32_t kickPulse = state->escCenterUs +
+                    (uint32_t)((uint64_t)state->escMinSpeed * (state->escMaxUs - state->escCenterUs) / 1023);
+                bool kick = crawl_kick_now(now, (int64_t)state->escCrawlOnMs * 1000LL, crawl_off_us(state, d));
+                esc_write_us(kick ? kickPulse : state->escCenterUs);
+                return;
+            }
+            // d >= escMinSpeed: continuo (sin piso, ya supera el umbral)
+            s_crawl_on = false;
+            uint32_t pulse = state->escCenterUs +
+                (uint32_t)((uint64_t)d * (state->escMaxUs - state->escCenterUs) / 1023);
+            esc_log_change(s, d, pulse);
+            esc_write_us(pulse);
+            return;
+        }
+
         uint32_t scaled = esc_scale_speed(s, state->escMinSpeed, state->escMaxSpeed);
         uint32_t pulse = state->escCenterUs +
             (uint32_t)((uint64_t)scaled * (state->escMaxUs - state->escCenterUs) / 1023);
         esc_log_change(s, scaled, pulse);
         esc_write_us(pulse);
-        s_esc_phase = ESC_PHASE_FORWARD;
-        s_esc_rev_primed = false;  // el avance resetea el cebado de reversa del ESC
         return;
     }
 
     // Reversa: secuencia automática FRENO → NEUTRAL → REVERSA, limitada por escMaxSpeedRev.
-    int64_t now = esp_timer_get_time();
     int64_t brakeUs = (int64_t)state->escBrakeMs * 1000LL;
     int64_t rearmUs = (int64_t)state->escRearmMs * 1000LL;
     uint32_t scaledRev = esc_scale_speed(s, state->escMinSpeed, state->escMaxSpeedRev);
@@ -400,9 +442,21 @@ void updateEsc(VehicleState* state) {
             }
             break;
         case ESC_PHASE_REVERSE:
+            s_esc_rev_primed = true;  // ESC cebado: próxima reversa (tras neutral) será directa
+            // Modo crawl en reversa: por debajo del umbral, pulsar (patada + gap). El gap a
+            // neutral no desceba (sólo el avance lo hace), así cada patada entra directa.
+            if (state->escCrawlEnabled) {
+                uint32_t dRev = (uint32_t)((uint64_t)s * state->escMaxSpeedRev / 1023);  // sin piso
+                if (dRev > 0 && dRev < state->escMinSpeed) {
+                    uint32_t kickPulse = esc_rev_pulse(state, state->escMinSpeed);
+                    bool kick = crawl_kick_now(now, (int64_t)state->escCrawlOnMs * 1000LL, crawl_off_us(state, dRev));
+                    esc_write_us(kick ? kickPulse : state->escCenterUs);
+                    break;
+                }
+                s_crawl_on = false;
+            }
             esc_log_change(-s, scaledRev, revPulse);
             esc_write_us(revPulse);  // reversa real, escalada por velocidad
-            s_esc_rev_primed = true;  // ESC cebado: próxima reversa (tras neutral) será directa
             break;
     }
 }

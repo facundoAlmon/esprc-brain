@@ -70,7 +70,7 @@ Este no es solo un coche a RC, es una plataforma abierta para que puedas experim
     -   **Control Avanzado de Luces LED:** Personaliza las luces de tu coche (WS2812B). Crea grupos de LEDs y asígnales funciones como luz de posición, freno, marcha atrás, intermitentes, luz de interior o neón (Underglow). La configuración se puede importar y exportar.
     -   **Gestión del Sistema:** Reinicia el ESP32 o restaura la configuración de fábrica con un solo clic.
 
--   **⚙️ Motor de tracción DC o Brushless (ESC):** Elegí desde la webapp entre un **motor DC** (vía driver L298N) o un **motor brushless con ESC** (ej. Spektrum SPMXSM1300 + SPMXSE1085), sin recompilar. En modo ESC el firmware genera la señal PWM tipo servo, automatiza la secuencia de reversa (*freno → neutral → reversa*), incluye un **asistente de calibración** del ESC y permite ajustar velocidades, zona muerta y tiempos de reversa. También hay un **botón de freno** dedicado y umbrales configurables para el gamepad Bluetooth.
+-   **⚙️ Motor de tracción DC o Brushless (ESC):** Elegí desde la webapp entre un **motor DC** (vía driver L298N) o un **motor brushless con ESC** (ej. Spektrum SPMXSM1300 + SPMXSE1085), sin recompilar. En modo ESC el firmware genera la señal PWM tipo servo, automatiza la secuencia de reversa (*freno → neutral → reversa*), incluye un **asistente de calibración** del ESC y permite ajustar velocidades (avance/reversa independientes), umbral de arranque, inversión de sentido, tiempos de reversa y un **modo crawl** para andar más lento que el mínimo del motor. También hay un **botón de freno** dedicado y umbrales configurables para el gamepad Bluetooth.
 
 -   **🔌 Pines GPIO configurables:** Todos los pines del hardware (motor, servos de dirección y cámara, tira LED) se pueden cambiar desde la webapp sin recompilar. La configuración se guarda en NVS y se aplica tras un reboot automático. El botón "Reset to Defaults" restaura los valores de fábrica según el chip compilado (ESP32 / ESP32-C6).
 
@@ -402,13 +402,16 @@ En esta sección se ajustan los parámetros físicos del coche.
   <li><strong>Ajustes de Aceleración:</strong>
     <ul>
       <li><strong>Tipo de Motor:</strong> Elegí entre <strong>Motor DC (L298N)</strong> o <strong>Brushless + ESC</strong> (ej. Spektrum SPMXSM1300 + ESC SPMXSE1085). Cambiar el tipo reinicia el ESP automáticamente porque reconfigura el periférico del pin del motor.</li>
-      <li><strong>Velocidad Máxima / Mínima:</strong> Limita la potencia máxima y define el mínimo para que el motor empiece a moverse. En modo ESC, el mínimo sirve además para vencer la zona muerta del ESC.</li>
+      <li><strong>Velocidad Máxima / Mínima:</strong> Limita la potencia máxima y define el mínimo para que el motor empiece a moverse. En modo ESC, la <strong>Velocidad Mín. (arranque)</strong> es clave: como un brushless sensorless no gira por debajo de cierto umbral, conviene ponerla en ese umbral (~100) para que el auto se mueva apenas tocás el stick.</li>
     </ul>
   </li>
   <li><strong>Motor Brushless + ESC</strong> (solo en modo ESC):
     <ul>
       <li><strong>Señal:</strong> El ESC se controla con una señal PWM tipo servo (1000–2000 µs, neutral 1500) por el <strong>mismo pin del motor</strong> (no hace falta un pin nuevo); el GND debe ser común entre ESC y ESP.</li>
-      <li><strong>Tiempos de reversa:</strong> Los ESC de auto exigen frenar antes de invertir. El firmware automatiza la secuencia <em>freno → neutral → reversa</em> para que "tirar atrás" termine en reversa sin soltar y reapretar. Los tiempos de <strong>freno</strong> y <strong>rearme</strong> son configurables (0 = reversa casi instantánea).</li>
+      <li><strong>Velocidad Máx. Reversa:</strong> Límite de velocidad de reversa independiente del de avance.</li>
+      <li><strong>Invertir sentido:</strong> Toggle para invertir adelante/reversa por software. <em>(Lo ideal para corregir el sentido físico es intercambiar 2 de los 3 cables del motor brushless o el Motor Rotation del ESC.)</em></li>
+      <li><strong>Tiempos de reversa:</strong> Los ESC de auto exigen frenar antes de invertir. El firmware automatiza la secuencia <em>freno → neutral → reversa</em> para que "tirar atrás" termine en reversa sin soltar y reapretar. Los tiempos de <strong>freno</strong> y <strong>rearme</strong> son configurables (0 = reversa casi instantánea). Si venís de reversa (sin avance en el medio), reentra directo sin repetir la secuencia.</li>
+      <li><strong>Modo Crawl (baja velocidad):</strong> Para andar <em>más lento que el mínimo del motor</em>, pulsa el throttle ("patadas" cortas + huecos en neutral). Configurable: <strong>tiempo de patada</strong> y <strong>gap máximo</strong>. Es a tirones por naturaleza (sensorless), pero permite crawl real. Aplica a avance y reversa.</li>
       <li><strong>Calibración de pulsos (avanzado):</strong> Pulsos de reversa/neutral/avance en µs, y un <strong>asistente de calibración</strong> del ESC (Neutral → Acelerador máx → Freno máx, siguiendo el botón SET del ESC).</li>
     </ul>
   </li>

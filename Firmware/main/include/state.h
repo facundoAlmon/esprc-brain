@@ -81,6 +81,9 @@ struct VehicleState {
     unsigned int escBrakeMs;        //< Duración del freno inicial antes de rearmar reversa (ms).
     unsigned int escRearmMs;        //< Duración del neutral de rearme antes de aplicar reversa (ms).
     bool motorInvert;               //< Invierte el sentido de marcha (DC y ESC).
+    bool escCrawlEnabled;           //< Modo crawl: pulsa el throttle para ir más lento que el mínimo.
+    unsigned int escCrawlOnMs;      //< Duración de cada "patada" del crawl (ms).
+    unsigned int escCrawlMaxOffMs;  //< Gap máximo entre patadas (ms) = crawl más lento.
     bool escCalibrating;            //< Runtime-only: bloquea setMotor durante la calibración del ESC (no se persiste).
     int  escTargetSpeed;            //< Runtime-only: magnitud de throttle ESC deseada (0-1023); la escribe updateEsc.
     bool escTargetForward;          //< Runtime-only: dirección deseada del ESC (true=adelante).
